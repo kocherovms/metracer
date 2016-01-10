@@ -1,5 +1,5 @@
 /*
- * Copyright 2015 Michael Kocherov
+ * Copyright 2015-2016 Michael Kocherov
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -25,10 +25,7 @@ class TracingCodeInjector {
 	static final String MetracedSuffix = "_com_develorium_metraced";
 	static final AtomicInteger MetracerNonce = new AtomicInteger();
 
-	public boolean injectTracingCode(CtClass theClass, CtMethod theMethod) throws NotFoundException, CannotCompileException {
-		if(!isMethodInstrumentable(theMethod))
-			return false;
-
+	public void injectTracingCode(CtClass theClass, CtMethod theMethod) throws NotFoundException, CannotCompileException {
 		String methodNameForPrinting = String.format("%s.%s", theClass.getName(), theMethod.getName());
 		String originalMethodName = theMethod.getName();
 		// Adding nonce is req-d to avoid unwanted downstream (Base->Inherited) virtual calls from _metraced methods
@@ -79,9 +76,8 @@ class TracingCodeInjector {
 		body.append("}");
 		body.append("}");
 		theMethod.setBody(body.toString());
-		return true;
 	}
-	private boolean isMethodInstrumentable(CtMethod theMethod) {
+	public boolean isMethodInstrumentable(CtMethod theMethod) {
 		// Do not try to patch ourselves
 		if(theMethod.getLongName().startsWith(selfPackageName))
 			return false;

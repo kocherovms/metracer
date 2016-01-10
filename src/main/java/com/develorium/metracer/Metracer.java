@@ -1,5 +1,5 @@
 /*
- * Copyright 2015 Michael Kocherov
+ * Copyright 2015-2016 Michael Kocherov
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -96,7 +96,7 @@ public class Metracer implements ClassFileTransformer {
 			for (final Object ann : annotations) {
 				if (ann instanceof Traced) {
 					try {
-						if(injector.injectTracingCode(theClass, method))
+						if(instrumentMethod(theClass, method))
 							wasInstrumented = true;
 					} catch (Exception e) {
 						System.err.format("Failed to add tracing to method %1$s: %2$s\n", 
@@ -116,7 +116,7 @@ public class Metracer implements ClassFileTransformer {
 				final String methodNameForPatternMatching = String.format("%1$s::%2$s", theClass.getName(), method.getName());
 				
 				if(pattern.matcher(methodNameForPatternMatching).find(0)) {
-					if(injector.injectTracingCode(theClass, method))
+					if(instrumentMethod(theClass, method))
 						wasInstrumented = true;
 				}
 			} catch (Exception e) {
@@ -126,5 +126,17 @@ public class Metracer implements ClassFileTransformer {
 		}
 
 		return wasInstrumented;
+	}
+	private boolean instrumentMethod(CtClass theClass, CtMethod theMethod) throws java.lang.Exception {
+		try {
+			if(!injector.isMethodInstrumentable(theMethod)) 
+				return false;
+
+			injector.injectTracingCode(theClass, theMethod);
+			return true;
+		} catch (Exception e) {
+			System.err.format("Failed to add tracing to method %1$s: %2$s\n", theMethod.getLongName(), e.toString());
+			throw e;
+		}
 	}
 }
