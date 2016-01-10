@@ -26,6 +26,7 @@ public class Metracer implements ClassFileTransformer {
 	private Pattern pattern = null;
 	private ClassPools classPools = new ClassPools();
 	private TracingCodeInjector injector = new TracingCodeInjector();
+	private Runtime runtime = new Runtime(); // to force loading of Runtime
 
 	public Metracer(String theArguments) {
 		if(theArguments == null)
@@ -60,10 +61,18 @@ public class Metracer implements ClassFileTransformer {
 				return classfileBuffer;
 			}
 
-			boolean wasInstrumented = instrumentViaAnnotation(cc);
+			boolean wasInstrumented = false; //instrumentViaAnnotation(cc);
 
 			if(!wasInstrumented && pattern != null)
 				wasInstrumented = instrumentViaPattern(cc);
+
+			if(canonicalClassName.indexOf("org.hibernate.loader.Loader") >= 0){
+				while(loader != null) {
+					System.out.println("kms@ loader = " + loader.toString());
+					loader = loader.getParent();
+				}
+			}
+
 		
 			if(wasInstrumented) {
 				try {
@@ -82,6 +91,7 @@ public class Metracer implements ClassFileTransformer {
 	}
 	private boolean instrumentViaAnnotation(CtClass theClass) {
 		boolean wasInstrumented = false;
+		TracingCodeInjector.Logger logger = new TracingCodeInjector.Logger();
 
 		for(CtMethod method : theClass.getDeclaredMethods()) {
 			Object[] annotations = null;
@@ -93,15 +103,17 @@ public class Metracer implements ClassFileTransformer {
 				continue;
 			}
 			
-			for (final Object ann : annotations) {
-				if (ann instanceof Traced) {
+			for(Object ann : annotations) {
+				if(ann instanceof Traced) {
 					try {
-						if(injector.injectTracingCode(theClass, method))
+						if(instrumentMethod(theClass, method, logger))
 							wasInstrumented = true;
-					} catch (Exception e) {
-						System.err.format("Failed to add tracing to method %1$s: %2$s\n", 
-								  method.getLongName(), e.toString());
+					} catch(Exception e) {
+						// Failure to instrument a method typically leads to a malformed class
+						return false;
 					}
+
+					break;
 				}
 			}
 		}
@@ -110,21 +122,36 @@ public class Metracer implements ClassFileTransformer {
 	}
 	private boolean instrumentViaPattern(CtClass theClass) {
 		boolean wasInstrumented = false;
+		TracingCodeInjector.Logger logger = new TracingCodeInjector.Logger();
 
 		for(CtMethod method : theClass.getDeclaredMethods()) {
-			try {
-				final String methodNameForPatternMatching = String.format("%1$s::%2$s", theClass.getName(), method.getName());
-				
-				if(pattern.matcher(methodNameForPatternMatching).find(0)) {
-					if(injector.injectTracingCode(theClass, method))
+			String methodNameForPatternMatching = String.format("%1$s::%2$s", theClass.getName(), method.getName());
+
+			if(pattern.matcher(methodNameForPatternMatching).find(0)) {
+				try {
+					if(instrumentMethod(theClass, method, logger))
 						wasInstrumented = true;
+				} catch(Exception e) {
+					return false;
 				}
-			} catch (Exception e) {
-				System.err.format("Failed to add tracing to method %1$s: %2$s\n", 
-						  method.getLongName(), e.toString());
 			}
 		}
 
 		return wasInstrumented;
+	}
+	private boolean instrumentMethod(CtClass theClass, CtMethod theMethod, TracingCodeInjector.Logger theLogger) throws java.lang.Exception {
+		try {
+			if(!injector.isMethodInstrumentable(theMethod)) 
+				return false;
+
+			if(!theLogger.isInitialized())
+				injector.initializeLogger(theClass, theLogger);
+
+			injector.injectTracingCode(theClass, theMethod, theLogger);
+			return true;
+		} catch (Exception e) {
+			System.err.format("Failed to add tracing to method %1$s: %2$s\n", theMethod.getLongName(), e.toString());
+			throw e;
+		}
 	}
 }
