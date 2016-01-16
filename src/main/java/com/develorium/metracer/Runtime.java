@@ -42,7 +42,7 @@ public class Runtime {
 		Field[] fields = theClass.getDeclaredFields();
 
 		for(Field field: fields) {
-			System.out.println("kms@ learnClass " + theClass.getName() + ", field " + field.getName());
+			System.out.println("kms@ learnClass " + theClass.getName() + ", field " + field.getName() + " of " + field.getType().getName());
 		}
 	}
 
