@@ -42,7 +42,23 @@ public class Runtime {
 		Field[] fields = theClass.getDeclaredFields();
 
 		for(Field field: fields) {
-			System.out.println("kms@ learnClass " + theClass.getName() + ", field " + field.getName() + " of " + field.getType().getName());
+			//System.out.println("kms@ learnClass " + theClass.getName() + ", field " + field.getName() + " of " + field.getType().getName());
+			Class c = field.getType();
+			
+			if(c != null && Modifier.isStatic(c.getModifiers()) && c.getName().equals("org.slf4j.Logger")) {
+				boolean isLoggerAccessible = field.isAccessible();
+				try {
+					field.setAccessible(true);
+					try {
+						Object logger = field.get(null);
+						System.out.println("kms@ learnClass " + theClass.getName() + " logger detected! " + field.getName());
+					} catch(Exception e) {
+						// ...
+					}
+				} finally { 
+					field.setAccessible(isLoggerAccessible);
+				}
+			}
 		}
 	}
 
