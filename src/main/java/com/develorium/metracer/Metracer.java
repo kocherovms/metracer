@@ -61,7 +61,7 @@ public class Metracer implements ClassFileTransformer {
 				return classfileBuffer;
 			}
 
-			boolean wasInstrumented = instrumentViaAnnotation(cc);
+			boolean wasInstrumented = false; //instrumentViaAnnotation(cc);
 
 			if(!wasInstrumented && pattern != null)
 				wasInstrumented = instrumentViaPattern(cc);
