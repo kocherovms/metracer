@@ -17,6 +17,12 @@
 package com.develorium.metracertest;
 
 public class Unannotated {
+	static String staticString = "hello, world";
+
+	static {
+		System.out.println("value of a staticString = " + staticString);
+	}
+
 	public static void main( String[] args ) {
 		testA();
 		int res = testB(false, true);

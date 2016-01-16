@@ -21,11 +21,54 @@ import javassist.*;
 import javassist.bytecode.*;
 
 class TracingCodeInjector {
-	private String selfPackageName = this.getClass().getPackage().getName() + ".";;
-	static final String MetracedSuffix = "_com_develorium_metraced";
+	private String selfPackageName = this.getClass().getPackage().getName() + ".";
+	static final String CommonIdentity = "com_develorium_metracer";
+	static final String MetracedSuffix = "_" + CommonIdentity;
+	static final String RuntimeFieldName = CommonIdentity + "_runtime";
 	static final AtomicInteger MetracerNonce = new AtomicInteger();
 
+	public boolean isMethodInstrumentable(CtMethod theMethod) {
+		// Do not try to patch ourselves
+		if(theMethod.getLongName().startsWith(selfPackageName))
+			return false;
+		// Do not try to patch interface / abstract / native methods
+		int modifiers = theMethod.getModifiers();
+		return !Modifier.isInterface(modifiers) && !Modifier.isAbstract(modifiers) && !Modifier.isNative(modifiers);
+	}
+
+	public void injectRuntimeReference(CtClass theClass) throws NotFoundException, CannotCompileException {
+		CtClass javaLangObject = theClass.getClassPool().get("java.lang.Object");
+		CtField runtimeField = new CtField(javaLangObject, RuntimeFieldName, theClass);
+		runtimeField.setModifiers(Modifier.STATIC);
+		theClass.addField(runtimeField, CtField.Initializer.byExpr("null;"));
+
+		CtConstructor staticConstructor = theClass.makeClassInitializer();
+
+		if(staticConstructor != null) {
+			String clFieldName = CommonIdentity + "cl";
+			StringBuilder runtimeResolutionCode = new StringBuilder();
+			runtimeResolutionCode.append(String.format("java.lang.ClassLoader %1$s = %2$s.class.getClassLoader();", clFieldName, theClass.getName()));
+			runtimeResolutionCode.append(String.format("while(%1$s != null) {", clFieldName));
+			runtimeResolutionCode.append(String.format(" java.lang.Class c = Class.forName(\"%1$s\", false, %2$s);", Runtime.class.getName(), clFieldName));
+			runtimeResolutionCode.append(String.format(" if(c != null) {"));
+			runtimeResolutionCode.append(String.format("  java.lang.reflect.Method __getInstanceMethod = c.getMethod(\"getInstance\", null);"));
+			runtimeResolutionCode.append(String.format("  %1$s = __getInstanceMethod.invoke(null, null);", RuntimeFieldName));
+			runtimeResolutionCode.append(String.format("  java.lang.Class[] __learnClassMethodArgumentTypes = { java.lang.Class.class };"));
+			runtimeResolutionCode.append(String.format("  java.lang.reflect.Method __learnClassMethod = c.getMethod(\"learnClass\", __learnClassMethodArgumentTypes);"));
+			runtimeResolutionCode.append(String.format("  java.lang.Class[] __learnClassMethodArguments = { %1$s.class };", theClass.getName()));
+			runtimeResolutionCode.append(String.format("  __learnClassMethod.invoke(%1$s, __learnClassMethodArguments);", RuntimeFieldName));
+			runtimeResolutionCode.append(String.format("  break;"));
+			runtimeResolutionCode.append(String.format(" }"));
+			runtimeResolutionCode.append(String.format(" %1$s = %1$s.getParent();", clFieldName));
+			runtimeResolutionCode.append(String.format("}"));
+			staticConstructor.insertAfter(runtimeResolutionCode.toString());
+		}
+	}
+
 	public void injectTracingCode(CtClass theClass, CtMethod theMethod) throws NotFoundException, CannotCompileException {
+		if(true)
+			return;
+
 		String methodNameForPrinting = String.format("%s.%s", theClass.getName(), theMethod.getName());
 		String originalMethodName = theMethod.getName();
 		// Adding nonce is req-d to avoid unwanted downstream (Base->Inherited) virtual calls from _metraced methods
@@ -77,14 +120,7 @@ class TracingCodeInjector {
 		body.append("}");
 		theMethod.setBody(body.toString());
 	}
-	public boolean isMethodInstrumentable(CtMethod theMethod) {
-		// Do not try to patch ourselves
-		if(theMethod.getLongName().startsWith(selfPackageName))
-			return false;
-		// Do not try to patch interface / abstract / native methods
-		int modifiers = theMethod.getModifiers();
-		return !Modifier.isInterface(modifiers) && !Modifier.isAbstract(modifiers) && !Modifier.isNative(modifiers);
-	}
+
 	private String getArgumentPrintingCode(CtMethod theMethod, String theResultHolderName) {
 		StringBuilder rv = new StringBuilder();
 		// Generated code tries to avoid unnecessary objects' creation. 
