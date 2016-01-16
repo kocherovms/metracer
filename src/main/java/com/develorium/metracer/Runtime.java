@@ -17,6 +17,7 @@
 package com.develorium.metracer;
 
 import java.util.concurrent.*;
+import java.lang.reflect.*;
 
 public class Runtime {
 	private static Runtime instance = new Runtime();
@@ -38,6 +39,11 @@ public class Runtime {
 
 	public void learnClass(Class theClass) {
 		System.out.println("kms@ learnClass " + theClass.getName());
+		Field[] fields = theClass.getDeclaredFields();
+
+		for(Field field: fields) {
+			System.out.println("kms@ learnClass " + theClass.getName() + ", field " + field.getName());
+		}
 	}
 
 	public void log(String theMessage) {

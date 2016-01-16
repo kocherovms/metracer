@@ -49,19 +49,9 @@ class TracingCodeInjector {
 			StringBuilder runtimeResolutionCode = new StringBuilder();
 			runtimeResolutionCode.append(String.format("java.lang.ClassLoader %1$s = %2$s.class.getClassLoader();", clFieldName, theClass.getName()));
 			runtimeResolutionCode.append(String.format("while(%1$s != null) {", clFieldName));
-			//runtimeResolutionCode.append(String.format(" try {"));
-			//runtimeResolutionCode.append(String.format("  java.lang.Class c = Class.forName(\"%1$s\", false, %2$s);", Runtime.class.getName(), clFieldName));
-			//runtimeResolutionCode.append(String.format("  java.lang.Class c = %1$s.findLoadedClass(\"%2$s\");", clFieldName, Runtime.class.getName()));
-
-			//runtimeResolutionCode.append(String.format("  java.lang.Class c = %1$s.findLoadedClass(\"%2$s\");", clFieldName, Runtime.class.getName()));
-
 			runtimeResolutionCode.append(String.format(" java.lang.reflect.Field f = java.lang.ClassLoader.class.getDeclaredField(\"classes\");"));
 			runtimeResolutionCode.append(String.format(" f.setAccessible(true);"));
 			runtimeResolutionCode.append(String.format(" java.util.Vector classes = (java.util.Vector)f.get(%1$s);", clFieldName));
-			//runtimeResolutionCode.append(String.format(" java.util.Vector classes = null;"));
-			//runtimeResolutionCode.append(String.format(" java.util.Vector<java.lang.Class> classes = null;"));
-			//runtimeResolutionCode.append(String.format(" f.get(%1$s);", clFieldName));
-
 			runtimeResolutionCode.append(String.format(" for(int i = 0; i < classes.size(); i++) {"));
 			runtimeResolutionCode.append(String.format("  java.lang.Class c = (java.lang.Class)classes.get(i);", Runtime.class.getName()));
 			runtimeResolutionCode.append(String.format("  if(c != null && c.getName().equals(\"%1$s\")) {", Runtime.class.getName()));
@@ -74,8 +64,6 @@ class TracingCodeInjector {
 			runtimeResolutionCode.append(String.format("   break;"));
 			runtimeResolutionCode.append(String.format("  }"));
 			runtimeResolutionCode.append(String.format(" }"));
-			//runtimeResolutionCode.append(String.format(" } catch(Exception e) {"));
-			//runtimeResolutionCode.append(String.format(" }"));
 			runtimeResolutionCode.append(String.format(" %1$s = %1$s.getParent();", clFieldName));
 			runtimeResolutionCode.append(String.format("}"));
 			staticConstructor.insertAfter(runtimeResolutionCode.toString());
