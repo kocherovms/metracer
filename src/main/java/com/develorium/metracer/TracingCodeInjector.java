@@ -37,40 +37,47 @@ class TracingCodeInjector {
 	}
 
 	public void injectRuntimeReference(CtClass theClass) throws NotFoundException, CannotCompileException {
-		CtClass javaLangObject = theClass.getClassPool().get("java.lang.Object");
+		if(true)
+			return;
+
+		//CtClass javaLangObject = theClass.getClassPool().get("java.lang.Object");
+		CtClass javaLangObject = theClass.getClassPool().get("com.develorium.metracer.Runtime");
+		//CtClass javaLangObject = theClass.getClassPool().get("javax.management.ObjectName");
 		CtField runtimeField = new CtField(javaLangObject, RuntimeFieldName, theClass);
 		runtimeField.setModifiers(Modifier.STATIC);
 		theClass.addField(runtimeField, CtField.Initializer.byExpr("null;"));
 
-		CtConstructor staticConstructor = theClass.makeClassInitializer();
-
-		if(staticConstructor != null) {
-			String clFieldName = CommonIdentity + "cl";
-			StringBuilder runtimeResolutionCode = new StringBuilder();
-			runtimeResolutionCode.append(String.format("java.lang.ClassLoader %1$s = %2$s.class.getClassLoader();", clFieldName, theClass.getName()));
-			runtimeResolutionCode.append(String.format("while(%1$s != null) {", clFieldName));
-			runtimeResolutionCode.append(String.format(" java.lang.reflect.Field f = java.lang.ClassLoader.class.getDeclaredField(\"classes\");"));
-			runtimeResolutionCode.append(String.format(" f.setAccessible(true);"));
-			runtimeResolutionCode.append(String.format(" java.util.Vector classes = (java.util.Vector)f.get(%1$s);", clFieldName));
-			runtimeResolutionCode.append(String.format(" for(int i = 0; i < classes.size(); i++) {"));
-			runtimeResolutionCode.append(String.format("  java.lang.Class c = (java.lang.Class)classes.get(i);", Runtime.class.getName()));
-			runtimeResolutionCode.append(String.format("  if(c != null && c.getName().equals(\"%1$s\")) {", Runtime.class.getName()));
-			runtimeResolutionCode.append(String.format("   java.lang.reflect.Method __getInstanceMethod = c.getMethod(\"getInstance\", null);"));
-			runtimeResolutionCode.append(String.format("   %1$s = __getInstanceMethod.invoke(null, null);", RuntimeFieldName));
-			runtimeResolutionCode.append(String.format("   java.lang.Class[] __learnClassMethodArgumentTypes = { java.lang.Class.class };"));
-			runtimeResolutionCode.append(String.format("   java.lang.reflect.Method __learnClassMethod = c.getMethod(\"learnClass\", __learnClassMethodArgumentTypes);"));
-			runtimeResolutionCode.append(String.format("   java.lang.Class[] __learnClassMethodArguments = { %1$s.class };", theClass.getName()));
-			runtimeResolutionCode.append(String.format("   __learnClassMethod.invoke(%1$s, __learnClassMethodArguments);", RuntimeFieldName));
-			runtimeResolutionCode.append(String.format("   break;"));
-			runtimeResolutionCode.append(String.format("  }"));
-			runtimeResolutionCode.append(String.format(" }"));
-			runtimeResolutionCode.append(String.format(" %1$s = %1$s.getParent();", clFieldName));
-			runtimeResolutionCode.append(String.format("}"));
-			staticConstructor.insertAfter(runtimeResolutionCode.toString());
-		}
+		//CtConstructor staticConstructor = theClass.makeClassInitializer();
+		//
+		//if(staticConstructor != null) {
+		//	String clFieldName = CommonIdentity + "cl";
+		//	StringBuilder runtimeResolutionCode = new StringBuilder();
+		//	runtimeResolutionCode.append(String.format("java.lang.ClassLoader %1$s = %2$s.class.getClassLoader();", clFieldName, theClass.getName()));
+		//	runtimeResolutionCode.append(String.format("while(%1$s != null) {", clFieldName));
+		//	runtimeResolutionCode.append(String.format(" java.lang.reflect.Field f = java.lang.ClassLoader.class.getDeclaredField(\"classes\");"));
+		//	runtimeResolutionCode.append(String.format(" f.setAccessible(true);"));
+		//	runtimeResolutionCode.append(String.format(" java.util.Vector classes = (java.util.Vector)f.get(%1$s);", clFieldName));
+		//	runtimeResolutionCode.append(String.format(" for(int i = 0; i < classes.size(); i++) {"));
+		//	runtimeResolutionCode.append(String.format("  java.lang.Class c = (java.lang.Class)classes.get(i);", Runtime.class.getName()));
+		//	runtimeResolutionCode.append(String.format("  if(c != null && c.getName().equals(\"%1$s\")) {", Runtime.class.getName()));
+		//	runtimeResolutionCode.append(String.format("   java.lang.reflect.Method __getInstanceMethod = c.getMethod(\"getInstance\", null);"));
+		//	runtimeResolutionCode.append(String.format("   %1$s = __getInstanceMethod.invoke(null, null);", RuntimeFieldName));
+		//	runtimeResolutionCode.append(String.format("   java.lang.Class[] __learnClassMethodArgumentTypes = { java.lang.Class.class };"));
+		//	runtimeResolutionCode.append(String.format("   java.lang.reflect.Method __learnClassMethod = c.getMethod(\"learnClass\", __learnClassMethodArgumentTypes);"));
+		//	runtimeResolutionCode.append(String.format("   java.lang.Class[] __learnClassMethodArguments = { %1$s.class };", theClass.getName()));
+		//	runtimeResolutionCode.append(String.format("   __learnClassMethod.invoke(%1$s, __learnClassMethodArguments);", RuntimeFieldName));
+		//	runtimeResolutionCode.append(String.format("   break;"));
+		//	runtimeResolutionCode.append(String.format("  }"));
+		//	runtimeResolutionCode.append(String.format(" }"));
+		//	runtimeResolutionCode.append(String.format(" %1$s = %1$s.getParent();", clFieldName));
+		//	runtimeResolutionCode.append(String.format("}"));
+		//	staticConstructor.insertAfter(runtimeResolutionCode.toString());
+		//}
 	}
 
 	public void injectTracingCode(CtClass theClass, CtMethod theMethod) throws NotFoundException, CannotCompileException {
+		theMethod.insertBefore(String.format("com.develorium.metracer.Runtime.log(\"%1$s\");", theMethod.getName()));
+
 		if(true)
 			return;
 

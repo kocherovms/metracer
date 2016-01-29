@@ -57,14 +57,22 @@ public class Metracer implements ClassFileTransformer {
 		try {
 			CtClass cc = cp.get(canonicalClassName);
 
-			if(cc.isFrozen()) {
+			if(!isInstrumentable(cc)) 
 				return classfileBuffer;
+
+			boolean wasInstrumented = false;
+
+			if(isClassLoader(cc)) {
+				System.out.println("kms@ detected classloader " + cc.getName());
+				wasInstrumented = tuneClassLoader(cc);
 			}
 
-			boolean wasInstrumented = false; //instrumentViaAnnotation(cc);
+			//if(canonicalClassName.equals("org.jboss.modules.ModuleClassLoader") || canonicalClassName.equals("org.jboss.modules.ConcurrentClassLoader")) {
+			//	wasInstrumented = instrumentClassLoader(cc);
+			//}
 
-			if(!wasInstrumented && pattern != null)
-				wasInstrumented = instrumentViaPattern(cc);
+			if(pattern != null)
+				wasInstrumented = wasInstrumented || instrumentViaPattern(cc);
 		
 			if(wasInstrumented) {
 				try {
@@ -81,33 +89,58 @@ public class Metracer implements ClassFileTransformer {
 	
 		return classfileBuffer;
 	}
+	private boolean isInstrumentable(CtClass theClass) {
+		return !theClass.isFrozen() && !theClass.isInterface();
+	}
 	static class FirstInjectionHolder {
 		public boolean v = true;
 	}
-	private boolean instrumentViaAnnotation(CtClass theClass) {
-		FirstInjectionHolder isFirstInjection = new FirstInjectionHolder();
+	private boolean isClassLoader(CtClass theClass) {
+		try {
+			while(theClass != null) {
+				if(theClass.getName().equals("java.lang.ClassLoader"))
+					return true;
+
+				theClass = theClass.getSuperclass();
+			}
+		} catch(javassist.NotFoundException e) {
+			System.err.format("Failed to qualify %1$s as a class loader: %2$s", theClass.getName(), e.toString());
+			return false;
+		}
+
+		return false;
+	}
+	// Method allows to use classes from com.develorium.metracer for class loaders with strict isolation, e.g. JBoss module class loader
+	private boolean tuneClassLoader(CtClass theClass) {
 		boolean wasInstrumented = false;
 
 		for(CtMethod method : theClass.getDeclaredMethods()) {
-			Object[] annotations = null;
 			try {
-				annotations = method.getAnnotations();
-			} catch (ClassNotFoundException e) {
-				System.err.format("Failed to get annotations of method %1$s: %2$s\n", 
-						  method.getLongName(), e.toString());
-				continue;
-			}
-			
-			for (final Object ann : annotations) {
-				if (ann instanceof Traced) {
-					try {
-						if(instrumentMethod(theClass, method, isFirstInjection))
-							wasInstrumented = true;
-					} catch (Exception e) {
-						System.err.format("Failed to add tracing to method %1$s: %2$s\n", 
-								  method.getLongName(), e.toString());
-					}
+				if(method.getName().equals("findClass")) {
+					String clFieldName = "cmdr_e6b8085c9db3473eae21204661c80d4e";
+					StringBuilder runtimeResolutionCode = new StringBuilder();
+					runtimeResolutionCode.append(String.format("if($1.startsWith(\"%1$s\")) {", this.getClass().getPackage().getName()));
+					runtimeResolutionCode.append(String.format(" java.lang.ClassLoader %1$s = $0;", clFieldName));
+					runtimeResolutionCode.append(String.format(" while(%1$s != null) {", clFieldName));
+					runtimeResolutionCode.append(String.format("  java.lang.reflect.Field f = java.lang.ClassLoader.class.getDeclaredField(\"classes\");"));
+					runtimeResolutionCode.append(String.format("  f.setAccessible(true);"));
+					runtimeResolutionCode.append(String.format("  java.util.Vector classes = (java.util.Vector)f.get(%1$s);", clFieldName));
+					runtimeResolutionCode.append(String.format("  for(int i = 0; i < classes.size(); i++) {"));
+					runtimeResolutionCode.append(String.format("   java.lang.Class c = (java.lang.Class)classes.get(i);", Runtime.class.getName()));
+					runtimeResolutionCode.append(String.format("   if(c != null && c.getName().equals(\"%1$s\")) {", Runtime.class.getName()));
+					runtimeResolutionCode.append(String.format("    return c;"));
+					runtimeResolutionCode.append(String.format("    break;"));
+					runtimeResolutionCode.append(String.format("   }"));
+					runtimeResolutionCode.append(String.format("  }"));
+					runtimeResolutionCode.append(String.format("  %1$s = %1$s.getParent();", clFieldName));
+					runtimeResolutionCode.append(String.format(" }"));
+					runtimeResolutionCode.append(String.format("}"));
+					method.insertBefore(runtimeResolutionCode.toString());
+					wasInstrumented = true;
+					break;
 				}
+			} catch (Exception e) {
+				System.err.format("Failed to tune class loader %1$s: %2$s\n", theClass.getName(), e.toString());
 			}
 		}
 

@@ -38,14 +38,16 @@ public class Runtime {
 	}
 
 	public void learnClass(Class theClass) {
-		System.out.println("kms@ learnClass " + theClass.getName());
+		System.out.println("kms@ learnClass " + theClass.getName() + ", cl " + theClass.getClassLoader().getClass().getName());
 		Field[] fields = theClass.getDeclaredFields();
 
 		for(Field field: fields) {
 			//System.out.println("kms@ learnClass " + theClass.getName() + ", field " + field.getName() + " of " + field.getType().getName());
 			Class c = field.getType();
 			
-			if(c != null && Modifier.isStatic(c.getModifiers()) && c.getName().equals("org.slf4j.Logger")) {
+			//if(c != null && Modifier.isStatic(c.getModifiers()) && c.getName().equals("org.slf4j.Logger")) {
+			if(c != null && Modifier.isStatic(field.getModifiers()) && c.getName().equals("org.slf4j.Logger")) {
+				//System.out.println("kms@ zzz learnClass " + theClass.getName() + " " + c.getModifiers() + " " + Modifier.STATIC + " " + Modifier.toString(c.getModifiers()));
 				boolean isLoggerAccessible = field.isAccessible();
 				try {
 					field.setAccessible(true);
@@ -62,7 +64,7 @@ public class Runtime {
 		}
 	}
 
-	public void log(String theMessage) {
-		
+	static public void log(String theMessage) {
+		System.out.println("kms@ victory! " + theMessage);
 	}
 }
