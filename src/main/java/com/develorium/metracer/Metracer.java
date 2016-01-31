@@ -25,8 +25,7 @@ import javassist.*;
 public class Metracer implements ClassFileTransformer {
 	private Pattern pattern = null;
 	private ClassPools classPools = new ClassPools();
-	private TracingCodeInjector injector = new TracingCodeInjector();
-	private Runtime runtime = Runtime.getInstance();
+	private Runtime runtime = new Runtime();
 
 	public Metracer(String theArguments) {
 		if(theArguments == null)
@@ -43,6 +42,7 @@ public class Metracer implements ClassFileTransformer {
 			}
 		}
 	}
+
 	public byte[] transform(ClassLoader loader, String className,
 				Class<?> classBeingRedefined, ProtectionDomain protectionDomain,
 				byte[] classfileBuffer) throws IllegalClassFormatException {
@@ -62,14 +62,8 @@ public class Metracer implements ClassFileTransformer {
 
 			boolean wasInstrumented = false;
 
-			if(isClassLoader(cc)) {
-				System.out.println("kms@ detected classloader " + cc.getName());
+			if(isClassLoader(cc))
 				wasInstrumented = tuneClassLoader(cc);
-			}
-
-			//if(canonicalClassName.equals("org.jboss.modules.ModuleClassLoader") || canonicalClassName.equals("org.jboss.modules.ConcurrentClassLoader")) {
-			//	wasInstrumented = instrumentClassLoader(cc);
-			//}
 
 			if(pattern != null)
 				wasInstrumented = wasInstrumented || instrumentViaPattern(cc);
@@ -89,12 +83,11 @@ public class Metracer implements ClassFileTransformer {
 	
 		return classfileBuffer;
 	}
+
 	private boolean isInstrumentable(CtClass theClass) {
 		return !theClass.isFrozen() && !theClass.isInterface();
 	}
-	static class FirstInjectionHolder {
-		public boolean v = true;
-	}
+
 	private boolean isClassLoader(CtClass theClass) {
 		try {
 			while(theClass != null) {
@@ -110,6 +103,7 @@ public class Metracer implements ClassFileTransformer {
 
 		return false;
 	}
+
 	// Method allows to use classes from com.develorium.metracer for class loaders with strict isolation, e.g. JBoss module class loader
 	private boolean tuneClassLoader(CtClass theClass) {
 		boolean wasInstrumented = false;
@@ -117,25 +111,7 @@ public class Metracer implements ClassFileTransformer {
 		for(CtMethod method : theClass.getDeclaredMethods()) {
 			try {
 				if(method.getName().equals("findClass")) {
-					String clFieldName = "cmdr_e6b8085c9db3473eae21204661c80d4e";
-					StringBuilder runtimeResolutionCode = new StringBuilder();
-					runtimeResolutionCode.append(String.format("if($1.startsWith(\"%1$s\")) {", this.getClass().getPackage().getName()));
-					runtimeResolutionCode.append(String.format(" java.lang.ClassLoader %1$s = $0;", clFieldName));
-					runtimeResolutionCode.append(String.format(" while(%1$s != null) {", clFieldName));
-					runtimeResolutionCode.append(String.format("  java.lang.reflect.Field f = java.lang.ClassLoader.class.getDeclaredField(\"classes\");"));
-					runtimeResolutionCode.append(String.format("  f.setAccessible(true);"));
-					runtimeResolutionCode.append(String.format("  java.util.Vector classes = (java.util.Vector)f.get(%1$s);", clFieldName));
-					runtimeResolutionCode.append(String.format("  for(int i = 0; i < classes.size(); i++) {"));
-					runtimeResolutionCode.append(String.format("   java.lang.Class c = (java.lang.Class)classes.get(i);", Runtime.class.getName()));
-					runtimeResolutionCode.append(String.format("   if(c != null && c.getName().equals(\"%1$s\")) {", Runtime.class.getName()));
-					runtimeResolutionCode.append(String.format("    return c;"));
-					runtimeResolutionCode.append(String.format("    break;"));
-					runtimeResolutionCode.append(String.format("   }"));
-					runtimeResolutionCode.append(String.format("  }"));
-					runtimeResolutionCode.append(String.format("  %1$s = %1$s.getParent();", clFieldName));
-					runtimeResolutionCode.append(String.format(" }"));
-					runtimeResolutionCode.append(String.format("}"));
-					method.insertBefore(runtimeResolutionCode.toString());
+					TracingCodeInjector.injectDirectAccessToMetracerClasses(method);
 					wasInstrumented = true;
 					break;
 				}
@@ -146,8 +122,8 @@ public class Metracer implements ClassFileTransformer {
 
 		return wasInstrumented;
 	}
+
 	private boolean instrumentViaPattern(CtClass theClass) {
-		FirstInjectionHolder isFirstInjection = new FirstInjectionHolder();
 		boolean wasInstrumented = false;
 
 		for(CtMethod method : theClass.getDeclaredMethods()) {
@@ -157,29 +133,23 @@ public class Metracer implements ClassFileTransformer {
 				if(!pattern.matcher(methodNameForPatternMatching).find(0)) 
 					continue;
 
-				if(instrumentMethod(theClass, method, isFirstInjection))
+				if(instrumentMethod(theClass, method))
 					wasInstrumented = true;
 			} catch (Exception e) {
-				System.err.format("Failed to add tracing to method %1$s: %2$s\n", 
-						  method.getLongName(), e.toString());
+				System.err.format("Failed to add tracing to method %1$s: %2$s\n", method.getLongName(), e.toString());
+				// class can be damaged in this case so don't try to proceed with half-instrumented class
+				return false;
 			}
 		}
 
 		return wasInstrumented;
 	}
-	private boolean instrumentMethod(CtClass theClass, CtMethod theMethod, FirstInjectionHolder theIsFirstInjection) throws java.lang.Exception {
-		if(!injector.isMethodInstrumentable(theMethod)) 
+
+	private boolean instrumentMethod(CtClass theClass, CtMethod theMethod) throws java.lang.Exception {
+		if(!TracingCodeInjector.isMethodInstrumentable(theMethod)) 
 			return false;
 
-		if(theIsFirstInjection.v) {
-			try {
-				injector.injectRuntimeReference(theClass);
-			} finally {
-				theIsFirstInjection.v = false;
-			}
-		}
-
-		injector.injectTracingCode(theClass, theMethod);
+		TracingCodeInjector.injectTracingCode(theClass, theMethod);
 		return true;
 	}
 }

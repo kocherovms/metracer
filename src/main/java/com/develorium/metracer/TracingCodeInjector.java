@@ -16,18 +16,17 @@
 
 package com.develorium.metracer;
 
+import java.util.*;
 import java.util.concurrent.atomic.AtomicInteger;
 import javassist.*;
 import javassist.bytecode.*;
 
 class TracingCodeInjector {
-	private String selfPackageName = this.getClass().getPackage().getName() + ".";
-	static final String CommonIdentity = "com_develorium_metracer";
-	static final String MetracedSuffix = "_" + CommonIdentity;
-	static final String RuntimeFieldName = CommonIdentity + "_runtime";
+	static final String selfPackageName = TracingCodeInjector.class.getPackage().getName() + ".";
+	static final String MetracedSuffix = "_com_develorium_metracer";
 	static final AtomicInteger MetracerNonce = new AtomicInteger();
 
-	public boolean isMethodInstrumentable(CtMethod theMethod) {
+	public static boolean isMethodInstrumentable(CtMethod theMethod) {
 		// Do not try to patch ourselves
 		if(theMethod.getLongName().startsWith(selfPackageName))
 			return false;
@@ -36,83 +35,39 @@ class TracingCodeInjector {
 		return !Modifier.isInterface(modifiers) && !Modifier.isAbstract(modifiers) && !Modifier.isNative(modifiers);
 	}
 
-	public void injectRuntimeReference(CtClass theClass) throws NotFoundException, CannotCompileException {
-		if(true)
-			return;
-
-		//CtClass javaLangObject = theClass.getClassPool().get("java.lang.Object");
-		CtClass javaLangObject = theClass.getClassPool().get("com.develorium.metracer.Runtime");
-		//CtClass javaLangObject = theClass.getClassPool().get("javax.management.ObjectName");
-		CtField runtimeField = new CtField(javaLangObject, RuntimeFieldName, theClass);
-		runtimeField.setModifiers(Modifier.STATIC);
-		theClass.addField(runtimeField, CtField.Initializer.byExpr("null;"));
-
-		//CtConstructor staticConstructor = theClass.makeClassInitializer();
-		//
-		//if(staticConstructor != null) {
-		//	String clFieldName = CommonIdentity + "cl";
-		//	StringBuilder runtimeResolutionCode = new StringBuilder();
-		//	runtimeResolutionCode.append(String.format("java.lang.ClassLoader %1$s = %2$s.class.getClassLoader();", clFieldName, theClass.getName()));
-		//	runtimeResolutionCode.append(String.format("while(%1$s != null) {", clFieldName));
-		//	runtimeResolutionCode.append(String.format(" java.lang.reflect.Field f = java.lang.ClassLoader.class.getDeclaredField(\"classes\");"));
-		//	runtimeResolutionCode.append(String.format(" f.setAccessible(true);"));
-		//	runtimeResolutionCode.append(String.format(" java.util.Vector classes = (java.util.Vector)f.get(%1$s);", clFieldName));
-		//	runtimeResolutionCode.append(String.format(" for(int i = 0; i < classes.size(); i++) {"));
-		//	runtimeResolutionCode.append(String.format("  java.lang.Class c = (java.lang.Class)classes.get(i);", Runtime.class.getName()));
-		//	runtimeResolutionCode.append(String.format("  if(c != null && c.getName().equals(\"%1$s\")) {", Runtime.class.getName()));
-		//	runtimeResolutionCode.append(String.format("   java.lang.reflect.Method __getInstanceMethod = c.getMethod(\"getInstance\", null);"));
-		//	runtimeResolutionCode.append(String.format("   %1$s = __getInstanceMethod.invoke(null, null);", RuntimeFieldName));
-		//	runtimeResolutionCode.append(String.format("   java.lang.Class[] __learnClassMethodArgumentTypes = { java.lang.Class.class };"));
-		//	runtimeResolutionCode.append(String.format("   java.lang.reflect.Method __learnClassMethod = c.getMethod(\"learnClass\", __learnClassMethodArgumentTypes);"));
-		//	runtimeResolutionCode.append(String.format("   java.lang.Class[] __learnClassMethodArguments = { %1$s.class };", theClass.getName()));
-		//	runtimeResolutionCode.append(String.format("   __learnClassMethod.invoke(%1$s, __learnClassMethodArguments);", RuntimeFieldName));
-		//	runtimeResolutionCode.append(String.format("   break;"));
-		//	runtimeResolutionCode.append(String.format("  }"));
-		//	runtimeResolutionCode.append(String.format(" }"));
-		//	runtimeResolutionCode.append(String.format(" %1$s = %1$s.getParent();", clFieldName));
-		//	runtimeResolutionCode.append(String.format("}"));
-		//	staticConstructor.insertAfter(runtimeResolutionCode.toString());
-		//}
+	public static void injectDirectAccessToMetracerClasses(CtMethod theMethod) throws CannotCompileException {
+		String clFieldName = "cmdr_e6b8085c9db3473eae21204661c80d4e";
+		StringBuilder runtimeResolutionCode = new StringBuilder();
+		runtimeResolutionCode.append(String.format("if($1.startsWith(\"%1$s\")) {", selfPackageName));
+		runtimeResolutionCode.append(String.format(" java.lang.ClassLoader %1$s = $0;", clFieldName));
+		runtimeResolutionCode.append(String.format(" while(%1$s != null) {", clFieldName));
+		runtimeResolutionCode.append(String.format("  java.lang.reflect.Field f = java.lang.ClassLoader.class.getDeclaredField(\"classes\");"));
+		runtimeResolutionCode.append(String.format("  f.setAccessible(true);"));
+		runtimeResolutionCode.append(String.format("  java.util.Vector classes = (java.util.Vector)f.get(%1$s);", clFieldName));
+		runtimeResolutionCode.append(String.format("  for(int i = 0; i < classes.size(); i++) {"));
+		runtimeResolutionCode.append(String.format("   java.lang.Class c = (java.lang.Class)classes.get(i);", Runtime.class.getName()));
+		runtimeResolutionCode.append(String.format("   if(c != null && c.getName().equals(\"%1$s\")) {", Runtime.class.getName()));
+		runtimeResolutionCode.append(String.format("    return c;"));
+		runtimeResolutionCode.append(String.format("    break;"));
+		runtimeResolutionCode.append(String.format("   }"));
+		runtimeResolutionCode.append(String.format("  }"));
+		runtimeResolutionCode.append(String.format("  %1$s = %1$s.getParent();", clFieldName));
+		runtimeResolutionCode.append(String.format(" }"));
+		runtimeResolutionCode.append(String.format("}"));
+		theMethod.insertBefore(runtimeResolutionCode.toString());
 	}
 
-	public void injectTracingCode(CtClass theClass, CtMethod theMethod) throws NotFoundException, CannotCompileException {
-		theMethod.insertBefore(String.format("com.develorium.metracer.Runtime.log(\"%1$s\");", theMethod.getName()));
-
-		if(true)
-			return;
-
-		String methodNameForPrinting = String.format("%s.%s", theClass.getName(), theMethod.getName());
+	public static void injectTracingCode(CtClass theClass, CtMethod theMethod) throws NotFoundException, CannotCompileException {
 		String originalMethodName = theMethod.getName();
 		// Adding nonce is req-d to avoid unwanted downstream (Base->Inherited) virtual calls from _metraced methods
 		String wrappedMethodName = String.format("%s%s%d", originalMethodName, MetracedSuffix, MetracerNonce.incrementAndGet());
 		final CtMethod wrappedMethod = CtNewMethod.copy(theMethod, wrappedMethodName, theClass, null);
 		theClass.addMethod(wrappedMethod);
-
-		StringBuilder body = new StringBuilder();
-		body.append("{");
-		body.append("java.lang.Thread thread = java.lang.Thread.currentThread();");
-		body.append("java.lang.StackTraceElement[] stackTraceElements = thread.getStackTrace();");
-		body.append("java.lang.StringBuilder indent = new java.lang.StringBuilder();");
-		body.append("int callDepth = 0;");
-		body.append("for(int i = 0; i < stackTraceElements.length; i++) {");
-		body.append(" java.lang.StackTraceElement element = stackTraceElements[i];");
-		body.append(String.format(" if(element.getMethodName().indexOf(\"%1$s\") >= 0) {", MetracedSuffix));
-		body.append("  callDepth++;");
-		body.append("  if(callDepth < 32) {");
-		body.append("   indent.append(\" \");");
-		body.append("  }");
-		body.append(" }");
-		body.append("}");
-		body.append(getArgumentPrintingCode(theMethod, "argumentValuesRaw"));
-		body.append("java.lang.String argumentValues = argumentValuesRaw == null ? \"\" : argumentValuesRaw.toString();");
-		body.append(String.format("System.out.println(indent.toString() + \"+++[\" + callDepth + \"] %1$s(\" + argumentValues + \")\");", methodNameForPrinting));
-		body.append("boolean isFinishedOk = false;");
-		body.append("try {");
-
+		
 		CtClass returnType = theMethod.getReturnType();
 		String callMethodCode = "";
 		String returnResultCode = "";
-
+		
 		if(returnType == CtClass.voidType) {
 			callMethodCode = String.format("%1$s($$);", wrappedMethodName);
 		}
@@ -121,64 +76,57 @@ class TracingCodeInjector {
 			returnResultCode = "return rv;";
 		}
 
-		body.append(callMethodCode);
-		body.append("isFinishedOk = true;");
-		body.append(returnResultCode);
-
-		body.append("} finally {");
-		body.append("java.lang.String trailingExceptionInfo = isFinishedOk ? \"\" : \" (by exception)\";");
-		body.append(String.format("System.out.println(indent.toString() + \"---[\" + callDepth + \"] %1$s\" + trailingExceptionInfo);", methodNameForPrinting));
-		body.append("}");
-		body.append("}");
+		StringBuilder body = new StringBuilder();
+		body.append(String.format("{"));
+		body.append(String.format(" java.lang.String[] argumentNames = %1$s;", getArgumentNamesForArrayInitialization(theMethod)));
+		body.append(String.format(" %1$s.traceEntry(%2$s.class, \"%3$s\", argumentNames, $args);", Runtime.class.getName(), theClass.getName(), theMethod.getName()));
+		body.append(String.format(" boolean isFinishedOk = false;"));
+		body.append(String.format(" try {"));
+		body.append(String.format("  %1$s", callMethodCode));
+		body.append(String.format("  isFinishedOk = true;"));
+		body.append(String.format("  %1$s", returnResultCode));
+		body.append(String.format(" } finally {"));
+		body.append(String.format("  %1$s.traceExit(%2$s.class, \"%3$s\", isFinishedOk);", Runtime.class.getName(), theClass.getName(), theMethod.getName()));
+		body.append(String.format(" }"));
+		body.append(String.format("}"));
 		theMethod.setBody(body.toString());
 	}
 
-	private String getArgumentPrintingCode(CtMethod theMethod, String theResultHolderName) {
-		StringBuilder rv = new StringBuilder();
-		// Generated code tries to avoid unnecessary objects' creation. 
-		// Also we don't use generics due to javaassist limitations
-		rv.append("java.lang.StringBuilder resultHolderName = null;");
-		rv.append("java.util.HashMap argumentNames = null;");
-		rv.append("if($args.length > 0) {");
-		rv.append(" resultHolderName = new java.lang.StringBuilder();");
-		rv.append(" argumentNames = new java.util.HashMap();");
-
+ 	private static String getArgumentNamesForArrayInitialization(CtMethod theMethod) {
 		MethodInfo methodInfo = theMethod.getMethodInfo();
 		
 		if(methodInfo != null && methodInfo.getCodeAttribute() != null) {
 			LocalVariableAttribute table = (LocalVariableAttribute)methodInfo.getCodeAttribute().getAttribute(LocalVariableAttribute.tag);
 
 			if(table != null) {
-				// this is to skip a 'this' argument in case of a non-static method
-				int offset = Modifier.isStatic(theMethod.getModifiers()) ? 0 : 1;
-		
+				TreeMap<Integer, String> localVariables = new TreeMap<Integer, String>();
+				int maxIndex = -1;
+
 				for(int i = 0; i < table.tableLength(); ++i) {
-					int argumentIndex = table.index(i) - offset;
-		
-					if(argumentIndex < 0) continue;
-				
-					String argumentName = table.variableName(i);
-					rv.append(" argumentNames.put(new Integer(");
-					rv.append(argumentIndex);
-					rv.append("), \"");
-					rv.append(argumentName);
-					rv.append("\");");
+					int variableIndex = table.index(i);
+					String variableName = table.variableName(i);
+					localVariables.put(variableIndex, variableName);
+					maxIndex = Math.max(variableIndex, maxIndex);
+				}
+
+				if(maxIndex >= 0) {
+					StringBuilder rv = new StringBuilder();
+					int offset = Modifier.isStatic(theMethod.getModifiers()) ? 0 : 1; // if method is static then there is no 'this' within variable table
+					
+					for(int i = offset; i <= maxIndex; ++i) {
+						if(rv.length() > 0)
+							rv.append(", ");
+
+						String variableName = localVariables.get(i);
+						rv.append(variableName != null ? String.format("\"%1$s\"", variableName) : "null");
+					}
+
+					if(rv.length() > 0) 
+						return String.format("{ %1$s }", rv.toString());
 				}
 			}
 		}
 
-		rv.append("}");
-		rv.append("for(int i = 0; i < $args.length; ++i) {");
-		rv.append(" java.lang.Object rawN = argumentNames.get(new Integer(i));");
-		rv.append(" java.lang.String n = rawN == null ? \"<unk>\" : (String)rawN;");
-		rv.append(" java.lang.Object o = $args[i];");
-		rv.append(" java.lang.String v = o == null ? \"null\" : o.toString();");
-		rv.append(" if(v.length() > 128) v = v.substring(0, 128) + \"...\";");
-		rv.append(" if(i > 0) resultHolderName.append(\", \");");
-		rv.append(" resultHolderName.append(n);");
-		rv.append(" resultHolderName.append(\" = \");");
-		rv.append(" resultHolderName.append(v);");
-		rv.append("}");
-		return rv.toString().replaceAll("resultHolderName", theResultHolderName);
+		return "null";
 	}
 }
