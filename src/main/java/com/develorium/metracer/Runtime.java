@@ -17,15 +17,23 @@
 package com.develorium.metracer;
 
 import java.util.*;
-import java.util.concurrent.*;
+import java.lang.ref.*;
 import java.lang.reflect.*;
 
 public class Runtime {
-	private static Map<Class, Object> loggers = Collections.synchronizedMap(new WeakHashMap<Class, Object>(1000));
+	public static final String Slf4jLoggerClassName = "org.slf4j.Logger";
 	private static final Object NullLogger = new Object();
+	private static Map<String, WeakReference<ClassLoader>> classesWithLoggers = Collections.
+		synchronizedMap(new HashMap<String, WeakReference<ClassLoader>>(1000));
+	private static Map<String, WeakReference<Object>> loggers = 
+		Collections.synchronizedMap(new HashMap<String, WeakReference<Object>>(1000));
 
 	public Runtime() {
-		
+	}
+
+	public static void registerClassWithSlf4jLogger(String theClassName, ClassLoader theClassLoader) {
+		classesWithLoggers.put(theClassName, new WeakReference(theClassLoader));
+		loggers.put(theClassName, null);
 	}
 
 	private static class TracingStateThreadLocal extends ThreadLocal<Integer> {
@@ -70,57 +78,142 @@ public class Runtime {
 	}
 
 	private static void printMessage(Class theClass, String theMessage) {
-		Object logger = getLogger(theClass);
+		Object logger = getAndResolveLogger(theClass);
 
-		if(logger != null && logger != NullLogger) {
-			Method[] methods = logger.getClass().getDeclaredMethods();
+		if(!isSlf4jLogger(logger)) 
+			logger = findNearestSlf4jLogger();
+
+		printMessageViaLogger(logger, theMessage);
+	}
+
+	private static Object getAndResolveLogger(Class theClass) {
+		Object logger = getLogger(theClass.getName());
+
+		if(logger == null) {
+			// logger is not yet resolved, need to resolve it
+			logger = resolveLogger(theClass);
+			loggers.put(theClass.getName(), new WeakReference(logger));
+		}
+
+		return logger;
+	}
+
+	private static Object getLogger(String theClassName) {
+		WeakReference<Object> ref = loggers.get(theClassName);
+		
+		if(ref != null) 
+			return ref.get();
+
+		return null;
+	}
+
+	private static Object resolveLogger(Class theClass) {
+		Object logger = null;
+		Field[] fields = theClass.getDeclaredFields();
+
+		for(Field field: fields) {
+			Class c = field.getType();
+			
+			if(c != null && Modifier.isStatic(field.getModifiers()) && c.getName().equals(Slf4jLoggerClassName)) {
+				boolean isLoggerAccessible = field.isAccessible();
+				try {
+					field.setAccessible(true);
+					try {
+						logger = field.get(null);
+					} catch(Exception e) {
+						System.err.format("Failed to get value of a static field (logger) %1$s in class %2$s: %3$s\n", field.getName(), theClass.getName(), e.toString());
+					}
+				} finally { 
+					field.setAccessible(isLoggerAccessible);
+				}
+			}
+		}
+
+		if(logger != null) 
+			return logger;
+
+		return NullLogger;
+	}
+
+	private static boolean isSlf4jLogger(Object theLogger) {
+		return theLogger != null && theLogger != NullLogger;
+	}
+
+	private static Object findNearestSlf4jLogger() {
+		StackTraceElement[] elements = Thread.currentThread().getStackTrace();
+		Object logger = null;
+
+		for(StackTraceElement element : elements) {
+			String className = element.getClassName();
+			logger = getLogger(className);
+
+			if(isSlf4jLogger(logger))
+				return logger;
+
+			WeakReference<ClassLoader> classLoaderRef = classesWithLoggers.get(className);
+
+			if(classLoaderRef == null)
+				continue;
+
+			ClassLoader classLoader = classLoaderRef.get();
+
+			if(classLoader == null) // class loader was GC'ed already
+				continue;
+
+			System.out.println(String.format("kms@ going to check class %1$s in %2$s", className, classLoader.toString()));
+
+			try {
+				Field f = ClassLoader.class.getDeclaredField("classes");
+				f.setAccessible(true);
+				Vector<Class> classes = (Vector<Class>)f.get(classLoader);
+
+				for(Class c : classes) {
+					if(c == null || !c.getName().equals(className)) 
+						continue;
+
+					logger = resolveLogger(c);
+					loggers.put(className, new WeakReference(logger)); // TODO: duplication
+
+					if(isSlf4jLogger(logger)) {
+						System.out.println(String.format("kms@ found nearest logger in %1$s", className));
+						return logger;
+					}
+
+					break;
+				}
+			} catch(Exception e) {
+				System.err.format("Failed to search for class %1$s within class loader %2$s: %3$s\n", className, classLoader.toString(), e.toString());
+			}
+		}
+				
+		return null;
+	}
+			
+	private static void printMessageViaLogger(Object theLogger, String theMessage) {
+		if(isSlf4jLogger(theLogger)) {
+			Method[] methods = theLogger.getClass().getDeclaredMethods();
 
 			for(Method method: methods) {
-				if(method.getName().equals("info")) {
-					try {
-						method.invoke(logger, theMessage);
-						return;
-					} catch(Exception e) {
-						System.err.format("Failed to invoke method %1$s over %2$s: %3$s\n", method.getName(), logger.toString(), e.toString());
-					}
+				if(!method.getName().equals("info")) 
+					continue;
+
+				Class[] argumentTypes = method.getParameterTypes();
+
+				if(argumentTypes == null || argumentTypes.length != 1)
+					continue;
+
+				if(!argumentTypes[0].equals(String.class))
+					continue;
+
+				try {
+					method.invoke(theLogger, theMessage);
+					return;
+				} catch(Exception e) {
+					System.err.format("Failed to invoke method %1$s over %2$s: %3$s\n", method.getName(), theLogger.toString(), e.toString());
 				}
 			}
 		}
 
 		System.out.println(theMessage);
-	}
-
-	private static Object getLogger(Class theClass) {
-		Object rv = loggers.get(theClass);
-		
-		if(rv == null) {
-			// need to identify logger
-			Field[] fields = theClass.getDeclaredFields();
-
-			for(Field field: fields) {
-				Class c = field.getType();
-			
-				if(c != null && Modifier.isStatic(field.getModifiers()) && c.getName().equals("org.slf4j.Logger")) {
-					boolean isLoggerAccessible = field.isAccessible();
-					try {
-						field.setAccessible(true);
-						try {
-							rv = field.get(null);
-						} catch(Exception e) {
-							System.err.format("Failed to get value of a static field (logger) %1$s in class %2$s: %3$s\n", field.getName(), theClass.getName(), e.toString());
-						}
-					} finally { 
-						field.setAccessible(isLoggerAccessible);
-					}
-				}
-			}
-
-			if(rv == null) 
-				rv = NullLogger;
-
-			loggers.put(theClass, rv);
-		}
-
-		return rv;
 	}
 }

@@ -20,6 +20,11 @@ import java.lang.instrument.Instrumentation;
 
 public class Agent {
 	public static void premain(String args, Instrumentation instrumentation) {
-		instrumentation.addTransformer(new Metracer(args));
+		try {
+			Metracer metracer = new Metracer(args);
+			instrumentation.addTransformer(metracer);
+		} catch(Exception e) {
+			System.err.format("Failed to add class transformer: %1$s\n", e.toString());
+		}
 	}
 }

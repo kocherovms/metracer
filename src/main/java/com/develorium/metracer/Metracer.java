@@ -21,25 +21,31 @@ import java.security.ProtectionDomain;
 import java.util.*;
 import java.util.regex.*;
 import javassist.*;
+import javassist.bytecode.*;
 
 public class Metracer implements ClassFileTransformer {
 	private Pattern pattern = null;
 	private ClassPools classPools = new ClassPools();
 	private Runtime runtime = new Runtime();
 
-	public Metracer(String theArguments) {
+	public Metracer(String theArguments) throws Exception {
 		if(theArguments == null)
-			return;
+			throw new Exception("Arguments are missing");
 
 		final String PatternStanza = "pattern=";
 
-		if(theArguments.startsWith(PatternStanza)) {
-			String patternString = theArguments.substring(PatternStanza.length());
-			try {
-				pattern = Pattern.compile(patternString);
-			} catch(PatternSyntaxException e) {
-				System.err.format("Provided pattern \"%1$s\" is malformed: %2$s\n", patternString, e.toString());
-			}
+		if(!theArguments.startsWith(PatternStanza)) 
+			throw new Exception("First argument must be a \"pattern\"");
+				
+		String patternString = theArguments.substring(PatternStanza.length());
+
+		if(patternString.isEmpty())
+			throw new Exception("Pattern is not specified");
+
+		try {
+			pattern = Pattern.compile(patternString);
+		} catch(PatternSyntaxException e) {
+			throw new Exception(String.format("Provided pattern \"%1$s\" is malformed: %2$s\n", patternString, e.toString()));
 		}
 	}
 
@@ -63,10 +69,12 @@ public class Metracer implements ClassFileTransformer {
 			boolean wasInstrumented = false;
 
 			if(isClassLoader(cc))
-				wasInstrumented = tuneClassLoader(cc);
+				wasInstrumented = wasInstrumented || tuneClassLoader(cc);
 
-			if(pattern != null)
-				wasInstrumented = wasInstrumented || instrumentViaPattern(cc);
+			if(hasSlf4jLogger(cc))
+				Runtime.registerClassWithSlf4jLogger(cc.getName(), loader);
+
+			wasInstrumented = wasInstrumented || instrumentClass(cc);
 		
 			if(wasInstrumented) {
 				try {
@@ -91,7 +99,7 @@ public class Metracer implements ClassFileTransformer {
 	private boolean isClassLoader(CtClass theClass) {
 		try {
 			while(theClass != null) {
-				if(theClass.getName().equals("java.lang.ClassLoader"))
+				if(theClass.getName().equals(ClassLoader.class.getName()))
 					return true;
 
 				theClass = theClass.getSuperclass();
@@ -99,6 +107,19 @@ public class Metracer implements ClassFileTransformer {
 		} catch(javassist.NotFoundException e) {
 			System.err.format("Failed to qualify %1$s as a class loader: %2$s", theClass.getName(), e.toString());
 			return false;
+		}
+
+		return false;
+	}
+
+	private boolean hasSlf4jLogger(CtClass theClass) {
+		String slf4jSignature = Descriptor.of(Runtime.Slf4jLoggerClassName);
+		CtField[] fields = theClass.getDeclaredFields();
+
+		for(CtField field : fields) {
+			if(field.getSignature().equals(slf4jSignature)) {
+				return true;
+			}
 		}
 
 		return false;
@@ -123,7 +144,25 @@ public class Metracer implements ClassFileTransformer {
 		return wasInstrumented;
 	}
 
-	private boolean instrumentViaPattern(CtClass theClass) {
+	private boolean makeSlf4jLoggerAutoRegisration(CtClass theClass) {
+		System.out.println("kms@ " + theClass.getName());
+		boolean wasInstrumented = false;
+		String descriptor = Descriptor.of(String.class.getName());
+		try {
+			CtConstructor ctor = theClass.getConstructor(descriptor);
+			ctor.insertBefore(String.format("%1$s.registerLogger(this, $1);", Runtime.class.getName()));
+			wasInstrumented = true;
+		} catch(NotFoundException e) {
+			System.err.format("Failed to locate constructor with descriptor \"%1$s\" within class \"%2$s\" which is ought to be there: %3$s\n", 
+				descriptor, theClass.getName(), e.toString());
+		} catch(CannotCompileException e) {
+			System.err.format("Failed to make logger auto registration within class \"%1$s\": %2$s\n", theClass.getName(), e.toString());
+		}
+
+		return wasInstrumented;
+	}
+
+	private boolean instrumentClass(CtClass theClass) {
 		boolean wasInstrumented = false;
 
 		for(CtMethod method : theClass.getDeclaredMethods()) {
