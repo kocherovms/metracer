@@ -145,7 +145,6 @@ public class Metracer implements ClassFileTransformer {
 	}
 
 	private boolean makeSlf4jLoggerAutoRegisration(CtClass theClass) {
-		System.out.println("kms@ " + theClass.getName());
 		boolean wasInstrumented = false;
 		String descriptor = Descriptor.of(String.class.getName());
 		try {

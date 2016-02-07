@@ -160,8 +160,6 @@ public class Runtime {
 			if(classLoader == null) // class loader was GC'ed already
 				continue;
 
-			System.out.println(String.format("kms@ going to check class %1$s in %2$s", className, classLoader.toString()));
-
 			try {
 				Field f = ClassLoader.class.getDeclaredField("classes");
 				f.setAccessible(true);
