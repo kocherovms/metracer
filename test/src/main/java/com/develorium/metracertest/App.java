@@ -17,10 +17,8 @@
 package com.develorium.metracertest;
 
 import java.util.Random;
-import com.develorium.metracer.Traced;
 
 public class App {
-	@Traced
 	public static void main( String[] args ) {
 		Thread[] jobs = { new Thread(new AsyncJob1(1 + random.nextInt(100))), new Thread(new AsyncJob2(1 + random.nextInt(100))) };
 		
