@@ -30,6 +30,10 @@ public class Unannotated {
 		testC(42, 2.718f, 3.1415);
 		testInheritanceBackward();
 		testInheritanceForward();
+		try {
+			new Unannotated().findClass("test");
+		} catch(Exception e) {
+		}
 	}
 	static void testA() {
 		System.out.println("testA");
@@ -76,5 +80,9 @@ public class Unannotated {
 	static void testInheritanceForward() {
 		InnerBase i = new InnerChild();
 		i.test2();
+	}
+	Class<?> findClass(String theClassName) throws ClassNotFoundException {
+		System.out.println(theClassName);
+		return null;
 	}
 }

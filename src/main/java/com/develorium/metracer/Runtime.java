@@ -45,6 +45,8 @@ public class Runtime {
 	}
 
 	public static void traceEntry(Class theClass, String theMethodName, String[] theArgumentNames, Object[] theArgumentValues) {
+		System.out.println("kms@ traceEntry " + theClass + "." + theMethodName);
+		if(false) {
 		StringBuilder arguments = new StringBuilder();
 
 		if(theArgumentValues != null) {
@@ -63,6 +65,7 @@ public class Runtime {
 		TracingStateThreadLocal.instance.set(callDepth);
 		String message = String.format("%1$s +++ [%2$d] %3$s.%4$s(%5$s)", getIndent(callDepth), callDepth, theClass.getName(), theMethodName, arguments.toString());
 		printMessage(theClass, message);
+		}
 	}
 
 	public static void traceExit(Class theClass, String theMethodName, boolean theIsFinishedOk) {
