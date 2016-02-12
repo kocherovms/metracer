@@ -257,22 +257,12 @@ public class Metracer implements ClassFileTransformer {
 		}
 
 		protected void onMethodEnter() {
-			System.out.println("kms@ PatternMatchedMethodModifier.onMethodEnter for className = " + className);
-			mv.visitFieldInsn(GETSTATIC, "java/lang/System", "out", "Ljava/io/PrintStream;");
-			mv.visitLdcInsn("[agent] LOG!!! " + className + "." + methodName);
-			mv.visitMethodInsn(INVOKEVIRTUAL, "java/io/PrintStream", "println", "(Ljava/lang/String;)V", false);
-
-			//mv.visitLdcInsn(Type.getType(String.format("L%1$s;", className)));
-			//mv.visitLdcInsn(methodName);
-			//mv.visitInsn(ACONST_NULL);
-			//mv.visitInsn(ACONST_NULL);
-			//mv.visitMethodInsn(INVOKESTATIC, "com/develorium/m333etracer/Runtime", "traceEntry", "(Ljava/lang/Class;Ljava/lang/String;[Ljava/lang/String;[Ljava/lang/Object;)V", false);
+			mv.visitLdcInsn(Type.getType(String.format("L%1$s;", className)));
+			mv.visitLdcInsn(methodName);
+			mv.visitInsn(ACONST_NULL);
+			mv.visitInsn(ACONST_NULL);
+			mv.visitMethodInsn(INVOKESTATIC, "com/develorium/metracer/Runtime", "traceEntry", "(Ljava/lang/Class;Ljava/lang/String;[Ljava/lang/String;[Ljava/lang/Object;)V", false);
 		}
-
-		public void visitMaxs(int stack, int locals) { 
-			System.out.println("kms@ stack = " + stack + ", locals = " + locals);
-			super.visitMaxs(stack + 100, locals + 100); 
-		} 
 	}
 
 	//package asmtest;
@@ -321,10 +311,10 @@ public class Metracer implements ClassFileTransformer {
 
 		ClassLoaderVisitor(ClassVisitor theClassVisitor) {
 			super(Opcodes.ASM5, theClassVisitor);
-			//System.out.println("kms@ ClassLoaderVisitor");
 		}
 
 		public void visit(int theVersion, int theAccess, String theClassName, String theSignature, String theSuperClassName, String[] theInterfaces) {
+			cv.visit(theVersion, theAccess, theClassName, theSignature, theSuperClassName, theInterfaces);
 			className = theClassName;
 		}
 
@@ -341,7 +331,6 @@ public class Metracer implements ClassFileTransformer {
 				String methodNameForPatternMatching = String.format("%1$s::%2$s", className.replace("/", "."), theName);
 				
 				if(pattern.matcher(methodNameForPatternMatching).find(0)) {
-					System.out.println("kms@ mmm = " + className + "." + theName);
 					methodVisitor = new PatternMatchedMethodModifier(className, api, methodVisitor, theAccess, theName, theDescription);
 					isChanged = true;
 				}
@@ -355,11 +344,7 @@ public class Metracer implements ClassFileTransformer {
 		ClassReader reader = new ClassReader(theBytecode);
 		ClassWriter writer = new ClassWriter(reader, ClassWriter.COMPUTE_MAXS | ClassWriter.COMPUTE_FRAMES);
 		ClassLoaderVisitor visitor = new ClassLoaderVisitor(writer);
-		//System.out.println("kms@ --- new ClassLoaderVisitor");
-
-		System.out.println("kms@ +++ accept");
 		reader.accept(visitor, ClassReader.EXPAND_FRAMES);
-		System.out.println("kms@ --- accept ? " + visitor.isChanged);
 		return visitor.isChanged ? writer.toByteArray() : theBytecode;
 	}
 
