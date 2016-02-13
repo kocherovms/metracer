@@ -144,23 +144,6 @@ public class Metracer implements ClassFileTransformer {
 		return wasInstrumented;
 	}
 
-	private boolean makeSlf4jLoggerAutoRegisration(CtClass theClass) {
-		boolean wasInstrumented = false;
-		String descriptor = Descriptor.of(String.class.getName());
-		try {
-			CtConstructor ctor = theClass.getConstructor(descriptor);
-			ctor.insertBefore(String.format("%1$s.registerLogger(this, $1);", Runtime.class.getName()));
-			wasInstrumented = true;
-		} catch(NotFoundException e) {
-			System.err.format("Failed to locate constructor with descriptor \"%1$s\" within class \"%2$s\" which is ought to be there: %3$s\n", 
-				descriptor, theClass.getName(), e.toString());
-		} catch(CannotCompileException e) {
-			System.err.format("Failed to make logger auto registration within class \"%1$s\": %2$s\n", theClass.getName(), e.toString());
-		}
-
-		return wasInstrumented;
-	}
-
 	private boolean instrumentClass(CtClass theClass) {
 		boolean wasInstrumented = false;
 
