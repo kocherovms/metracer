@@ -1,0 +1,40 @@
+	//package asmtest;
+	//
+	//public class AsmTest {
+	//	static class Runtime {
+	//		public static void traceEntry(Class<?> theClass, String theMethodName, String theArgumentNames[], Object theArgumentValues[]) {
+	//			
+	//		}
+	//	}
+	//	public static void main(String args[]) {
+	//	}
+	//	public Class<?> findClass(String className) {
+	//		if(className.startsWith("com.develorium.metracer")) {
+	//			ClassLoader loader = ClassLoader.class.cast(this);
+	//			
+	//			while(loader != null) {
+	//				try {
+	//					java.lang.reflect.Field f = ClassLoader.class.getDeclaredField("classes");
+	//					f.setAccessible(true);
+	//					java.util.Vector<?> classes = (java.util.Vector<?>)f.get(loader);
+	//
+	//					for(int i = 0; i < classes.size(); i++) {
+	//						java.lang.Class<?> c = (java.lang.Class<?>)classes.get(i);
+	//						
+	//						if(c != null && c.getName().equals(className)) {
+	//							return c;
+	//						}
+	//					}
+	//				} catch(Exception e) {
+	//				}
+	//				
+	//				loader = loader.getParent();
+	//			}
+	//		}
+	//		return null;
+	//	}
+	//	public void testMethod() {
+	//		Runtime.traceEntry(AsmTest.class, "testMethod", null, null);
+	//	}
+	//}
+

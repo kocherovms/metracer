@@ -33,6 +33,7 @@ public class Unannotated {
 		try {
 			new Unannotated().findClass("test");
 		} catch(Exception e) {
+			e.printStackTrace();
 		}
 	}
 	static void testA() {
@@ -82,7 +83,7 @@ public class Unannotated {
 		i.test2();
 	}
 	Class<?> findClass(String theClassName) throws ClassNotFoundException {
-		System.out.println(theClassName);
+		System.out.println("zzz search for class " + theClassName);
 		return null;
 	}
 }
