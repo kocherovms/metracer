@@ -63,7 +63,7 @@ public class Metracer implements ClassFileTransformer {
 		try {
 			classfileBuffer = instrumentClass(classfileBuffer, loader);
 		} catch(Throwable t) {
-			System.out.println("kms@ ERROR while instrumenting class " + className + ", error message: " + t.toString());
+			System.out.println("kms@ ERROR while instrumenting class " + className + ", loader " + loader + ", error message: " + t.toString());
 			t.printStackTrace();
 		}
 
@@ -107,10 +107,9 @@ public class Metracer implements ClassFileTransformer {
 	private byte[] instrumentClass(byte theBytecode[], ClassLoader theLoader) {
 		ClassReader reader = new ClassReader(theBytecode);
 		MetracerClassWriter writer = new MetracerClassWriter(reader, theLoader);
-		MetracerClassVisitor visitor = new MetracerClassVisitor(writer);
+		MetracerClassVisitor visitor = new MetracerClassVisitor(writer, pattern);
 		reader.accept(visitor, ClassReader.EXPAND_FRAMES);
-		//return visitor.isChanged ? writer.toByteArray() : theBytecode;
-		return writer.toByteArray();
+		return visitor.getIsChanged() ? writer.toByteArray() : theBytecode;
 	}
 
 	private boolean isInstrumentable(CtClass theClass) {

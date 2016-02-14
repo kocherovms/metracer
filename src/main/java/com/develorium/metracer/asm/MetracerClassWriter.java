@@ -85,9 +85,14 @@ public class MetracerClassWriter extends ClassWriter {
 	}
 
 	private ClassReader typeInfo(final String theType) throws IOException {
+		StringBuilder visitedLoaders = new StringBuilder();
 		ClassLoader loader = classLoader;
-
+		// TODO: handle situation when classLoader is initially empty (happens, e.g. for com/sun/beans/finder/ClassFinder)
 		while(loader != null) {
+			if(visitedLoaders.length() > 0)
+				visitedLoaders.append(", ");
+
+			visitedLoaders.append(loader.toString());
 			InputStream is = loader.getResourceAsStream(theType + ".class");
 
 			if(is != null) {
@@ -101,7 +106,10 @@ public class MetracerClassWriter extends ClassWriter {
 			loader = loader.getParent();
 		}
 
-		throw new IOException(String.format("Failed to open %1$s in all known class loaders", theType));
+		if(visitedLoaders.length() == 0)
+			visitedLoaders.append("<empty>");
+
+		throw new IOException(String.format("Failed to open %1$s in all known class loaders: %2$s", theType, visitedLoaders.toString()));
 	}
 
 	private boolean typeImplements(String theType, ClassReader theReader, String theInterface) throws IOException {

@@ -32,6 +32,7 @@ public class Unannotated {
 		testInheritanceForward();
 		try {
 			new Unannotated().findClass("test");
+			new Unannotated().findClass("test", false, false);
 		} catch(Exception e) {
 			e.printStackTrace();
 		}
@@ -84,6 +85,10 @@ public class Unannotated {
 	}
 	Class<?> findClass(String theClassName) throws ClassNotFoundException {
 		System.out.println("zzz search for class " + theClassName);
+		return null;
+	}
+	Class<?> findClass(String theClassName, boolean exportsOnly, final boolean resolve) throws ClassNotFoundException {
+		System.out.println("yyy search for class " + theClassName);
 		return null;
 	}
 }
