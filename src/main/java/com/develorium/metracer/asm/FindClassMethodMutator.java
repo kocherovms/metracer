@@ -20,6 +20,7 @@ import org.objectweb.asm.*;
 import org.objectweb.asm.commons.*;
 
 class FindClassMethodMutator extends AdviceAdapter {
+	// TODO: get rid of this enum - onMethodEnter must properly handle all possible signatures
 	public enum MethodSignature {
 		CLASSIC,  // e.g. findClass(String theClassName)
 		JBOSS     // e.g. findClass(String theClassName, boolean theExportsOnly, final boolean theResolve)
