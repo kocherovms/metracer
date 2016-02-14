@@ -24,6 +24,7 @@ import javassist.*;
 import javassist.bytecode.*;
 import org.objectweb.asm.*;
 import org.objectweb.asm.commons.*;
+import org.objectweb.asm.tree.*;
 import com.develorium.metracer.asm.*;
 
 public class Metracer implements ClassFileTransformer {

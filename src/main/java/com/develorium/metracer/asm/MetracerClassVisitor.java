@@ -66,6 +66,7 @@ public class MetracerClassVisitor extends ClassVisitor {
 				methodVisitor = new PatternMatchedMethodMutator(className, api, methodVisitor, theAccess, theName, theDescription);
 				isChanged = true;
 			}
+
 		}
 		
 		return methodVisitor;
