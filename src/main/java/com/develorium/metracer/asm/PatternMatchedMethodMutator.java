@@ -16,20 +16,50 @@
 
 package com.develorium.metracer.asm;
 
+import java.util.*;
 import org.objectweb.asm.*;
 import org.objectweb.asm.commons.*;
 
 class PatternMatchedMethodMutator extends AdviceAdapter {
 	private String className = null;
 	private String methodName = null;
+	private String methodDescription = null;
+	private class LocalVariable {
+		String name;
+		String type;
+	}
+	private TreeMap<Integer, LocalVariable> localVariables = new TreeMap<Integer, LocalVariable>();
 
 	public PatternMatchedMethodMutator(String theClassName, int theApiVersion, MethodVisitor theDelegatingMethodVisitor, int theAccess, String theMethodName, String theMethodDescription) {
 		super(theApiVersion, theDelegatingMethodVisitor, theAccess, theMethodName, theMethodDescription);
 		className = theClassName;
 		methodName = theMethodName;
+		methodDescription = theMethodDescription;
 	}
 
+	@Override
+	public void visitLocalVariable(String theName, String theDescription, String theSignature, Label theStart, Label theEnd, int theIndex) {
+		LocalVariable localVariable = new LocalVariable();
+		localVariable.name = theName;
+		localVariable.type = theDescription;
+		localVariables.put(theIndex, localVariable);
+		super.visitLocalVariable(theName, theDescription, theSignature, theStart, theEnd, theIndex);
+	}
+
+	@Override
 	protected void onMethodEnter() {
+		Type[] argumentTypes = Type.getArgumentTypes(methodDescription);
+		String[] argumentNames = null;
+
+		if(argumentTypes != null && argumentTypes.length > 0) {
+			argumentNames = new String[argumentTypes.length];
+		
+			for(int i = 0; i < argumentTypes.length; ++i) {
+				LocalVariable localVariable = localVariables.get(i);
+				argumentNames[i] = localVariable != null ? localVariable.name : "$arg" + i;
+			}
+		}
+
 		mv.visitLdcInsn(Type.getType(String.format("L%1$s;", className)));
 		mv.visitLdcInsn(methodName);
 		mv.visitInsn(ACONST_NULL);

@@ -1,0 +1,27 @@
+			if(canonicalClassName.contains("com.develorium")) {
+				ClassNode classNode = new ClassNode();
+				ClassReader classReader = new ClassReader(classfileBuffer);
+				classReader.accept(classNode, 0);
+
+				@SuppressWarnings("unchecked")
+				List<MethodNode> methods = classNode.methods;
+				for (MethodNode method : methods) {
+					Type[] argumentTypes = Type.getArgumentTypes(method.desc);
+					List<String> parameterNames = new ArrayList<String>(argumentTypes.length);
+
+					@SuppressWarnings("unchecked")
+					//List<LocalVariableNode> localVariables = method.localVariables;
+					//for (int i = 0; i < argumentTypes.length; i++) {
+					//	// The first local variable actually represents the "this" object
+					//	System.out.println("kms@ method = " + method.name + ", arg = " + localVariables.get(i + 1).name);
+					//}
+					List<ParameterNode> pns = method.parameters;
+
+					if(pns != null) {
+						for (ParameterNode pn : pns) {
+							System.out.println("kms@ method = " + method.name + ", arg = " + pn.name);
+						}
+					}
+				}
+			}
+
