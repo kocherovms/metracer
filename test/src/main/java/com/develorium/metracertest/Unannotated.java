@@ -16,11 +16,41 @@
 
 package com.develorium.metracertest;
 
-public class Unannotated {
+class UnannotatedBase {
+	UnannotatedBase() {
+		System.out.println("UnannotatedBase");
+	}
+}
+
+public class Unannotated extends UnannotatedBase {
 	static String staticString = "hello, world";
 
 	static {
 		System.out.println("value of a staticString = " + staticString);
+	}
+
+	private String privateVar = "initial private var";
+
+	Unannotated() {
+		privateVar = "redefined private var";
+	}
+
+	Unannotated(String theArg) {
+		privateVar = theArg;
+	}
+
+	// Subject to failures 'Stack map does not match the one at exception handler' after instrumentation
+	Unannotated(Unannotated theOther) {
+		super();
+		privateVar = theOther.privateVar;
+	}
+
+	Unannotated(int theOther) {
+		try {
+			privateVar = "text";
+		} finally {
+			privateVar = "otherText";
+		}
 	}
 
 	public static void main( String[] args ) {
@@ -31,8 +61,8 @@ public class Unannotated {
 		testInheritanceBackward();
 		testInheritanceForward();
 		try {
-			new Unannotated().findClass("test");
-			new Unannotated().findClass("test", false, false);
+			new Unannotated("A").findClass("test");
+			new Unannotated("B").findClass("test", false, false);
 		} catch(Exception e) {
 			e.printStackTrace();
 		}

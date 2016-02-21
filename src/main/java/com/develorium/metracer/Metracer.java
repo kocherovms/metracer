@@ -62,6 +62,12 @@ public class Metracer implements ClassFileTransformer {
 
 		try {
 			classfileBuffer = instrumentClass(classfileBuffer, loader);
+			//byte[] rv = visitor.getIsChanged() ? writer.toByteArray() : theBytecode;
+			//int p = theClassName.lastIndexOf('.');
+			//String bareClassName = p > -1 ? theClassName.substring(p + 1) : canonicalClassName;
+			//FileOutputStream fos = new FileOutputStream("/tmp/com/develorium/metracertest/" + bareClassName + ".class");
+			//fos.write(rv);
+			//fos.close();
 		} catch(Throwable t) {
 			System.out.println("kms@ ERROR while instrumenting class " + className + ", loader " + loader + ", error message: " + t.toString());
 			t.printStackTrace();
