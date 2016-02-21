@@ -57,22 +57,10 @@ public class MetracerClassVisitor extends ClassVisitor {
 		MethodVisitor methodVisitor = cv.visitMethod(theAccess, theName, theDescription, theSignature, theExceptions);
 		boolean isMethodChanged = false;
 
-		if(theName.equals("findClass")) {
-			FindClassMethodMutator.MethodSignature signature = null;
-
-			switch(theDescription) {
-			case "(Ljava/lang/String;)Ljava/lang/Class;":
-				signature = FindClassMethodMutator.MethodSignature.CLASSIC;
-				break;
-			case "(Ljava/lang/String;ZZ)Ljava/lang/Class;":
-				signature = FindClassMethodMutator.MethodSignature.JBOSS;
-				break;
-			}
-
-			if(signature != null) {
-				methodVisitor = new FindClassMethodMutator(className, signature, api, methodVisitor, theAccess, theName, theDescription);
-				isMethodChanged = isChanged = true;
-			}
+		if(theName.equals("findClass") && theDescription.startsWith("(Ljava/lang/String;") && theDescription.endsWith("Ljava/lang/Class;")) {
+			// Looks like a findClass of ClassLoader, need to drill a hole
+			methodVisitor = new FindClassMethodMutator(className, api, methodVisitor, theAccess, theName, theDescription);
+			isMethodChanged = isChanged = true;
 		}
 
 		if(!isMethodChanged) {

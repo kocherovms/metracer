@@ -20,19 +20,11 @@ import org.objectweb.asm.*;
 import org.objectweb.asm.commons.*;
 
 class FindClassMethodMutator extends AdviceAdapter {
-	// TODO: get rid of this enum - onMethodEnter must properly handle all possible signatures
-	public enum MethodSignature {
-		CLASSIC,  // e.g. findClass(String theClassName)
-		JBOSS     // e.g. findClass(String theClassName, boolean theExportsOnly, final boolean theResolve)
-	}
-
 	private String className = null;
-	private MethodSignature signature = MethodSignature.CLASSIC;
 
-	public FindClassMethodMutator(String theClassName, MethodSignature theSignature, int theApiVersion, MethodVisitor theDelegatingMethodVisitor, int theAccess, String theMethodName, String theMethodDescription) {
+	public FindClassMethodMutator(String theClassName, int theApiVersion, MethodVisitor theDelegatingMethodVisitor, int theAccess, String theMethodName, String theMethodDescription) {
 		super(theApiVersion, theDelegatingMethodVisitor, theAccess, theMethodName, theMethodDescription);
 		className = theClassName;
-		signature = theSignature;
 	}
 
 	protected void onMethodEnter() {
@@ -98,7 +90,6 @@ class FindClassMethodMutator extends AdviceAdapter {
 		Label l10 = new Label();
 		mv.visitJumpInsn(GOTO, l10);
 		mv.visitLabel(l0);
-		mv.visitFrame(Opcodes.F_APPEND,1, new Object[] {"java/lang/ClassLoader"}, 0, null);
 		mv.visitLdcInsn(Type.getType("Ljava/lang/ClassLoader;"));
 		mv.visitLdcInsn("classes");
 		mv.visitMethodInsn(INVOKEVIRTUAL, "java/lang/Class", "getDeclaredField", "(Ljava/lang/String;)Ljava/lang/reflect/Field;", false);
@@ -125,7 +116,6 @@ class FindClassMethodMutator extends AdviceAdapter {
 		mv.visitJumpInsn(GOTO, l15);
 		Label l16 = new Label();
 		mv.visitLabel(l16);
-		mv.visitFrame(Opcodes.F_APPEND,3, new Object[] {"java/lang/reflect/Field", "java/util/Vector", Opcodes.INTEGER}, 0, null);
 		mv.visitVarInsn(ALOAD, classesIndex);
 		mv.visitVarInsn(ILOAD, iIndex);
 		mv.visitMethodInsn(INVOKEVIRTUAL, "java/util/Vector", "get", "(I)Ljava/lang/Object;", false);
@@ -146,10 +136,8 @@ class FindClassMethodMutator extends AdviceAdapter {
 		mv.visitLabel(l1);
 		mv.visitInsn(ARETURN);
 		mv.visitLabel(l3);
-		mv.visitFrame(Opcodes.F_SAME, 0, null, 0, null);
 		mv.visitIincInsn(iIndex, 1);
 		mv.visitLabel(l15);
-		mv.visitFrame(Opcodes.F_SAME, 0, null, 0, null);
 		mv.visitVarInsn(ILOAD, iIndex);
 		mv.visitVarInsn(ALOAD, classesIndex);
 		mv.visitMethodInsn(INVOKEVIRTUAL, "java/util/Vector", "size", "()I", false);
@@ -158,28 +146,15 @@ class FindClassMethodMutator extends AdviceAdapter {
 		Label l19 = new Label();
 		mv.visitJumpInsn(GOTO, l19);
 		mv.visitLabel(l2);
-
-		switch(signature) {
-		case CLASSIC: 
-			mv.visitFrame(Opcodes.F_FULL, 3, new Object[] {className, "java/lang/String", "java/lang/ClassLoader"}, 1, new Object[] {"java/lang/Exception"});
-			break;
-		case JBOSS:
-			mv.visitFrame(Opcodes.F_FULL, 5, new Object[] {className, "java/lang/String", Opcodes.INTEGER, Opcodes.INTEGER, "java/lang/ClassLoader"}, 1, new Object[] {"java/lang/Exception"});
-			break;
-		}
-
 		mv.visitVarInsn(ASTORE, fIndex);
 		mv.visitLabel(l19);
-		mv.visitFrame(Opcodes.F_SAME, 0, null, 0, null);
 		mv.visitVarInsn(ALOAD, loaderIndex);
 		mv.visitMethodInsn(INVOKEVIRTUAL, "java/lang/ClassLoader", "getParent", "()Ljava/lang/ClassLoader;", false);
 		mv.visitVarInsn(ASTORE, loaderIndex);
 		mv.visitLabel(l10);
-		mv.visitFrame(Opcodes.F_SAME, 0, null, 0, null);
 		mv.visitVarInsn(ALOAD, loaderIndex);
 		mv.visitJumpInsn(IFNONNULL, l0);
 		mv.visitLabel(l6);
-		mv.visitFrame(Opcodes.F_CHOP,1, null, 0, null);
 		mv.visitLocalVariable("loader", "Ljava/lang/ClassLoader;", null, l9, l6, loaderIndex);
 		mv.visitLocalVariable("f", "Ljava/lang/reflect/Field;", null, l11, l4, fIndex);
 		mv.visitLocalVariable("classes", "Ljava/util/Vector;", "Ljava/util/Vector<*>;", l13, l4, classesIndex);
