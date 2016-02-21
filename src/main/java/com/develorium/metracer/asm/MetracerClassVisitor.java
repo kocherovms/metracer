@@ -22,6 +22,7 @@ import org.objectweb.asm.commons.*;
 
 public class MetracerClassVisitor extends ClassVisitor {
 	private boolean isChanged = false;
+	private boolean hasSlf4Logger = false;
 	private String className = null;
 	private Pattern pattern = null;
 
@@ -30,11 +31,26 @@ public class MetracerClassVisitor extends ClassVisitor {
 		pattern = thePattern;
 	}
 
+	@Override
 	public void visit(int theVersion, int theAccess, String theClassName, String theSignature, String theSuperClassName, String[] theInterfaces) {
 		cv.visit(theVersion, theAccess, theClassName, theSignature, theSuperClassName, theInterfaces);
 		className = theClassName;
 	}
 
+	@Override
+	public FieldVisitor visitField(int theAccess, String theName, String theDescription, String theSignature, Object theValue) {
+		FieldVisitor rv = super.visitField(theAccess, theName, theDescription, theSignature, theValue);
+
+		if(!hasSlf4Logger) {
+			String slf4jLoggerClassNameForCompare = com.develorium.metracer.Runtime.Slf4jLoggerClassName.replace(".", "/");
+			theDescription.equals(String.format("L%1$s;", slf4jLoggerClassNameForCompare));
+			hasSlf4Logger = true;
+		}
+
+		return rv;
+	}
+
+	@Override
 	public MethodVisitor visitMethod(
 		int theAccess, String theName, String theDescription,
 		String theSignature, String[] theExceptions) {
@@ -73,5 +89,9 @@ public class MetracerClassVisitor extends ClassVisitor {
 
 	public boolean getIsChanged() {
 		return isChanged;
+	}
+
+	public boolean getHasSlf4Logger() {
+		return hasSlf4Logger;
 	}
 }

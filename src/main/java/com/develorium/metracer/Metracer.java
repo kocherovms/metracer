@@ -61,7 +61,12 @@ public class Metracer implements ClassFileTransformer {
 			return classfileBuffer;
 
 		try {
-			classfileBuffer = instrumentClass(classfileBuffer, loader);
+			InstrumentClassResult icr = instrumentClass(classfileBuffer, loader);
+
+			if(icr.hasSlf4jLogger)
+				Runtime.registerClassWithSlf4jLogger(canonicalClassName, loader);
+
+			classfileBuffer = icr.bytecode;
 			//byte[] rv = visitor.getIsChanged() ? writer.toByteArray() : theBytecode;
 			//int p = theClassName.lastIndexOf('.');
 			//String bareClassName = p > -1 ? theClassName.substring(p + 1) : canonicalClassName;
@@ -110,93 +115,20 @@ public class Metracer implements ClassFileTransformer {
 		//return classfileBuffer;
 	}
 
-	private byte[] instrumentClass(byte theBytecode[], ClassLoader theLoader) {
+	private static class InstrumentClassResult {
+		byte[] bytecode = null;
+		boolean hasSlf4jLogger = false;
+	} 
+
+	private InstrumentClassResult instrumentClass(byte theBytecode[], ClassLoader theLoader) {
 		ClassReader reader = new ClassReader(theBytecode);
 		MetracerClassWriter writer = new MetracerClassWriter(reader, theLoader);
 		MetracerClassVisitor visitor = new MetracerClassVisitor(writer, pattern);
 		reader.accept(visitor, ClassReader.EXPAND_FRAMES);
-		return visitor.getIsChanged() ? writer.toByteArray() : theBytecode;
-	}
 
-	private boolean isInstrumentable(CtClass theClass) {
-		return !theClass.isFrozen() && !theClass.isInterface();
-	}
-
-	private boolean isClassLoader(CtClass theClass) {
-		try {
-			while(theClass != null) {
-				if(theClass.getName().equals(ClassLoader.class.getName()))
-					return true;
-
-				theClass = theClass.getSuperclass();
-			}
-		} catch(javassist.NotFoundException e) {
-			System.err.format("Failed to qualify %1$s as a class loader: %2$s", theClass.getName(), e.toString());
-			return false;
-		}
-
-		return false;
-	}
-
-	private boolean hasSlf4jLogger(CtClass theClass) {
-		String slf4jSignature = Descriptor.of(Runtime.Slf4jLoggerClassName);
-		CtField[] fields = theClass.getDeclaredFields();
-
-		for(CtField field : fields) {
-			if(field.getSignature().equals(slf4jSignature)) {
-				return true;
-			}
-		}
-
-		return false;
-	}
-
-	// Method allows to use classes from com.develorium.metracer for class loaders with strict isolation, e.g. JBoss module class loader
-	private boolean tuneClassLoader(CtClass theClass) {
-		boolean wasInstrumented = false;
-
-		for(CtMethod method : theClass.getDeclaredMethods()) {
-			try {
-				if(method.getName().equals("findClass")) {
-					TracingCodeInjector.injectDirectAccessToMetracerClasses(method);
-					wasInstrumented = true;
-					break;
-				}
-			} catch (Exception e) {
-				System.err.format("Failed to tune class loader %1$s: %2$s\n", theClass.getName(), e.toString());
-			}
-		}
-
-		return wasInstrumented;
-	}
-
-	private boolean instrumentClass(CtClass theClass) {
-		boolean wasInstrumented = false;
-
-		for(CtMethod method : theClass.getDeclaredMethods()) {
-			try {
-				final String methodNameForPatternMatching = String.format("%1$s::%2$s", theClass.getName(), method.getName());
-				
-				if(!pattern.matcher(methodNameForPatternMatching).find(0)) 
-					continue;
-
-				if(instrumentMethod(theClass, method))
-					wasInstrumented = true;
-			} catch (Exception e) {
-				System.err.format("Failed to add tracing to method %1$s: %2$s\n", method.getLongName(), e.toString());
-				// class can be damaged in this case so don't try to proceed with half-instrumented class
-				return false;
-			}
-		}
-
-		return wasInstrumented;
-	}
-
-	private boolean instrumentMethod(CtClass theClass, CtMethod theMethod) throws java.lang.Exception {
-		if(!TracingCodeInjector.isMethodInstrumentable(theMethod)) 
-			return false;
-
-		TracingCodeInjector.injectTracingCode(theClass, theMethod);
-		return true;
+		InstrumentClassResult rv = new InstrumentClassResult();
+		rv.bytecode = visitor.getIsChanged() ? writer.toByteArray() : theBytecode;
+		rv.hasSlf4jLogger = visitor.getHasSlf4Logger();
+		return rv;
 	}
 }
