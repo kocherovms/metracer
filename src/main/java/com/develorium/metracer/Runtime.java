@@ -66,10 +66,10 @@ public class Runtime {
 		printMessage(theClass, message);
 	}
 
-	public static void traceExit(Class theClass, String theMethodName, boolean theIsFinishedOk) {
+	public static void traceExit(Throwable theException, Class theClass, String theMethodName) {
 		Integer callDepth = TracingStateThreadLocal.instance.get();
 		TracingStateThreadLocal.instance.set(callDepth - 1);
-		String exceptionInfo = theIsFinishedOk ? "" : " (by exception)";
+		String exceptionInfo = theException == null ? "" : String.format(" (by exception: %1$s)", theException.toString());
 		String message = String.format("%1$s --- [%2$d] %3$s.%4$s%5$s", getIndent(callDepth), callDepth, theClass.getName(), theMethodName, exceptionInfo);
 		printMessage(theClass, message);
 	}

@@ -86,7 +86,7 @@ public class Unannotated extends UnannotatedBase {
 		}
 	}
 	static void testFaulty() throws Throwable {
-		throw new Throwable();
+		throw new Throwable("Hello, world");
 	}
 	static class InnerBase {
 		public void test() {
