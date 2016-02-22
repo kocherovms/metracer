@@ -20,15 +20,11 @@ import java.lang.instrument.*;
 import java.security.ProtectionDomain;
 import java.util.*;
 import java.util.regex.*;
-import javassist.*;
-import javassist.bytecode.*;
 import org.objectweb.asm.*;
-import org.objectweb.asm.commons.*;
 import com.develorium.metracer.asm.*;
 
 public class Metracer implements ClassFileTransformer {
 	private Pattern pattern = null;
-	private ClassPools classPools = new ClassPools();
 	private Runtime runtime = new Runtime();
 
 	public Metracer(String theArguments) throws Exception {
@@ -67,52 +63,12 @@ public class Metracer implements ClassFileTransformer {
 				Runtime.registerClassWithSlf4jLogger(canonicalClassName, loader);
 
 			classfileBuffer = icr.bytecode;
-			//byte[] rv = visitor.getIsChanged() ? writer.toByteArray() : theBytecode;
-			//int p = theClassName.lastIndexOf('.');
-			//String bareClassName = p > -1 ? theClassName.substring(p + 1) : canonicalClassName;
-			//FileOutputStream fos = new FileOutputStream("/tmp/com/develorium/metracertest/" + bareClassName + ".class");
-			//fos.write(rv);
-			//fos.close();
 		} catch(Throwable t) {
-			System.out.println("kms@ ERROR while instrumenting class " + className + ", loader " + loader + ", error message: " + t.toString());
+			System.out.println("ERROR while instrumenting class " + className + ", loader " + loader + ", error message: " + t.toString());
 			t.printStackTrace();
 		}
 
 		return classfileBuffer;
-
-		//ClassPool cp = classPools.getClassPool(loader);
-		//cp.insertClassPath(new ByteArrayClassPath(canonicalClassName, classfileBuffer));
-		//
-		//try {
-		//	CtClass cc = cp.get(canonicalClassName);
-		//
-		//	if(!isInstrumentable(cc)) 
-		//		return classfileBuffer;
-		//
-		//	boolean wasInstrumented = false;
-		//
-		//	if(isClassLoader(cc))
-		//		wasInstrumented = wasInstrumented || tuneClassLoader(cc);
-		//
-		//	if(hasSlf4jLogger(cc))
-		//		Runtime.registerClassWithSlf4jLogger(cc.getName(), loader);
-		//
-		//	wasInstrumented = wasInstrumented || instrumentClass(cc);
-		//
-		//	if(wasInstrumented) {
-		//		try {
-		//			return cc.toBytecode();
-		//		} catch (Exception e) {
-		//			System.err.format("Failed to compile instrumented class %1$s: %2$s\n",
-		//					  canonicalClassName, e.toString());
-		//		}
-		//	}
-		//} catch (NotFoundException e) {
-		//	System.err.format("Failed to register class %1$s in a javaassist ClassPool: %2$s\n",
-		//			  canonicalClassName, e.toString());
-		//}
-		//
-		//return classfileBuffer;
 	}
 
 	private static class InstrumentClassResult {
