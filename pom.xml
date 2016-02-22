@@ -5,7 +5,7 @@
   <artifactId>metracer</artifactId>
   <packaging>jar</packaging>
   <name>metracer</name>
-  <version>1.1.0</version>
+  <version>1.2.0</version>
 
   <organization>
     <name>Michael Kocherov, http://develorium.com</name>
