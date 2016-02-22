@@ -16,11 +16,41 @@
 
 package com.develorium.metracertest;
 
-public class Unannotated {
+class UnannotatedBase {
+	UnannotatedBase() {
+		System.out.println("UnannotatedBase");
+	}
+}
+
+public class Unannotated extends UnannotatedBase {
 	static String staticString = "hello, world";
 
 	static {
 		System.out.println("value of a staticString = " + staticString);
+	}
+
+	private String privateVar = "initial private var";
+
+	Unannotated() {
+		privateVar = "redefined private var";
+	}
+
+	Unannotated(String theArg) {
+		privateVar = theArg;
+	}
+
+	// Subject to failures 'Stack map does not match the one at exception handler' after instrumentation
+	Unannotated(Unannotated theOther) {
+		super();
+		privateVar = theOther.privateVar;
+	}
+
+	Unannotated(int theOther) {
+		try {
+			privateVar = "text";
+		} finally {
+			privateVar = "otherText";
+		}
 	}
 
 	public static void main( String[] args ) {
@@ -30,6 +60,12 @@ public class Unannotated {
 		testC(42, 2.718f, 3.1415);
 		testInheritanceBackward();
 		testInheritanceForward();
+		try {
+			new Unannotated("A").findClass("test");
+			new Unannotated("B").findClass("test", false, false);
+		} catch(Exception e) {
+			e.printStackTrace();
+		}
 	}
 	static void testA() {
 		System.out.println("testA");
@@ -50,7 +86,7 @@ public class Unannotated {
 		}
 	}
 	static void testFaulty() throws Throwable {
-		throw new Throwable();
+		throw new Throwable("Hello, world");
 	}
 	static class InnerBase {
 		public void test() {
@@ -76,5 +112,13 @@ public class Unannotated {
 	static void testInheritanceForward() {
 		InnerBase i = new InnerChild();
 		i.test2();
+	}
+	Class<?> findClass(String theClassName) throws ClassNotFoundException {
+		System.out.println("zzz search for class " + theClassName);
+		return null;
+	}
+	Class<?> findClass(String theClassName, boolean exportsOnly, final boolean resolve) throws ClassNotFoundException {
+		System.out.println("yyy search for class " + theClassName);
+		return null;
 	}
 }

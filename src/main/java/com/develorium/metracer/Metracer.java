@@ -20,12 +20,12 @@ import java.lang.instrument.*;
 import java.security.ProtectionDomain;
 import java.util.*;
 import java.util.regex.*;
-import javassist.*;
-import javassist.bytecode.*;
+import org.objectweb.asm.*;
+import org.objectweb.asm.tree.*;
+import com.develorium.metracer.asm.*;
 
 public class Metracer implements ClassFileTransformer {
 	private Pattern pattern = null;
-	private ClassPools classPools = new ClassPools();
 	private Runtime runtime = new Runtime();
 
 	public Metracer(String theArguments) throws Exception {
@@ -57,120 +57,38 @@ public class Metracer implements ClassFileTransformer {
 		if(canonicalClassName.indexOf("java.lang") == 0)
 			return classfileBuffer;
 
-		ClassPool cp = classPools.getClassPool(loader);
-		cp.insertClassPath(new ByteArrayClassPath(canonicalClassName, classfileBuffer));
-
 		try {
-			CtClass cc = cp.get(canonicalClassName);
+			InstrumentClassResult icr = instrumentClass(classfileBuffer, loader);
 
-			if(!isInstrumentable(cc)) 
-				return classfileBuffer;
+			if(icr.hasSlf4jLogger)
+				Runtime.registerClassWithSlf4jLogger(canonicalClassName, loader);
 
-			boolean wasInstrumented = false;
-
-			if(isClassLoader(cc))
-				wasInstrumented = wasInstrumented || tuneClassLoader(cc);
-
-			if(hasSlf4jLogger(cc))
-				Runtime.registerClassWithSlf4jLogger(cc.getName(), loader);
-
-			wasInstrumented = wasInstrumented || instrumentClass(cc);
-		
-			if(wasInstrumented) {
-				try {
-					return cc.toBytecode();
-				} catch (Exception e) {
-					System.err.format("Failed to compile instrumented class %1$s: %2$s\n",
-							  canonicalClassName, e.toString());
-				}
-			}
-		} catch (NotFoundException e) {
-			System.err.format("Failed to register class %1$s in a javaassist ClassPool: %2$s\n",
-					  canonicalClassName, e.toString());
+			classfileBuffer = icr.bytecode;
+		} catch(Throwable t) {
+			System.out.println("ERROR while instrumenting class " + className + ", loader " + loader + ", error message: " + t.toString());
+			t.printStackTrace();
 		}
-	
+
 		return classfileBuffer;
 	}
 
-	private boolean isInstrumentable(CtClass theClass) {
-		return !theClass.isFrozen() && !theClass.isInterface();
-	}
+	private static class InstrumentClassResult {
+		byte[] bytecode = null;
+		boolean hasSlf4jLogger = false;
+	} 
 
-	private boolean isClassLoader(CtClass theClass) {
-		try {
-			while(theClass != null) {
-				if(theClass.getName().equals(ClassLoader.class.getName()))
-					return true;
+	private InstrumentClassResult instrumentClass(byte theBytecode[], ClassLoader theLoader) {
+		ClassReader reader = new ClassReader(theBytecode);
+		ClassNode parsedClass = new ClassNode(); // TODO: temporary solution to resolve localVariables before method is visited - need to get rid of this
+		reader.accept(parsedClass, 0);
+		
+		MetracerClassWriter writer = new MetracerClassWriter(reader, theLoader);
+		MetracerClassVisitor visitor = new MetracerClassVisitor(writer, pattern, parsedClass);
+		reader.accept(visitor, ClassReader.EXPAND_FRAMES);
 
-				theClass = theClass.getSuperclass();
-			}
-		} catch(javassist.NotFoundException e) {
-			System.err.format("Failed to qualify %1$s as a class loader: %2$s", theClass.getName(), e.toString());
-			return false;
-		}
-
-		return false;
-	}
-
-	private boolean hasSlf4jLogger(CtClass theClass) {
-		String slf4jSignature = Descriptor.of(Runtime.Slf4jLoggerClassName);
-		CtField[] fields = theClass.getDeclaredFields();
-
-		for(CtField field : fields) {
-			if(field.getSignature().equals(slf4jSignature)) {
-				return true;
-			}
-		}
-
-		return false;
-	}
-
-	// Method allows to use classes from com.develorium.metracer for class loaders with strict isolation, e.g. JBoss module class loader
-	private boolean tuneClassLoader(CtClass theClass) {
-		boolean wasInstrumented = false;
-
-		for(CtMethod method : theClass.getDeclaredMethods()) {
-			try {
-				if(method.getName().equals("findClass")) {
-					TracingCodeInjector.injectDirectAccessToMetracerClasses(method);
-					wasInstrumented = true;
-					break;
-				}
-			} catch (Exception e) {
-				System.err.format("Failed to tune class loader %1$s: %2$s\n", theClass.getName(), e.toString());
-			}
-		}
-
-		return wasInstrumented;
-	}
-
-	private boolean instrumentClass(CtClass theClass) {
-		boolean wasInstrumented = false;
-
-		for(CtMethod method : theClass.getDeclaredMethods()) {
-			try {
-				final String methodNameForPatternMatching = String.format("%1$s::%2$s", theClass.getName(), method.getName());
-				
-				if(!pattern.matcher(methodNameForPatternMatching).find(0)) 
-					continue;
-
-				if(instrumentMethod(theClass, method))
-					wasInstrumented = true;
-			} catch (Exception e) {
-				System.err.format("Failed to add tracing to method %1$s: %2$s\n", method.getLongName(), e.toString());
-				// class can be damaged in this case so don't try to proceed with half-instrumented class
-				return false;
-			}
-		}
-
-		return wasInstrumented;
-	}
-
-	private boolean instrumentMethod(CtClass theClass, CtMethod theMethod) throws java.lang.Exception {
-		if(!TracingCodeInjector.isMethodInstrumentable(theMethod)) 
-			return false;
-
-		TracingCodeInjector.injectTracingCode(theClass, theMethod);
-		return true;
+		InstrumentClassResult rv = new InstrumentClassResult();
+		rv.bytecode = visitor.getIsChanged() ? writer.toByteArray() : theBytecode;
+		rv.hasSlf4jLogger = visitor.getHasSlf4Logger();
+		return rv;
 	}
 }
