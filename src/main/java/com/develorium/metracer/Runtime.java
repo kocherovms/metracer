@@ -174,7 +174,6 @@ public class Runtime {
 					loggers.put(className, new WeakReference(logger)); // TODO: duplication
 
 					if(isSlf4jLogger(logger)) {
-						System.out.println(String.format("kms@ found nearest logger in %1$s", className));
 						return logger;
 					}
 

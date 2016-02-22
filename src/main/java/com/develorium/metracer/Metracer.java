@@ -21,6 +21,7 @@ import java.security.ProtectionDomain;
 import java.util.*;
 import java.util.regex.*;
 import org.objectweb.asm.*;
+import org.objectweb.asm.tree.*;
 import com.develorium.metracer.asm.*;
 
 public class Metracer implements ClassFileTransformer {
@@ -78,8 +79,11 @@ public class Metracer implements ClassFileTransformer {
 
 	private InstrumentClassResult instrumentClass(byte theBytecode[], ClassLoader theLoader) {
 		ClassReader reader = new ClassReader(theBytecode);
+		ClassNode parsedClass = new ClassNode(); // TODO: temporary solution to resolve localVariables before method is visited - need to get rid of this
+		reader.accept(parsedClass, 0);
+		
 		MetracerClassWriter writer = new MetracerClassWriter(reader, theLoader);
-		MetracerClassVisitor visitor = new MetracerClassVisitor(writer, pattern);
+		MetracerClassVisitor visitor = new MetracerClassVisitor(writer, pattern, parsedClass);
 		reader.accept(visitor, ClassReader.EXPAND_FRAMES);
 
 		InstrumentClassResult rv = new InstrumentClassResult();

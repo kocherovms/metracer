@@ -16,19 +16,22 @@
 
 package com.develorium.metracer.asm;
 
+import java.util.*;
 import java.util.regex.*;
 import org.objectweb.asm.*;
-import org.objectweb.asm.commons.*;
+import org.objectweb.asm.tree.*;
 
 public class MetracerClassVisitor extends ClassVisitor {
 	private boolean isChanged = false;
 	private boolean hasSlf4Logger = false;
 	private String className = null;
 	private Pattern pattern = null;
+	private ClassNode parsedClass = null;
 
-	public MetracerClassVisitor(ClassVisitor theClassVisitor, Pattern thePattern) {
+	public MetracerClassVisitor(ClassVisitor theClassVisitor, Pattern thePattern, ClassNode theParsedClass) {
 		super(Opcodes.ASM5, theClassVisitor);
 		pattern = thePattern;
+		parsedClass = theParsedClass;
 	}
 
 	@Override
@@ -67,7 +70,17 @@ public class MetracerClassVisitor extends ClassVisitor {
 			String methodNameForPatternMatching = String.format("%1$s::%2$s", className.replace("/", "."), theName);
 			
 			if(pattern.matcher(methodNameForPatternMatching).find(0)) {
-				methodVisitor = new PatternMatchedMethodMutator(className, api, methodVisitor, theAccess, theName, theDescription);
+				List<MethodNode> methods = parsedClass.methods;
+				MethodNode method = null;
+				
+				for(MethodNode m : methods) {
+					if(m.name.equals(theName) && m.desc.equals(theDescription)) {
+						method = m;
+						break;
+					}
+				}
+				
+				methodVisitor = new PatternMatchedMethodMutator(className, method, api, methodVisitor, theAccess, theName, theDescription);
 				isChanged = true;
 			}
 		}

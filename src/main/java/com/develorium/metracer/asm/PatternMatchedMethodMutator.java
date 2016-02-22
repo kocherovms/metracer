@@ -18,42 +18,31 @@ package com.develorium.metracer.asm;
 
 import java.util.*;
 import org.objectweb.asm.*;
+import org.objectweb.asm.tree.*;
 import org.objectweb.asm.commons.*;
 
 class PatternMatchedMethodMutator extends AdviceAdapter {
 	private String className = null;
+	private MethodNode method = null;
 	private String methodName = null;
 	private String methodDescription = null;
 	private boolean isConstructor = false;
+	private boolean isStatic = false;
 	private boolean isInvokeSpecialEncountered = false;
-	private class LocalVariable {
-		String name;
-		String type;
-	}
-	private TreeMap<Integer, LocalVariable> localVariables = new TreeMap<Integer, LocalVariable>();
 	private Label methodEnterStart = new Label(); 
 	private Label methodEnterEnd = new Label(); 
 	private Label startFinally = new Label(); 
 	private Label endFinally = new Label(); 
 	private int argumentNamesVariableIndex = -1;
 
-	public PatternMatchedMethodMutator(String theClassName, int theApiVersion, MethodVisitor theDelegatingMethodVisitor, int theAccess, String theMethodName, String theMethodDescription) {
+	public PatternMatchedMethodMutator(String theClassName, MethodNode theMethod, int theApiVersion, MethodVisitor theDelegatingMethodVisitor, int theAccess, String theMethodName, String theMethodDescription) {
 		super(theApiVersion, theDelegatingMethodVisitor, theAccess, theMethodName, theMethodDescription);
 		className = theClassName;
+		method = theMethod;
 		methodName = theMethodName;
 		methodDescription = theMethodDescription;
 		isConstructor = methodName.equals("<init>");
-		//System.out.println("kms@ visit " + methodName);
-	}
-
-	@Override
-	public void visitLocalVariable(String theName, String theDescription, String theSignature, Label theStart, Label theEnd, int theIndex) {
-		//System.out.println("kms@ " + methodName + " variable " + theName);
-		LocalVariable localVariable = new LocalVariable();
-		localVariable.name = theName;
-		localVariable.type = theDescription;
-		localVariables.put(theIndex, localVariable);
-		super.visitLocalVariable(theName, theDescription, theSignature, theStart, theEnd, theIndex);
+		isStatic = (theAccess & Opcodes.ACC_STATIC) != 0;
 	}
 
 	@Override
@@ -95,21 +84,37 @@ class PatternMatchedMethodMutator extends AdviceAdapter {
 		super.visitMaxs(theMaxStack, theMaxLocals);
 	}
 
+	private static class LocalVariable {
+		String name;
+		String type;
+	}
+
 	@Override
 	protected void onMethodEnter() {
 		Type[] argumentTypes = Type.getArgumentTypes(methodDescription);
 		boolean areAnyArguments = argumentTypes != null && argumentTypes.length > 0;
 		mv.visitLabel(methodEnterStart);
-	
+		
 		if(areAnyArguments) {
-			//System.out.println("kms@ " + methodName + " arguments! " + argumentTypes.length);
 			argumentNamesVariableIndex = newLocal(Type.getType("[Ljava/lang/String;"));
 			mv.visitLdcInsn(new Integer(argumentTypes.length));
 			mv.visitTypeInsn(ANEWARRAY, "java/lang/String");
 			mv.visitVarInsn(ASTORE, argumentNamesVariableIndex);
+			List<LocalVariableNode> localVariableNodes = method != null ? method.localVariables : null;
+			TreeMap<Integer, LocalVariable> localVariables = new TreeMap<Integer, LocalVariable>();
+
+			if(localVariableNodes != null) {
+				for(LocalVariableNode node : localVariableNodes) {
+					LocalVariable lv = new LocalVariable();
+					lv.name = node.name;
+					lv.type = node.desc;
+					localVariables.put(node.index, lv);
+				}
+			}
 		
 			for(int i = 0; i < argumentTypes.length; ++i) {
-				LocalVariable localVariable = localVariables.get(i);
+				int argIndex = isStatic ? i : i + 1;
+				LocalVariable localVariable = localVariables.get(argIndex);
 				String argumentName = localVariable != null ? localVariable.name : "$arg" + i;
 				mv.visitVarInsn(ALOAD, argumentNamesVariableIndex);
 				mv.visitLdcInsn(new Integer(i));
