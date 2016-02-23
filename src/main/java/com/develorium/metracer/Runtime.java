@@ -66,12 +66,21 @@ public class Runtime {
 		printMessage(theClass, message);
 	}
 
-	public static void traceExit(Throwable theException, Class theClass, String theMethodName) {
+	public static void traceExit(Object theReturnValue, Class theClass, String theMethodName) {
 		Integer callDepth = TracingStateThreadLocal.instance.get();
 		TracingStateThreadLocal.instance.set(callDepth - 1);
-		String exceptionInfo = theException == null ? "" : String.format(" (by exception: %1$s)", theException.toString());
-		String message = String.format("%1$s --- [%2$d] %3$s.%4$s%5$s", getIndent(callDepth), callDepth, theClass.getName(), theMethodName, exceptionInfo);
+		String returnValueInfo = analyzeReturnValueInfo(theReturnValue);
+		String message = String.format("%1$s --- [%2$d] %3$s.%4$s%5$s", getIndent(callDepth), callDepth, theClass.getName(), theMethodName, returnValueInfo);
 		printMessage(theClass, message);
+	}
+
+	private static String analyzeReturnValueInfo(Object theReturnValue) {
+		if(theReturnValue == null)
+			return " => void";
+		else if(theReturnValue instanceof Throwable)
+			return String.format(" => exception: %1$s", theReturnValue.toString());
+		else 
+			return String.format(" => return: %1$s", theReturnValue.toString());
 	}
 
 	private static String getIndent(int theCallDepth) {

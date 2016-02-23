@@ -25,7 +25,6 @@ class PatternMatchedMethodMutator extends AdviceAdapter {
 	private String className = null;
 	private MethodNode method = null;
 	private String methodName = null;
-	private String methodDescription = null;
 	private boolean isConstructor = false;
 	private boolean isStatic = false;
 	private boolean isInvokeSpecialEncountered = false;
@@ -40,7 +39,6 @@ class PatternMatchedMethodMutator extends AdviceAdapter {
 		className = theClassName;
 		method = theMethod;
 		methodName = theMethodName;
-		methodDescription = theMethodDescription;
 		isConstructor = methodName.equals("<init>");
 		isStatic = (theAccess & Opcodes.ACC_STATIC) != 0;
 	}
@@ -91,7 +89,7 @@ class PatternMatchedMethodMutator extends AdviceAdapter {
 
 	@Override
 	protected void onMethodEnter() {
-		Type[] argumentTypes = Type.getArgumentTypes(methodDescription);
+		Type[] argumentTypes = Type.getArgumentTypes(methodDesc);
 		boolean areAnyArguments = argumentTypes != null && argumentTypes.length > 0;
 		mv.visitLabel(methodEnterStart);
 		
@@ -147,13 +145,22 @@ class PatternMatchedMethodMutator extends AdviceAdapter {
 	}
 
 	private void injectTraceExit(int theOpcode) {
-		if(theOpcode == ATHROW)
-			mv.visitInsn(DUP); // duplicate exception lying on the stack's top
-		else
-			mv.visitInsn(ACONST_NULL);
+		if(theOpcode == RETURN) {
+			visitInsn(ACONST_NULL);
+		} else if(theOpcode == ARETURN || theOpcode == ATHROW) {
+			dup();
+		} else {
+			if(theOpcode == LRETURN || theOpcode == DRETURN) {
+				dup2();
+			} else {
+				dup();
+			}
+
+			box(Type.getReturnType(methodDesc));
+		}
 
 		mv.visitLdcInsn(Type.getType(String.format("L%1$s;", className)));
 		mv.visitLdcInsn(methodName);
-		mv.visitMethodInsn(INVOKESTATIC, "com/develorium/metracer/Runtime", "traceExit", "(Ljava/lang/Throwable;Ljava/lang/Class;Ljava/lang/String;)V", false);
+		mv.visitMethodInsn(INVOKESTATIC, "com/develorium/metracer/Runtime", "traceExit", "(Ljava/lang/Object;Ljava/lang/Class;Ljava/lang/String;)V", false);
 	}
 }

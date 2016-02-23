@@ -60,6 +60,10 @@ public class Unannotated extends UnannotatedBase {
 		testC(42, 2.718f, 3.1415);
 		testInheritanceBackward();
 		testInheritanceForward();
+		testIntRetVal();
+		testDoubleRetVal();
+		testStringRetVal();
+
 		try {
 			new Unannotated("A").findClass("test");
 			new Unannotated("B").findClass("test", false, false);
@@ -112,6 +116,15 @@ public class Unannotated extends UnannotatedBase {
 	static void testInheritanceForward() {
 		InnerBase i = new InnerChild();
 		i.test2();
+	}
+	static int testIntRetVal() {
+		return 42;
+	}
+	static double testDoubleRetVal() {
+		return 42.0;
+	}
+	static String testStringRetVal() {
+		return "lorem ipsum...";
 	}
 	Class<?> findClass(String theClassName) throws ClassNotFoundException {
 		System.out.println("zzz search for class " + theClassName);
