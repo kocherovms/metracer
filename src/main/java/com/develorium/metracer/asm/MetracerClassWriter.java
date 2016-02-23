@@ -87,7 +87,7 @@ public class MetracerClassWriter extends ClassWriter {
 	private ClassReader typeInfo(final String theType) throws IOException {
 		StringBuilder visitedLoaders = new StringBuilder();
 		ClassLoader loader = classLoader;
-		// TODO: handle situation when classLoader is initially empty (happens, e.g. for com/sun/beans/finder/ClassFinder)
+
 		while(loader != null) {
 			if(visitedLoaders.length() > 0)
 				visitedLoaders.append(", ");

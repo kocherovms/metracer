@@ -58,7 +58,7 @@ public class Metracer implements ClassFileTransformer {
 			return classfileBuffer;
 
 		try {
-			InstrumentClassResult icr = instrumentClass(classfileBuffer, loader);
+			InstrumentClassResult icr = instrumentClass(classfileBuffer, loader != null ? loader : getClass().getClassLoader());
 
 			if(icr.hasSlf4jLogger)
 				Runtime.registerClassWithSlf4jLogger(canonicalClassName, loader);
