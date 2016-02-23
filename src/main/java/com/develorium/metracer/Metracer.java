@@ -32,44 +32,30 @@ public class Metracer implements ClassFileTransformer {
 		if(theArguments == null)
 			throw new Exception("Arguments are missing");
 
-		final String PatternStanza = "pattern=";
-
-		if(!theArguments.startsWith(PatternStanza)) 
-			throw new Exception("First argument must be a \"pattern\"");
-				
-		String patternString = theArguments.substring(PatternStanza.length());
-
-		if(patternString.isEmpty())
-			throw new Exception("Pattern is not specified");
-
 		try {
-			pattern = Pattern.compile(patternString);
+			pattern = Pattern.compile(theArguments);
 		} catch(PatternSyntaxException e) {
-			throw new Exception(String.format("Provided pattern \"%1$s\" is malformed: %2$s\n", patternString, e.toString()));
+			throw new Exception(String.format("Provided pattern \"%1$s\" is malformed: %2$s", theArguments, e.toString()));
 		}
 	}
 
-	public byte[] transform(ClassLoader loader, String className,
-				Class<?> classBeingRedefined, ProtectionDomain protectionDomain,
-				byte[] classfileBuffer) throws IllegalClassFormatException {
-		final String canonicalClassName = className.replaceAll("/", ".");
-
-		if(canonicalClassName.indexOf("java.lang") == 0)
-			return classfileBuffer;
+	public byte[] transform(ClassLoader theLoader, String theClassName, Class<?> theClassBeingRedefined, ProtectionDomain theProtectionDomain, byte[] theClassfileBuffer) throws IllegalClassFormatException {
+		if(theClassName.startsWith("java/lang"))
+			return theClassfileBuffer;
 
 		try {
-			InstrumentClassResult icr = instrumentClass(classfileBuffer, loader != null ? loader : getClass().getClassLoader());
+			InstrumentClassResult icr = instrumentClass(theClassfileBuffer, theLoader != null ? theLoader : getClass().getClassLoader());
 
 			if(icr.hasSlf4jLogger)
-				Runtime.registerClassWithSlf4jLogger(canonicalClassName, loader);
+				Runtime.registerClassWithSlf4jLogger(theClassName.replaceAll("/", "."), theLoader);
 
-			classfileBuffer = icr.bytecode;
+			theClassfileBuffer = icr.bytecode;
 		} catch(Throwable t) {
-			System.out.println("ERROR while instrumenting class " + className + ", loader " + loader + ", error message: " + t.toString());
+			System.err.format("Failed to instrument class %1$s, loader %2$s, error message: %3$s\n", theClassName, theLoader, t.toString());
 			t.printStackTrace();
 		}
 
-		return classfileBuffer;
+		return theClassfileBuffer;
 	}
 
 	private static class InstrumentClassResult {
