@@ -16,7 +16,7 @@ Use *metracer* when:
 This would enable methods tracing for all classes from package com.myprogram.
 
 # Technology
-*metracer* uses [ASM] to instrument programs' code on the fly without a need to recomple anything.
+*metracer* uses [ASM] to instrument programs' code on the fly without a need to recompile anything.
 
 # License
 Apace License, Version 2.0.
