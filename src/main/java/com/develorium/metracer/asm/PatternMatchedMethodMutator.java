@@ -82,11 +82,6 @@ class PatternMatchedMethodMutator extends AdviceAdapter {
 		super.visitMaxs(theMaxStack, theMaxLocals);
 	}
 
-	private static class LocalVariable {
-		String name;
-		String type;
-	}
-
 	@Override
 	protected void onMethodEnter() {
 		Type[] argumentTypes = Type.getArgumentTypes(methodDesc);
@@ -99,21 +94,18 @@ class PatternMatchedMethodMutator extends AdviceAdapter {
 			mv.visitTypeInsn(ANEWARRAY, "java/lang/String");
 			mv.visitVarInsn(ASTORE, argumentNamesVariableIndex);
 			List<LocalVariableNode> localVariableNodes = method != null ? method.localVariables : null;
-			TreeMap<Integer, LocalVariable> localVariables = new TreeMap<Integer, LocalVariable>();
+			TreeMap<Integer, String> localVariables = new TreeMap<Integer, String>();
 
 			if(localVariableNodes != null) {
 				for(LocalVariableNode node : localVariableNodes) {
-					LocalVariable lv = new LocalVariable();
-					lv.name = node.name;
-					lv.type = node.desc;
-					localVariables.put(node.index, lv);
+					localVariables.put(node.index, node.name);
 				}
 			}
 		
 			for(int i = 0; i < argumentTypes.length; ++i) {
 				int argIndex = isStatic ? i : i + 1;
-				LocalVariable localVariable = localVariables.get(argIndex);
-				String argumentName = localVariable != null ? localVariable.name : "$arg" + i;
+				String localVariableName = localVariables.get(argIndex);
+				String argumentName = localVariableName != null ? localVariableName : "$arg" + i;
 				mv.visitVarInsn(ALOAD, argumentNamesVariableIndex);
 				mv.visitLdcInsn(new Integer(i));
 				mv.visitLdcInsn(argumentName);
