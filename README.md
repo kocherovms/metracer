@@ -1,4 +1,5 @@
 # metracer
+![metracer logo](http://develorium.com/wp-content/uploads/2015/11/metracer.png)
 *metracer* is a tool to spy for invocation of an arbitrary methods within Java program. In some sense it's similar to a famous [strace] program in Linux. Just pass a regexp denoting interesting methods and *metracer* would make these methods to report entry / exit, values of input arguments, return values and exceptions. 
 
 *metracer* copes well with Java 1.7 and above (stack map frames) and supports JaveEE applications with theirs class loaders' isolation.
