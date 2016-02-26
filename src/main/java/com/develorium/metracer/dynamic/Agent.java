@@ -20,6 +20,6 @@ import java.lang.instrument.Instrumentation;
 
 public class Agent {
 	public static void agentmain(String theArguments, Instrumentation theInstrumentation) {
-		
+		System.out.println("kms@ Started!");
 	}
 }

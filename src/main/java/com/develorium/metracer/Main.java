@@ -98,24 +98,32 @@ public class Main {
 		if(address != null)
 			return address;
 
+		String managementAgentFileName = locateManagementAgentJar(theVm);
+
+		if(managementAgentFileName == null)
+			throw new Exception("Management agent JAR is not found");
+
+		theVm.loadAgent(managementAgentFileName, "com.sun.management.jmxremote");
+		address = getJmxLocalConnectAddress(theVm);
+
+		if(address == null)
+			throw new Exception("Failed to start management agent");
+
+		return address;
+	}
+
+	private String locateManagementAgentJar(VirtualMachine theVm) throws IOException {
 		String javaHome = theVm.getSystemProperties().getProperty("java.home");
 		String managementAgentFileNames[] = { "/jre/lib/management-agent.jar", "/lib/management-agent.jar" };
 
 		for(String managementAgentFileName: managementAgentFileNames) {
 			String fullManagementAgentFileName = javaHome + managementAgentFileName.replace("/", File.separator);
 
-			if(new File(fullManagementAgentFileName).exists()) {
-				theVm.loadAgent(fullManagementAgentFileName, "com.sun.management.jmxremote");
-				address = getJmxLocalConnectAddress(theVm);
-
-				if(address == null)
-					throw new Exception("Failed to start management agent");
-
-				return address;
-			}
+			if(new File(fullManagementAgentFileName).exists()) 
+				return fullManagementAgentFileName;
 		}
 
-		throw new Exception("Management agent is not found");
+		return null;
 	}
 
 	private String getJmxLocalConnectAddress(VirtualMachine theVm) throws IOException {
@@ -125,14 +133,29 @@ public class Main {
 		return address;
 	}
 
-	private Object ensureMetracerAgentIsRunning(VirtualMachine theVm, String theJmxLocalConnectAddress) throws java.net.MalformedURLException, IOException {
+	private Object ensureMetracerAgentIsRunning(VirtualMachine theVm, String theJmxLocalConnectAddress) throws java.net.MalformedURLException, IOException, Exception {
 		JMXServiceURL jmxUrl = new JMXServiceURL(theJmxLocalConnectAddress);
 		JMXConnector jmxConnector = JMXConnectorFactory.connect(jmxUrl);
 		agent = getMetracerAgentMxBean(jmxConnector);
-		return agent;
+
+		if(agent != null) 
+			return agent;
+
+		String metracerAgentFileName = resolveMetracerAgentJar();
+			
+		if(!new File(metracerAgentFileName).exists())
+			throw new Exception(String.format("Resolved metracer jar \"%s\" doesn't exist", metracerAgentFileName));
+
+		theVm.loadAgent(metracerAgentFileName, pattern);
+		return getMetracerAgentMxBean(jmxConnector);
 	}
 
 	private Object getMetracerAgentMxBean(JMXConnector theJmxConnector) {
 		return null;
+	}
+
+	private String resolveMetracerAgentJar() throws UnsupportedEncodingException{
+		String sourcePath = Main.class.getProtectionDomain().getCodeSource().getLocation().getPath();
+		return java.net.URLDecoder.decode(sourcePath, "UTF-8");
 	}
 }
