@@ -70,6 +70,12 @@ public class Unannotated extends UnannotatedBase {
 		} catch(Exception e) {
 			e.printStackTrace();
 		}
+
+		try {
+            System.in.read();
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
 	}
 	static void testA() {
 		System.out.println("testA");

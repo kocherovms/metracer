@@ -26,7 +26,8 @@ import com.develorium.metracer.asm.*;
 
 public class Metracer implements ClassFileTransformer {
 	private Pattern pattern = null;
-	private com.develorium.metracer.Runtime runtime = new com.develorium.metracer.Runtime();
+	private RuntimeLogger runtimeLogger = new RuntimeLogger();
+	private com.develorium.metracer.Runtime runtime = new com.develorium.metracer.Runtime(runtimeLogger);
 
 	public Metracer(String theArguments) throws Exception {
 		if(theArguments == null)
@@ -47,7 +48,7 @@ public class Metracer implements ClassFileTransformer {
 			InstrumentClassResult icr = instrumentClass(theClassfileBuffer, theLoader != null ? theLoader : getClass().getClassLoader());
 
 			if(icr.hasSlf4jLogger)
-				com.develorium.metracer.Runtime.registerClassWithSlf4jLogger(theClassName.replaceAll("/", "."), theLoader);
+				runtimeLogger.registerClassWithSlf4jLogger(theClassName.replaceAll("/", "."), theLoader);
 
 			theClassfileBuffer = icr.bytecode;
 		} catch(Throwable t) {

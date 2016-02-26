@@ -22,11 +22,14 @@ import java.io.*;
 import com.sun.tools.attach.*;
 import javax.management.*;
 import javax.management.remote.*;
+import com.develorium.metracer.dynamic.*;
 
 public class Main {
 	int pid = 0;
 	String pattern = null;
-	Object agent = null;
+	MBeanServerConnection connection = null;
+	ObjectName agentMxBeanName = null;
+	AgentMXBean agent = null;
 
 	public static void main(String[] theArguments) {
 		new Main().execute(theArguments);
@@ -36,8 +39,10 @@ public class Main {
 		try {
 			parseArguments(theArguments);
 			loadAgent();
+			processAgentEvents();
 		} catch(Exception e) {
 			System.err.println(e.getMessage());
+			e.printStackTrace();
 			System.exit(1);
 		}
 	}
@@ -88,8 +93,19 @@ public class Main {
 		}
 
 		String jmxLocalConnectAddress = ensureManagementAgentIsRunning(vm);
-		agent = ensureMetracerAgentIsRunning(vm, jmxLocalConnectAddress);
+		connection = connectToMbeanServer(jmxLocalConnectAddress);
+		agent = ensureMetracerAgentIsRunning(vm);
 		vm.detach(); 
+	}
+
+	private void processAgentEvents() throws Exception {
+		connection.addNotificationListener(agentMxBeanName, new NotificationListener() {
+				@Override
+				public void handleNotification(Notification theNotification, Object theHandback) {
+					System.out.println("kms@ " + theNotification.getMessage());
+				}
+			}, 
+			null, null);
 	}
 
 	private String ensureManagementAgentIsRunning(VirtualMachine theVm) throws Exception, IOException {
@@ -133,10 +149,14 @@ public class Main {
 		return address;
 	}
 
-	private Object ensureMetracerAgentIsRunning(VirtualMachine theVm, String theJmxLocalConnectAddress) throws java.net.MalformedURLException, IOException, Exception {
+	private MBeanServerConnection connectToMbeanServer(String theJmxLocalConnectAddress) throws java.net.MalformedURLException, IOException, Exception {
 		JMXServiceURL jmxUrl = new JMXServiceURL(theJmxLocalConnectAddress);
 		JMXConnector jmxConnector = JMXConnectorFactory.connect(jmxUrl);
-		agent = getMetracerAgentMxBean(jmxConnector);
+		return jmxConnector.getMBeanServerConnection();
+	}
+
+	private AgentMXBean ensureMetracerAgentIsRunning(VirtualMachine theVm) throws Exception {
+		agent = getMetracerAgentMxBean();
 
 		if(agent != null) 
 			return agent;
@@ -147,14 +167,16 @@ public class Main {
 			throw new Exception(String.format("Resolved metracer jar \"%s\" doesn't exist", metracerAgentFileName));
 
 		theVm.loadAgent(metracerAgentFileName, pattern);
-		return getMetracerAgentMxBean(jmxConnector);
+		return getMetracerAgentMxBean();
 	}
 
-	private Object getMetracerAgentMxBean(JMXConnector theJmxConnector) {
-		return null;
+	private AgentMXBean getMetracerAgentMxBean() throws IOException, MalformedObjectNameException {
+		agentMxBeanName = new ObjectName(Agent.MxBeanName);
+		AgentMXBean agentMxBean = JMX.newMBeanProxy(connection, agentMxBeanName, AgentMXBean.class, true);
+		return agentMxBean;
 	}
 
-	private String resolveMetracerAgentJar() throws UnsupportedEncodingException{
+	private String resolveMetracerAgentJar() throws UnsupportedEncodingException {
 		String sourcePath = Main.class.getProtectionDomain().getCodeSource().getLocation().getPath();
 		return java.net.URLDecoder.decode(sourcePath, "UTF-8");
 	}

@@ -44,11 +44,8 @@ public class MetracerClassVisitor extends ClassVisitor {
 	public FieldVisitor visitField(int theAccess, String theName, String theDescription, String theSignature, Object theValue) {
 		FieldVisitor rv = super.visitField(theAccess, theName, theDescription, theSignature, theValue);
 
-		if(!hasSlf4Logger) {
-			String slf4jLoggerClassNameForCompare = com.develorium.metracer.Runtime.Slf4jLoggerClassName.replace(".", "/");
-			theDescription.equals(String.format("L%1$s;", slf4jLoggerClassNameForCompare));
-			hasSlf4Logger = true;
-		}
+		if(!hasSlf4Logger)
+			hasSlf4Logger = theDescription.equals("Lorg/slf4j/Logger;");
 
 		return rv;
 	}
