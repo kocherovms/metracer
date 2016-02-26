@@ -18,11 +18,15 @@ package com.develorium.metracer;
 
 import java.util.*;
 import java.util.regex.*;
+import java.io.*;
 import com.sun.tools.attach.*;
+import javax.management.*;
+import javax.management.remote.*;
 
 public class Main {
 	int pid = 0;
 	String pattern = null;
+	Object agent = null;
 
 	public static void main(String[] theArguments) {
 		new Main().execute(theArguments);
@@ -41,12 +45,12 @@ public class Main {
 	private void parseArguments(String[] theArguments) throws Exception {
 		try {
 			if(theArguments.length != 2) 
-				throw new Exception(String.format("2 arguments are expected, but %1$s given", theArguments.length));
+				throw new Exception(String.format("2 arguments are expected, but %d given", theArguments.length));
 
 			parsePid(theArguments[0]);
 			parsePattern(theArguments[1]);
 		} catch(Exception e) {
-			throw new Exception(String.format("%1$s\nUsage: metracer.jar <PID> <PATTERN>\n", e.getMessage()));
+			throw new Exception(String.format("%s\nUsage: metracer.jar <PID> <PATTERN>", e.getMessage()));
         }
 	}
 
@@ -54,11 +58,11 @@ public class Main {
 		try {
 			pid = Integer.parseInt(thePid);
 		} catch(NumberFormatException e) {
-			throw new Exception(String.format("Value \"%1$s\" of argument #0 doesn't denote a PID", thePid));
+			throw new Exception(String.format("Value \"%s\" of argument #0 doesn't denote a PID", thePid));
 		}
 				
 		if(pid <= 0)
-			throw new Exception(String.format("Given PID %1$d is invalid", pid));
+			throw new Exception(String.format("Given PID %d is invalid", pid));
 	}
 
 	private void parsePattern(String thePattern) throws Exception {
@@ -70,17 +74,65 @@ public class Main {
 		try {
 			Pattern.compile(pattern);
 		} catch(PatternSyntaxException e) {
-			throw new Exception(String.format("Provided pattern \"%1$s\" is malformed: %2$s", pattern, e.toString()));
+			throw new Exception(String.format("Provided pattern \"%s\" is malformed: %s", pattern, e.toString()));
 		}
 	}
 
 	private void loadAgent() throws Exception {
+		VirtualMachine vm = null;
+
 		try {
-			VirtualMachine vm = VirtualMachine.attach(Integer.toString(pid));
-			Properties properties = vm.getSystemProperties();
-			properties.list(new java.io.PrintStream(System.out));
+			vm = VirtualMachine.attach(Integer.toString(pid));
 		} catch(Exception e) {
-			throw new Exception(String.format("Failed to connect to JVM with PID %1$d: %2$s", pid, e.getMessage()));
+			throw new Exception(String.format("Failed to connect to JVM with PID %d: %s", pid, e.getMessage()));
 		}
+
+		String jmxLocalConnectAddress = ensureManagementAgentIsRunning(vm);
+		agent = ensureMetracerAgentIsRunning(vm, jmxLocalConnectAddress);
+		vm.detach(); 
+	}
+
+	private String ensureManagementAgentIsRunning(VirtualMachine theVm) throws Exception, IOException {
+		String address = getJmxLocalConnectAddress(theVm);
+
+		if(address != null)
+			return address;
+
+		String javaHome = theVm.getSystemProperties().getProperty("java.home");
+		String managementAgentFileNames[] = { "/jre/lib/management-agent.jar", "/lib/management-agent.jar" };
+
+		for(String managementAgentFileName: managementAgentFileNames) {
+			String fullManagementAgentFileName = javaHome + managementAgentFileName.replace("/", File.separator);
+
+			if(new File(fullManagementAgentFileName).exists()) {
+				theVm.loadAgent(fullManagementAgentFileName, "com.sun.management.jmxremote");
+				address = getJmxLocalConnectAddress(theVm);
+
+				if(address == null)
+					throw new Exception("Failed to start management agent");
+
+				return address;
+			}
+		}
+
+		throw new Exception("Management agent is not found");
+	}
+
+	private String getJmxLocalConnectAddress(VirtualMachine theVm) throws IOException {
+		String JmxLocalConnectAddressPropertyName = "com.sun.management.jmxremote.localConnectorAddress";
+		Properties properties = theVm.getAgentProperties();
+		String address = (String)properties.get(JmxLocalConnectAddressPropertyName);
+		return address;
+	}
+
+	private Object ensureMetracerAgentIsRunning(VirtualMachine theVm, String theJmxLocalConnectAddress) throws java.net.MalformedURLException, IOException {
+		JMXServiceURL jmxUrl = new JMXServiceURL(theJmxLocalConnectAddress);
+		JMXConnector jmxConnector = JMXConnectorFactory.connect(jmxUrl);
+		agent = getMetracerAgentMxBean(jmxConnector);
+		return agent;
+	}
+
+	private Object getMetracerAgentMxBean(JMXConnector theJmxConnector) {
+		return null;
 	}
 }
