@@ -88,14 +88,23 @@ public class Main {
 
 		try {
 			vm = VirtualMachine.attach(Integer.toString(pid));
+			say(String.format("Attached to JVM (PID %d)", pid));
 		} catch(Exception e) {
 			throw new Exception(String.format("Failed to connect to JVM with PID %d: %s", pid, e.getMessage()));
 		}
 
 		String jmxLocalConnectAddress = ensureManagementAgentIsRunning(vm);
+		say("Management agent is running");
+
 		connection = connectToMbeanServer(jmxLocalConnectAddress);
+		say("Connected to MBean server");
+
 		agent = ensureMetracerAgentIsRunning(vm);
+		say("metracer agent is running");
+		agent.test();
+
 		vm.detach(); 
+		say(String.format("Detached from JVM (PID %d)", pid));
 	}
 
 	private void processAgentEvents() throws Exception {
@@ -106,6 +115,11 @@ public class Main {
 				}
 			}, 
 			null, null);
+
+		try {
+            System.in.read();
+        } catch (Exception e) {
+		}
 	}
 
 	private String ensureManagementAgentIsRunning(VirtualMachine theVm) throws Exception, IOException {
@@ -114,12 +128,15 @@ public class Main {
 		if(address != null)
 			return address;
 
+		say("Management agent is not running");
 		String managementAgentFileName = locateManagementAgentJar(theVm);
 
 		if(managementAgentFileName == null)
 			throw new Exception("Management agent JAR is not found");
 
+		say(String.format("Loading management agent from \"%s\"", managementAgentFileName));
 		theVm.loadAgent(managementAgentFileName, "com.sun.management.jmxremote");
+		say("Management agent loaded");
 		address = getJmxLocalConnectAddress(theVm);
 
 		if(address == null)
@@ -161,23 +178,39 @@ public class Main {
 		if(agent != null) 
 			return agent;
 
+		say("metracer agent is not loaded");
 		String metracerAgentFileName = resolveMetracerAgentJar();
 			
 		if(!new File(metracerAgentFileName).exists())
 			throw new Exception(String.format("Resolved metracer jar \"%s\" doesn't exist", metracerAgentFileName));
 
+		say(String.format("Loading metracer agent from \"%s\"", metracerAgentFileName));
 		theVm.loadAgent(metracerAgentFileName, pattern);
-		return getMetracerAgentMxBean();
+		say("metracer agent loaded");
+
+		agent = getMetracerAgentMxBean();
+
+		if(agent == null)
+			throw new Exception("Failed to run metracer agent");
+
+		return agent;
 	}
 
 	private AgentMXBean getMetracerAgentMxBean() throws IOException, MalformedObjectNameException {
-		agentMxBeanName = new ObjectName(Agent.MxBeanName);
-		AgentMXBean agentMxBean = JMX.newMBeanProxy(connection, agentMxBeanName, AgentMXBean.class, true);
-		return agentMxBean;
+		agentMxBeanName = new ObjectName(com.develorium.metracer.dynamic.Agent.MxBeanName);
+
+		if(!connection.isRegistered(agentMxBeanName))
+			return null;
+
+		return JMX.newMXBeanProxy(connection, agentMxBeanName, AgentMXBean.class, true);
 	}
 
 	private String resolveMetracerAgentJar() throws UnsupportedEncodingException {
 		String sourcePath = Main.class.getProtectionDomain().getCodeSource().getLocation().getPath();
 		return java.net.URLDecoder.decode(sourcePath, "UTF-8");
+	}
+
+	private static void say(String theMessage) {
+		System.out.println(theMessage);
 	}
 }

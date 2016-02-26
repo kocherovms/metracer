@@ -29,6 +29,7 @@ public class Agent extends NotificationBroadcasterSupport implements AgentMXBean
 	private Thread testJob = null;
 
 	public static void agentmain(String theArguments, Instrumentation theInstrumentation) {
+		System.out.println("Hello, world!");
 		new Agent().bootstrap(theArguments, theInstrumentation);
 	}
 
@@ -43,9 +44,14 @@ public class Agent extends NotificationBroadcasterSupport implements AgentMXBean
 
 	@Override
 	public void printMessage(Class<?> theClass, String theMethodName, String theMessage) {
-		//System.out.println("kms@ " + theClass + " " + theMethodName + " " + theMessage);
+		System.out.println("kms@ " + theClass + " " + theMethodName + " " + theMessage);
 		Notification notification = new Notification(NotificationType, this, messageSerial.incrementAndGet(), theMessage);
 		sendNotification(notification);
+	}
+
+	@Override
+	public void test() {
+		System.out.println("kms@ TEST");
 	}
 
 	private void bootstrap(String theArguments, Instrumentation theInstrumentation) {
