@@ -53,7 +53,8 @@
         <configuration>
           <archive>
             <manifestEntries>
-              <Premain-Class>com.develorium.metracer.Agent</Premain-Class>
+              <Premain-Class>com.develorium.metracer.statik.Agent</Premain-Class>
+              <Agent-Class>com.develorium.metracer.dynamic.Agent</Agent-Class>
             </manifestEntries>
           </archive>
         </configuration>
