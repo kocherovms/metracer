@@ -39,6 +39,7 @@ public class Main {
 		try {
 			parseArguments(theArguments);
 			loadAgent();
+			configureAgent();
 			processAgentEvents();
 		} catch(Exception e) {
 			System.err.println(e.getMessage());
@@ -57,6 +58,49 @@ public class Main {
 		} catch(Exception e) {
 			throw new Exception(String.format("%s\nUsage: metracer.jar <PID> <PATTERN>", e.getMessage()));
         }
+	}
+
+	private void loadAgent() throws Exception {
+		VirtualMachine vm = null;
+
+		try {
+			vm = VirtualMachine.attach(Integer.toString(pid));
+			say(String.format("Attached to JVM (PID %d)", pid));
+		} catch(Exception e) {
+			throw new Exception(String.format("Failed to connect to JVM with PID %d: %s", pid, e.getMessage()));
+		}
+
+		String jmxLocalConnectAddress = ensureManagementAgentIsRunning(vm);
+		say("Management agent is running");
+
+		connection = connectToMbeanServer(jmxLocalConnectAddress);
+		say("Connected to MBean server");
+
+		agent = ensureMetracerAgentIsRunning(vm);
+		say("metracer agent is running");
+
+		vm.detach(); 
+		say(String.format("Detached from JVM (PID %d)", pid));
+	}
+
+	private void configureAgent() throws Exception {
+		agent.setPattern(pattern);
+		say(String.format("Pattern set to \"%s\"", pattern));
+	}
+
+	private void processAgentEvents() throws Exception {
+		connection.addNotificationListener(agentMxBeanName, new NotificationListener() {
+				@Override
+				public void handleNotification(Notification theNotification, Object theHandback) {
+					System.out.println("kms@ " + theNotification.getMessage());
+				}
+			}, 
+			null, null);
+
+		try {
+            System.in.read();
+        } catch (Exception e) {
+		}
 	}
 
 	private void parsePid(String thePid) throws Exception {
@@ -80,45 +124,6 @@ public class Main {
 			Pattern.compile(pattern);
 		} catch(PatternSyntaxException e) {
 			throw new Exception(String.format("Provided pattern \"%s\" is malformed: %s", pattern, e.toString()));
-		}
-	}
-
-	private void loadAgent() throws Exception {
-		VirtualMachine vm = null;
-
-		try {
-			vm = VirtualMachine.attach(Integer.toString(pid));
-			say(String.format("Attached to JVM (PID %d)", pid));
-		} catch(Exception e) {
-			throw new Exception(String.format("Failed to connect to JVM with PID %d: %s", pid, e.getMessage()));
-		}
-
-		String jmxLocalConnectAddress = ensureManagementAgentIsRunning(vm);
-		say("Management agent is running");
-
-		connection = connectToMbeanServer(jmxLocalConnectAddress);
-		say("Connected to MBean server");
-
-		agent = ensureMetracerAgentIsRunning(vm);
-		say("metracer agent is running");
-		agent.test();
-
-		vm.detach(); 
-		say(String.format("Detached from JVM (PID %d)", pid));
-	}
-
-	private void processAgentEvents() throws Exception {
-		connection.addNotificationListener(agentMxBeanName, new NotificationListener() {
-				@Override
-				public void handleNotification(Notification theNotification, Object theHandback) {
-					System.out.println("kms@ " + theNotification.getMessage());
-				}
-			}, 
-			null, null);
-
-		try {
-            System.in.read();
-        } catch (Exception e) {
 		}
 	}
 

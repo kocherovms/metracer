@@ -24,6 +24,7 @@ class UnannotatedBase {
 
 public class Unannotated extends UnannotatedBase {
 	static String staticString = "hello, world";
+	private Thread testJob = null;
 
 	static {
 		System.out.println("value of a staticString = " + staticString);
@@ -70,6 +71,8 @@ public class Unannotated extends UnannotatedBase {
 		} catch(Exception e) {
 			e.printStackTrace();
 		}
+
+		new Unannotated("C").startTestJob();
 
 		try {
             System.in.read();
@@ -140,4 +143,22 @@ public class Unannotated extends UnannotatedBase {
 		System.out.println("yyy search for class " + theClassName);
 		return null;
 	}
+	private void doSomething() {
+		System.out.println("do something");
+	}
+	private void startTestJob() {
+        testJob = new Thread(new Runnable() {
+				public void run() {
+					while(true) {
+						doSomething();
+						try {
+							Thread.sleep(3000);
+						} catch(InterruptedException e) {
+						}
+					}
+				}
+			});
+
+		testJob.start();
+    }
 }

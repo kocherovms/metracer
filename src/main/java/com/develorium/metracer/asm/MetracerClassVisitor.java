@@ -27,11 +27,17 @@ public class MetracerClassVisitor extends ClassVisitor {
 	private String className = null;
 	private Pattern pattern = null;
 	private ClassNode parsedClass = null;
+	private Set<String> instrumentedMethods = null;
 
 	public MetracerClassVisitor(ClassVisitor theClassVisitor, Pattern thePattern, ClassNode theParsedClass) {
+		this(theClassVisitor, thePattern, theParsedClass, null);
+	}
+
+	public MetracerClassVisitor(ClassVisitor theClassVisitor, Pattern thePattern, ClassNode theParsedClass, Set<String> theInstrumentedMethods) {
 		super(Opcodes.ASM5, theClassVisitor);
 		pattern = thePattern;
 		parsedClass = theParsedClass;
+		instrumentedMethods = theInstrumentedMethods;
 	}
 
 	@Override
@@ -64,9 +70,7 @@ public class MetracerClassVisitor extends ClassVisitor {
 		}
 
 		if(!isMethodChanged) {
-			String methodNameForPatternMatching = String.format("%1$s::%2$s", className.replace("/", "."), theName);
-			
-			if(pattern.matcher(methodNameForPatternMatching).find(0)) {
+			if(com.develorium.metracer.Runtime.isMethodPatternMatched(className.replace("/", "."), theName, pattern)) {
 				List<MethodNode> methods = parsedClass.methods;
 				MethodNode method = null;
 				

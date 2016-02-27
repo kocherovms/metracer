@@ -40,6 +40,7 @@ public class Metracer implements ClassFileTransformer {
 		}
 	}
 
+	@Override
 	public byte[] transform(ClassLoader theLoader, String theClassName, Class<?> theClassBeingRedefined, ProtectionDomain theProtectionDomain, byte[] theClassfileBuffer) throws IllegalClassFormatException {
 		if(theClassName.startsWith("java/lang"))
 			return theClassfileBuffer;
@@ -66,7 +67,7 @@ public class Metracer implements ClassFileTransformer {
 
 	private InstrumentClassResult instrumentClass(byte theBytecode[], ClassLoader theLoader) {
 		ClassReader reader = new ClassReader(theBytecode);
-		ClassNode parsedClass = new ClassNode(); // TODO: temporary solution to resolve localVariables before method is visited - need to get rid of this
+		ClassNode parsedClass = new ClassNode();
 		reader.accept(parsedClass, 0);
 		
 		MetracerClassWriter writer = new MetracerClassWriter(reader, theLoader);

@@ -16,6 +16,8 @@
 
 package com.develorium.metracer;
 
+import java.util.regex.*;
+
 public class Runtime {
 	public interface LoggerInterface {
 		public void printMessage(Class<?> theClass, String theMethodName, String theMessage);
@@ -26,6 +28,12 @@ public class Runtime {
 	public Runtime(LoggerInterface theLogger) {
 		logger = theLogger;
 		new TracingStateThreadLocal(); // to trigger static initializer
+	}
+
+	public static boolean isMethodPatternMatched(String theClassName, String theMethodName, Pattern thePattern) {
+		String methodNameForPatternMatching = String.format("%s::%s", theClassName, theMethodName);
+		//System.out.println("kms@ checking " + methodNameForPatternMatching);
+		return thePattern.matcher(methodNameForPatternMatching).find(0);
 	}
 
 	private static class TracingStateThreadLocal extends ThreadLocal<Integer> {

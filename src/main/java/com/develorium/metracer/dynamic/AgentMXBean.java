@@ -16,6 +16,8 @@
 
 package com.develorium.metracer.dynamic;
 
+import java.util.regex.*;
+
 public interface AgentMXBean {
-	public void test();
+	public void setPattern(String thePattern);
 }
