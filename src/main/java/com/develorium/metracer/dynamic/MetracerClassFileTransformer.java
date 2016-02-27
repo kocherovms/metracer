@@ -26,9 +26,6 @@ import com.develorium.metracer.asm.*;
 
 public class MetracerClassFileTransformer implements ClassFileTransformer {
 	private Agent agent = null;
-	static class InstrumentedMethods extends HashSet<String> {}
-	static class InstrumentedClasses extends HashMap<String, InstrumentedMethods> {}
-	private Map<ClassLoader, InstrumentedClasses> instrumentedClassesInLoaders = new WeakHashMap<ClassLoader, InstrumentedClasses>(1000);
 
 	MetracerClassFileTransformer(Agent theAgent) {
 		agent = theAgent;
@@ -42,7 +39,7 @@ public class MetracerClassFileTransformer implements ClassFileTransformer {
 			return theClassfileBuffer;
 
 		try {
-			return instrumentClass(theClassfileBuffer, theLoader != null ? theLoader : getClass().getClassLoader(), theClassName, pattern);
+			return instrumentClass(theClassfileBuffer, theLoader != null ? theLoader : getClass().getClassLoader(), pattern);
 		} catch(Throwable t) {
 			System.err.format("Failed to instrument class %s, loader %s, error message: %s\n", theClassName, theLoader, t.toString());
 			t.printStackTrace();
@@ -51,33 +48,14 @@ public class MetracerClassFileTransformer implements ClassFileTransformer {
 		return theClassfileBuffer;
 	}
 
-	synchronized private byte[] instrumentClass(byte theBytecode[], ClassLoader theLoader, String theClassName, Pattern thePattern) {
+	private byte[] instrumentClass(byte theBytecode[], ClassLoader theLoader, Pattern thePattern) {
 		ClassReader reader = new ClassReader(theBytecode);
 		ClassNode parsedClass = new ClassNode();
 		reader.accept(parsedClass, 0);
 		
 		MetracerClassWriter writer = new MetracerClassWriter(reader, theLoader);
-		InstrumentedMethods instrumentedMethods = getOrCreateInstrumentedMethodsForClass(theLoader, theClassName);
-		MetracerClassVisitor visitor = new MetracerClassVisitor(writer, thePattern, parsedClass, instrumentedMethods);
+		MetracerClassVisitor visitor = new MetracerClassVisitor(writer, thePattern, parsedClass);
 		reader.accept(visitor, ClassReader.EXPAND_FRAMES);
 		return visitor.getIsChanged() ? writer.toByteArray() : theBytecode;
-	}
-
-	private InstrumentedMethods getOrCreateInstrumentedMethodsForClass(ClassLoader theLoader, String theClassName) {
-		InstrumentedClasses instrumentedClasses = instrumentedClassesInLoaders.get(theLoader);
-
-		if(instrumentedClasses == null) {
-			instrumentedClasses = new InstrumentedClasses();
-			instrumentedClassesInLoaders.put(theLoader, instrumentedClasses);
-		}
-
-		InstrumentedMethods instrumentedMethods = instrumentedClasses.get(theClassName);
-
-		if(instrumentedMethods == null) {
-			instrumentedMethods = new InstrumentedMethods();
-			instrumentedClasses.put(theClassName, instrumentedMethods);
-		}
-
-		return instrumentedMethods;
 	}
 }

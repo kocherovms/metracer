@@ -41,18 +41,16 @@ public class Agent extends NotificationBroadcasterSupport implements AgentMXBean
 	}
 
 	@Override
-    public MBeanNotificationInfo[] getNotificationInfo() {
-        MBeanNotificationInfo info = new MBeanNotificationInfo(
+	public MBeanNotificationInfo[] getNotificationInfo() {
+		MBeanNotificationInfo info = new MBeanNotificationInfo(
 			new String[] { NotificationType }, 
 			Notification.class.getName(), 
 			"Notification about metracer event (entry / exit of methods)");
-        return new MBeanNotificationInfo[] { info };
+		return new MBeanNotificationInfo[] { info };
 	}
 
 	@Override
 	public void printMessage(Class<?> theClass, String theMethodName, String theMessage) {
-		System.out.println("kms@ " + theClass + " " + theMethodName + " " + theMessage + " vs " + pattern);
-
 		if(!com.develorium.metracer.Runtime.isMethodPatternMatched(theClass.getName(), theMethodName, pattern)) 
 			return;
 
@@ -62,12 +60,11 @@ public class Agent extends NotificationBroadcasterSupport implements AgentMXBean
 
 	@Override
 	public void setPattern(String thePattern) {
-		System.out.println("kms@ pattern = " + thePattern);
 		try {
-            Pattern newPattern = Pattern.compile(thePattern);
+			Pattern newPattern = Pattern.compile(thePattern);
 			pattern = newPattern; // Reads and writes are atomic for reference variables (Java Language Specification)
-        } catch(PatternSyntaxException e) {
-            throw new RuntimeException(String.format("Provided pattern \"%s\" is malformed: %s", thePattern, e.toString()));
+		} catch(PatternSyntaxException e) {
+			throw new RuntimeException(String.format("Provided pattern \"%s\" is malformed: %s", thePattern, e.toString()));
 		}
 
 		try {
@@ -109,7 +106,7 @@ public class Agent extends NotificationBroadcasterSupport implements AgentMXBean
 			if(!instrumentation.isModifiableClass(c))
 				continue;
 
-			if(doesClassNeedInstrumentation(c))
+			if(doesClassNeedInstrumentation(c) || isClassLoader(c))
 				classesForInstrumentation.add(c);
 		}
 
@@ -130,5 +127,9 @@ public class Agent extends NotificationBroadcasterSupport implements AgentMXBean
 		}
 
 		return false;
+	}
+
+	private boolean isClassLoader(Class<?> theClass) {
+		return ClassLoader.class.isAssignableFrom(theClass);
 	}
 }
