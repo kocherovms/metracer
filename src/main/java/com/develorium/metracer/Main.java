@@ -40,7 +40,8 @@ public class Main {
 			parseArguments(theArguments);
 			loadAgent();
 			configureAgent();
-			processAgentEvents();
+			startListeningToAgentEvents();
+			kbhit();
 		} catch(Exception e) {
 			System.err.println(e.getMessage());
 			e.printStackTrace();
@@ -88,15 +89,17 @@ public class Main {
 		say(String.format("Pattern set to \"%s\"", pattern));
 	}
 
-	private void processAgentEvents() throws Exception {
+	private void startListeningToAgentEvents() throws Exception {
 		connection.addNotificationListener(agentMxBeanName, new NotificationListener() {
 				@Override
 				public void handleNotification(Notification theNotification, Object theHandback) {
-					System.out.println("kms@ " + theNotification.getMessage());
+					System.out.println(theNotification.getMessage());
 				}
 			}, 
 			null, null);
+	}
 
+	private void kbhit() {
 		try {
             System.in.read();
         } catch (Exception e) {

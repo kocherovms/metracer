@@ -32,7 +32,6 @@ public class Runtime {
 
 	public static boolean isMethodPatternMatched(String theClassName, String theMethodName, Pattern thePattern) {
 		String methodNameForPatternMatching = String.format("%s::%s", theClassName, theMethodName);
-		//System.out.println("kms@ checking " + methodNameForPatternMatching);
 		return thePattern.matcher(methodNameForPatternMatching).find(0);
 	}
 

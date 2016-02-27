@@ -36,25 +36,29 @@ public class MetracerClassFileTransformer implements ClassFileTransformer {
 
 	@Override
 	public byte[] transform(ClassLoader theLoader, String theClassName, Class<?> theClassBeingRedefined, ProtectionDomain theProtectionDomain, byte[] theClassfileBuffer) throws IllegalClassFormatException {
+		Pattern pattern = agent.getPattern();
+
+		if(pattern == null)
+			return theClassfileBuffer;
+
 		try {
-			return instrumentClass(theClassfileBuffer, theLoader != null ? theLoader : getClass().getClassLoader(), theClassName);
+			return instrumentClass(theClassfileBuffer, theLoader != null ? theLoader : getClass().getClassLoader(), theClassName, pattern);
 		} catch(Throwable t) {
-			//System.err.format("Failed to instrument class %1$s, loader %2$s, error message: %3$s\n", theClassName, theLoader, t.toString());
-			//t.printStackTrace();
+			System.err.format("Failed to instrument class %s, loader %s, error message: %s\n", theClassName, theLoader, t.toString());
+			t.printStackTrace();
 		}
 	
 		return theClassfileBuffer;
 	}
 
-	synchronized private byte[] instrumentClass(byte theBytecode[], ClassLoader theLoader, String theClassName) {
+	synchronized private byte[] instrumentClass(byte theBytecode[], ClassLoader theLoader, String theClassName, Pattern thePattern) {
 		ClassReader reader = new ClassReader(theBytecode);
 		ClassNode parsedClass = new ClassNode();
 		reader.accept(parsedClass, 0);
-		// TODO: check if we need to instrument this class further (we may be called NOT from an agent but due to a bare class loading)
 		
 		MetracerClassWriter writer = new MetracerClassWriter(reader, theLoader);
 		InstrumentedMethods instrumentedMethods = getOrCreateInstrumentedMethodsForClass(theLoader, theClassName);
-		MetracerClassVisitor visitor = new MetracerClassVisitor(writer, agent.getPattern(), parsedClass, instrumentedMethods);
+		MetracerClassVisitor visitor = new MetracerClassVisitor(writer, thePattern, parsedClass, instrumentedMethods);
 		reader.accept(visitor, ClassReader.EXPAND_FRAMES);
 		return visitor.getIsChanged() ? writer.toByteArray() : theBytecode;
 	}
@@ -62,7 +66,7 @@ public class MetracerClassFileTransformer implements ClassFileTransformer {
 	private InstrumentedMethods getOrCreateInstrumentedMethodsForClass(ClassLoader theLoader, String theClassName) {
 		InstrumentedClasses instrumentedClasses = instrumentedClassesInLoaders.get(theLoader);
 
-		if(instrumentedClassesInLoaders == null) {
+		if(instrumentedClasses == null) {
 			instrumentedClasses = new InstrumentedClasses();
 			instrumentedClassesInLoaders.put(theLoader, instrumentedClasses);
 		}

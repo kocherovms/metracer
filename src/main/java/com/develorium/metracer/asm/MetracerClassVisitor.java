@@ -63,6 +63,11 @@ public class MetracerClassVisitor extends ClassVisitor {
 		MethodVisitor methodVisitor = cv.visitMethod(theAccess, theName, theDescription, theSignature, theExceptions);
 		boolean isMethodChanged = false;
 
+		if(instrumentedMethods != null) {
+			if(instrumentedMethods.contains(getMethodKey(theName, theDescription)))
+				return methodVisitor;
+		}
+
 		if(theName.equals("findClass") && theDescription.startsWith("(Ljava/lang/String;") && theDescription.endsWith("Ljava/lang/Class;")) {
 			// Looks like a findClass of ClassLoader, need to drill a hole
 			methodVisitor = new FindClassMethodMutator(className, api, methodVisitor, theAccess, theName, theDescription);
@@ -85,6 +90,10 @@ public class MetracerClassVisitor extends ClassVisitor {
 				isChanged = true;
 			}
 		}
+
+		if(isChanged && instrumentedMethods != null) {
+			instrumentedMethods.add(getMethodKey(theName, theDescription));
+		}
 		
 		return methodVisitor;
 	}
@@ -95,5 +104,9 @@ public class MetracerClassVisitor extends ClassVisitor {
 
 	public boolean getHasSlf4Logger() {
 		return hasSlf4Logger;
+	}
+	
+	private static String getMethodKey(String theName, String theDescription) {
+		return String.format("%s+%s", theName, theDescription);
 	}
 }

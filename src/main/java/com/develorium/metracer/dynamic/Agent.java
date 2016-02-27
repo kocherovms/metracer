@@ -35,10 +35,8 @@ public class Agent extends NotificationBroadcasterSupport implements AgentMXBean
 	private com.develorium.metracer.Runtime runtime = null;
 	private AtomicInteger messageSerial = new AtomicInteger();
 	private Pattern pattern = null;
-	private Thread testJob = null;
 
 	public static void agentmain(String theArguments, Instrumentation theInstrumentation) {
-		System.out.println("Hello, world!");
 		new Agent().bootstrap(theArguments, theInstrumentation);
 	}
 
@@ -53,6 +51,8 @@ public class Agent extends NotificationBroadcasterSupport implements AgentMXBean
 
 	@Override
 	public void printMessage(Class<?> theClass, String theMethodName, String theMessage) {
+		System.out.println("kms@ " + theClass + " " + theMethodName + " " + theMessage + " vs " + pattern);
+
 		if(!com.develorium.metracer.Runtime.isMethodPatternMatched(theClass.getName(), theMethodName, pattern)) 
 			return;
 
@@ -62,6 +62,7 @@ public class Agent extends NotificationBroadcasterSupport implements AgentMXBean
 
 	@Override
 	public void setPattern(String thePattern) {
+		System.out.println("kms@ pattern = " + thePattern);
 		try {
             Pattern newPattern = Pattern.compile(thePattern);
 			pattern = newPattern; // Reads and writes are atomic for reference variables (Java Language Specification)
@@ -72,7 +73,7 @@ public class Agent extends NotificationBroadcasterSupport implements AgentMXBean
 		try {
 			instrumentLoadedClasses();
 		} catch(Exception e) {
-			throw new RuntimeException(String.format("Failed to instrument some of the classes: %s", e.toString()));
+			throw new RuntimeException(String.format("Failed to instrument loaded classes: %s", e.toString()));
 		}
 	}
 
@@ -86,7 +87,6 @@ public class Agent extends NotificationBroadcasterSupport implements AgentMXBean
 			createRuntime();
 			registerMxBean();
 			instrumentation.addTransformer(new MetracerClassFileTransformer(this), true);
-			//startTestJob();
 		} catch(Exception e) {
 			throw new RuntimeException(e);
 		}
@@ -131,86 +131,4 @@ public class Agent extends NotificationBroadcasterSupport implements AgentMXBean
 
 		return false;
 	}
-
-	//private void instrumentLoadedClass(Class<?> theClass) {
-	//	byte[] bytecode = getClassBytecode(theClass);
-	//
-	//	if(bytecode == null) {
-	//		// system class or something, can't instrument
-	//		return;
-	//	}
-	//
-	//	ClassReader reader = new ClassReader(bytecode);
-	//	ClassNode parsedClass = new ClassNode();
-	//	reader.accept(parsedClass, 0);
-	//	
-	//	MetracerClassWriter writer = new MetracerClassWriter(reader, theLoader);
-	//	Set<String> instrumentedMethodsForClass = getOrCreateInstrumentedForClass(theClass);
-	//	MetracerClassVisitor visitor = new MetracerClassVisitor(writer, pattern, parsedClass, instrumentedMethodsForClass);
-	//	reader.accept(visitor, ClassReader.EXPAND_FRAMES);
-	//	instrumentedMethods.put(theClass, instrumentedMethodsForClass);
-	//
-	//	ClassDefinition cd = new ClassDefinition(clazz, cw.toByteArray());
-	//	instrumentation.redefineClasses(cd);
-	//}
-	//
-	//private byte[] getClassBytecode(Class<?> theClass) {
-	//	ClassLoader classLoader = theClass.getClassLoader();
-	//
-	//	if(classLoader == null)
-	//		return null;
-	//
-	//	String resourceName = theClass.getName().replaceAll("\\.", "/") + ".class";
-	//	InputStream stream = classLoader.getResourceAsStream(resourceName);
-	//
-	//	if(stream == null)
-	//		return null;
-	//
-	//	return readBytes(stream);
-	//}
-	//
-	//private byte[] readBytes(InputStream theStream) {
-    //    try {
-    //        ByteArrayOutputStream buffer = new ByteArrayOutputStream();
-    //        int nRead;
-    //        byte[] data = new byte[16384];
-    //       
-	//		while((nRead = theStream.read(data, 0, data.length)) != -1) {
-    //            buffer.write(data, 0, nRead);
-    //        }
-    //        
-	//		buffer.flush();
-    //        return buffer.toByteArray();
-    //    }
-    //    catch (IOException e) {
-    //        return null;
-    //    }
-    //}
-	//
-	//private Set<String> getOrCreateInstrumentedForClass(Class<?> theClass) {
-	//	Set<String> rv = instrumentedMethods.get(theClass);
-	//
-	//	if(rv == null) 
-	//		rv = new HashSet<String>(10);
-	//
-	//	return rv;
-	//}
-
-
-
-	//private void startTestJob() {
-	//	testJob = new Thread(new Runnable() {
-	//		public void run() {
-	//			while(true) {
-	//				printMessage(getClass(), "run", "Hello, world");
-	//				try {
-	//					Thread.sleep(3000);
-	//				} catch(InterruptedException e) {
-	//				}
-	//			}
-	//		}
-	//	});
-	//
-	//	testJob.start();
-	//}
 }
