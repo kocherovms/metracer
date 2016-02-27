@@ -64,13 +64,13 @@ public class Agent extends NotificationBroadcasterSupport implements AgentMXBean
 			Pattern newPattern = Pattern.compile(thePattern);
 			pattern = newPattern; // Reads and writes are atomic for reference variables (Java Language Specification)
 		} catch(PatternSyntaxException e) {
-			throw new RuntimeException(String.format("Provided pattern \"%s\" is malformed: %s", thePattern, e.toString()));
+			throw new RuntimeException(String.format("Provided pattern \"%s\" is malformed: %s", thePattern, e.getMessage()), e);
 		}
 
 		try {
 			instrumentLoadedClasses();
-		} catch(Exception e) {
-			throw new RuntimeException(String.format("Failed to instrument loaded classes: %s", e.toString()));
+		} catch(Throwable e) {
+			throw new RuntimeException(String.format("Failed to instrument loaded classes: %s", e.getMessage()), e);
 		}
 	}
 
@@ -84,8 +84,8 @@ public class Agent extends NotificationBroadcasterSupport implements AgentMXBean
 			createRuntime();
 			registerMxBean();
 			instrumentation.addTransformer(new MetracerClassFileTransformer(this), true);
-		} catch(Exception e) {
-			throw new RuntimeException(e);
+		} catch(Throwable e) {
+			throw new RuntimeException(String.format("Failed to bootstrap agent: %s", e.getMessage()), e);
 		}
 	}
 
@@ -106,8 +106,15 @@ public class Agent extends NotificationBroadcasterSupport implements AgentMXBean
 			if(!instrumentation.isModifiableClass(c))
 				continue;
 
-			if(doesClassNeedInstrumentation(c) || isClassLoader(c))
+			if(doesClassNeedInstrumentation(c)) {
+				runtime.say(String.format("Going to instrument %s (matches a pattern)", c.getName()));
 				classesForInstrumentation.add(c);
+			}
+			else if(isCustomClassLoader(c)) {
+				// TODO: instrument immediately on bootstrap
+				runtime.say(String.format("Going to instrument %s (custom class loader)", c.getName()));
+				classesForInstrumentation.add(c);
+			}
 		}
 
 		if(classesForInstrumentation.isEmpty())
@@ -118,18 +125,35 @@ public class Agent extends NotificationBroadcasterSupport implements AgentMXBean
 	}
 
 	private boolean doesClassNeedInstrumentation(Class<?> theClass) {
-		Method[] methods = theClass.getDeclaredMethods();
+		try {
+			Method[] methods = theClass.getDeclaredMethods();
 			
-		for(Method method: methods) {
-			if(runtime.isMethodPatternMatched(theClass.getName(), method.getName(), pattern)) {
-				return true;
+			for(Method method: methods) {
+				if(runtime.isMethodPatternMatched(theClass.getName(), method.getName(), pattern)) {
+					return true;
+				}
 			}
+
+			return false;
+		} catch(LinkageError e) {
+			// class loaders isolation issue
+			// TODO: need to analyze raw class bytes
+			return false;
+		}
+	}
+
+	private boolean isCustomClassLoader(Class<?> theClass) {
+		if(ClassLoader.class.isAssignableFrom(theClass)) {
+			String className = theClass.getName();
+			String[] vetoedPrefixes = { "java.", "javax.", "sun.", "com.sun." };
+			
+			for(String vetoedPrefix: vetoedPrefixes) 
+				if(className.startsWith(vetoedPrefix))
+					return false;
+
+			return true;
 		}
 
 		return false;
-	}
-
-	private boolean isClassLoader(Class<?> theClass) {
-		return ClassLoader.class.isAssignableFrom(theClass);
 	}
 }

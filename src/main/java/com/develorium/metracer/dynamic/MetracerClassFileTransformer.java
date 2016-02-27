@@ -39,7 +39,12 @@ public class MetracerClassFileTransformer implements ClassFileTransformer {
 			return theClassfileBuffer;
 
 		try {
-			return instrumentClass(theClassfileBuffer, theLoader != null ? theLoader : getClass().getClassLoader(), pattern);
+			InstrumentClassResult icr = instrumentClass(theClassfileBuffer, theLoader != null ? theLoader : getClass().getClassLoader(), pattern);
+
+			if(icr.isChanged)
+				com.develorium.metracer.Runtime.say(String.format("%s (class loader %s) was instrumented", theClassName, theLoader != null ? theLoader.toString() : "<boostrap>"));
+
+			return icr.bytecode;
 		} catch(Throwable t) {
 			System.err.format("Failed to instrument class %s, loader %s, error message: %s\n", theClassName, theLoader, t.toString());
 			t.printStackTrace();
@@ -48,7 +53,12 @@ public class MetracerClassFileTransformer implements ClassFileTransformer {
 		return theClassfileBuffer;
 	}
 
-	private byte[] instrumentClass(byte theBytecode[], ClassLoader theLoader, Pattern thePattern) {
+	private static class InstrumentClassResult {
+		boolean isChanged = false;
+		byte[] bytecode = null;
+	} 
+
+	private InstrumentClassResult instrumentClass(byte theBytecode[], ClassLoader theLoader, Pattern thePattern) {
 		ClassReader reader = new ClassReader(theBytecode);
 		ClassNode parsedClass = new ClassNode();
 		reader.accept(parsedClass, 0);
@@ -56,6 +66,10 @@ public class MetracerClassFileTransformer implements ClassFileTransformer {
 		MetracerClassWriter writer = new MetracerClassWriter(reader, theLoader);
 		MetracerClassVisitor visitor = new MetracerClassVisitor(writer, thePattern, parsedClass);
 		reader.accept(visitor, ClassReader.EXPAND_FRAMES);
-		return visitor.getIsChanged() ? writer.toByteArray() : theBytecode;
+
+		InstrumentClassResult rv = new InstrumentClassResult();
+		rv.isChanged = visitor.getIsChanged();
+		rv.bytecode = visitor.getIsChanged() ? writer.toByteArray() : theBytecode;
+		return rv;
 	}
 }

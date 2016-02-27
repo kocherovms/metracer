@@ -42,7 +42,7 @@ public class Main {
 			configureAgent();
 			startListeningToAgentEvents();
 			kbhit();
-		} catch(Exception e) {
+		} catch(Throwable e) {
 			System.err.println(e.getMessage());
 			e.printStackTrace();
 			System.exit(1);

@@ -35,6 +35,10 @@ public class Runtime {
 		return thePattern.matcher(methodNameForPatternMatching).find(0);
 	}
 
+	public static void say(String theMessage) {
+		System.out.println("[metracer] " + theMessage);
+	}
+
 	private static class TracingStateThreadLocal extends ThreadLocal<Integer> {
 		@Override 
 		protected Integer initialValue() {
