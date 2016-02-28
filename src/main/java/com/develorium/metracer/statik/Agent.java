@@ -21,7 +21,7 @@ import java.lang.instrument.Instrumentation;
 public class Agent {
 	public static void premain(String theArguments, Instrumentation theInstrumentation) {
 		try {
-			Metracer metracer = new Metracer(theArguments);
+			MetracerClassFileTransformer metracer = new MetracerClassFileTransformer(theArguments);
 			theInstrumentation.addTransformer(metracer);
 		} catch(Exception e) {
 			System.err.format("Failed to add class transformer: %1$s\n", e.toString());

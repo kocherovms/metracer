@@ -24,12 +24,12 @@ import org.objectweb.asm.*;
 import org.objectweb.asm.tree.*;
 import com.develorium.metracer.asm.*;
 
-public class Metracer implements ClassFileTransformer {
+public class MetracerClassFileTransformer implements ClassFileTransformer {
 	private Pattern pattern = null;
 	private RuntimeLogger runtimeLogger = new RuntimeLogger();
 	private com.develorium.metracer.Runtime runtime = new com.develorium.metracer.Runtime(runtimeLogger);
 
-	public Metracer(String theArguments) throws Exception {
+	public MetracerClassFileTransformer(String theArguments) throws Exception {
 		if(theArguments == null)
 			throw new Exception("Arguments are missing");
 
