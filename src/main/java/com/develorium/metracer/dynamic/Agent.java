@@ -126,12 +126,18 @@ public class Agent extends NotificationBroadcasterSupport implements AgentMXBean
 
 	private boolean doesClassNeedInstrumentation(Class<?> theClass) {
 		try {
-			Method[] methods = theClass.getDeclaredMethods();
+			// TODO: fix this somewhoe - too many java.lang.LinkageErrors, seems getDeclaredMethods triggers loading of classes mentioned in arguments
+			if(false) {
+				Method[] methods = theClass.getDeclaredMethods();
 			
-			for(Method method: methods) {
-				if(runtime.isMethodPatternMatched(theClass.getName(), method.getName(), pattern)) {
-					return true;
+				for(Method method: methods) {
+					if(runtime.isMethodPatternMatched(theClass.getName(), method.getName(), pattern)) {
+						return true;
+					}
 				}
+			}
+			else {
+				return pattern.matcher(theClass.getName()).find(0);
 			}
 
 			return false;
