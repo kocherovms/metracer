@@ -24,9 +24,6 @@ import java.util.*;
 import java.util.concurrent.atomic.*;
 import java.util.regex.*;
 import javax.management.*;
-import org.objectweb.asm.*;
-import org.objectweb.asm.tree.*;
-import com.develorium.metracer.asm.*;
 
 public class Agent extends NotificationBroadcasterSupport implements AgentMXBean, com.develorium.metracer.Runtime.LoggerInterface {
 	public static final String MxBeanName = "com.develorium.metracer.dynamic:type=Agent";
@@ -34,7 +31,21 @@ public class Agent extends NotificationBroadcasterSupport implements AgentMXBean
 	private Instrumentation instrumentation = null;
 	private com.develorium.metracer.Runtime runtime = null;
 	private AtomicInteger messageSerial = new AtomicInteger();
-	private Pattern pattern = null;
+	// Two patterns are used because a single methodMatchingPattern can't be used to qualify classes. This pattern
+	// may reference methods which we can't get during setPatterms method. This is because
+	// theClass.getDeclaredMethods may lead to an overwhelming class loading
+	// (e.g. of classes mentioned in return parameters and arguments). Beside huge I/O this could lead to
+	// numerous LinkageError / NoClassDefFoundErrors due to class loaders isolation, different versioning or
+	// multiple instances of the same class in different class loaders.
+	// An approach could be to get bytecode of the class via a ClasseNode of ASM
+	// but this again tends to be an overkill within some JavaEE application - too many classes, analysis would take significiant time
+	// Hence the solution is to use a classMatchingPattern for filtering classes which require instrumentation and
+	// an optional methodMatchingPattern for a fine-grained control of which methods must be instrumented
+	private static class Patterns {
+		public Pattern classMatchingPattern = null;
+		public Pattern methodMatchingPattern = null;
+	};
+	Patterns patterns = null;
 
 	public static void agentmain(String theArguments, Instrumentation theInstrumentation) {
 		new Agent().bootstrap(theArguments, theInstrumentation);
@@ -51,7 +62,13 @@ public class Agent extends NotificationBroadcasterSupport implements AgentMXBean
 
 	@Override
 	public void printMessage(Class<?> theClass, String theMethodName, String theMessage) {
-		if(!com.develorium.metracer.Runtime.isMethodPatternMatched(theClass.getName(), theMethodName, pattern)) 
+		Patterns p = patterns;
+
+		if(p == null || p.classMatchingPattern == null) 
+			return;
+		else if(!p.classMatchingPattern.matcher(theClass.getName()).find())
+			return;
+		else if(p.methodMatchingPattern != null && !com.develorium.metracer.Runtime.isMethodPatternMatched(theClass.getName(), theMethodName, p.methodMatchingPattern)) 
 			return;
 
 		Notification notification = new Notification(NotificationType, this, messageSerial.incrementAndGet(), theMessage);
@@ -59,23 +76,37 @@ public class Agent extends NotificationBroadcasterSupport implements AgentMXBean
 	}
 
 	@Override
-	public void setPattern(String thePattern) {
-		try {
-			Pattern newPattern = Pattern.compile(thePattern);
-			pattern = newPattern; // Reads and writes are atomic for reference variables (Java Language Specification)
-		} catch(PatternSyntaxException e) {
-			throw new RuntimeException(String.format("Provided pattern \"%s\" is malformed: %s", thePattern, e.getMessage()), e);
-		}
+	public void setPatterns(String theClassMatchingPattern, String theMethodMatchingPattern) {
+		if(theClassMatchingPattern == null)
+			throw new NullPointerException("Class matching pattern is null");
+
+		// Reads and writes are atomic for reference variables (Java Language Specification), 
+		// so it's not required to use syncrhonized when changing patterns
+		patterns = null; // to avoid previous patterns to be effective in case of error
+		Patterns newPatterns = createPatterns(theClassMatchingPattern, theMethodMatchingPattern);
+		patterns = newPatterns;
 
 		try {
-			instrumentLoadedClasses();
+			// newPatterns is used here to avoid possible races when setPatterns is called from two different sessions
+			final Pattern classMatchingPattern = newPatterns.classMatchingPattern;
+			instrumentLoadedClasses(new ClassNeedsInstrumentationAssessor() {
+				@Override
+				public String assess(Class<?> theClass) {
+					return classMatchingPattern.matcher(theClass.getName()).find() ? "matches given pattern" : null;
+				}
+			});
 		} catch(Throwable e) {
 			throw new RuntimeException(String.format("Failed to instrument loaded classes: %s", e.getMessage()), e);
 		}
 	}
 
-	public Pattern getPattern() {
-		return pattern;
+	public Pattern getMethodMatchingPattern() {
+		Patterns p = patterns;
+
+		if(p == null)
+			return null;
+		else 
+			return p.methodMatchingPattern != null ? p.methodMatchingPattern : p.classMatchingPattern;
 	}
 
 	private void bootstrap(String theArguments, Instrumentation theInstrumentation) {
@@ -84,6 +115,12 @@ public class Agent extends NotificationBroadcasterSupport implements AgentMXBean
 			createRuntime();
 			registerMxBean();
 			instrumentation.addTransformer(new MetracerClassFileTransformer(this), true);
+			instrumentLoadedClasses(new ClassNeedsInstrumentationAssessor() {
+				@Override
+				public String assess(Class<?> theClass) {
+					return isCustomClassLoader(theClass) ? "custom class loader" : null;
+				}
+			});
 		} catch(Throwable e) {
 			throw new RuntimeException(String.format("Failed to bootstrap agent: %s", e.getMessage()), e);
 		}
@@ -99,20 +136,39 @@ public class Agent extends NotificationBroadcasterSupport implements AgentMXBean
 		beanServer.registerMBean(this, beanName);
 	}
 
-	synchronized private void instrumentLoadedClasses() throws UnmodifiableClassException {
+	private static Patterns createPatterns(String theClassMatchingPattern, String theMethodMatchingPattern) {
+		Patterns rv = new Patterns();
+		rv.classMatchingPattern = createPattern(theClassMatchingPattern);
+		rv.methodMatchingPattern = createPattern(theMethodMatchingPattern);
+		return rv;
+	}
+
+	private static Pattern createPattern(String thePatternSource) {
+		if(thePatternSource == null) 
+			return null;
+
+		try {
+			return Pattern.compile(thePatternSource);
+		} catch(PatternSyntaxException e) {
+			throw new RuntimeException(String.format("Provided pattern \"%s\" is malformed: %s", thePatternSource, e.getMessage()), e);
+		}
+	}
+
+	private interface ClassNeedsInstrumentationAssessor {
+		public String assess(Class<?> theClass); // null -> no need to instrument, otherwise - reason why it's needed
+	}
+
+	private void instrumentLoadedClasses(ClassNeedsInstrumentationAssessor theAssessor) throws UnmodifiableClassException {
 		List<Class<?>> classesForInstrumentation = new ArrayList<Class<?>>();
 
 		for(Class<?> c: instrumentation.getAllLoadedClasses()) {
 			if(!instrumentation.isModifiableClass(c))
 				continue;
 
-			if(doesClassNeedInstrumentation(c)) {
-				runtime.say(String.format("Going to instrument %s (matches a pattern)", c.getName()));
-				classesForInstrumentation.add(c);
-			}
-			else if(isCustomClassLoader(c)) {
-				// TODO: instrument immediately on bootstrap
-				runtime.say(String.format("Going to instrument %s (custom class loader)", c.getName()));
+			String instrumentationReason = theAssessor.assess(c);
+
+			if(instrumentationReason != null) {
+				runtime.say(String.format("Going to instrument %s (%s)", c.getName(), instrumentationReason));
 				classesForInstrumentation.add(c);
 			}
 		}
@@ -122,30 +178,6 @@ public class Agent extends NotificationBroadcasterSupport implements AgentMXBean
 
 		Class<?>[] classesArray = classesForInstrumentation.toArray(new Class<?>[classesForInstrumentation.size()]);
 		instrumentation.retransformClasses(classesArray);
-	}
-
-	private boolean doesClassNeedInstrumentation(Class<?> theClass) {
-		try {
-			// TODO: fix this somewhoe - too many java.lang.LinkageErrors, seems getDeclaredMethods triggers loading of classes mentioned in arguments
-			if(false) {
-				Method[] methods = theClass.getDeclaredMethods();
-			
-				for(Method method: methods) {
-					if(runtime.isMethodPatternMatched(theClass.getName(), method.getName(), pattern)) {
-						return true;
-					}
-				}
-			}
-			else {
-				return pattern.matcher(theClass.getName()).find(0);
-			}
-
-			return false;
-		} catch(LinkageError e) {
-			// class loaders isolation issue
-			// TODO: need to analyze raw class bytes
-			return false;
-		}
 	}
 
 	private boolean isCustomClassLoader(Class<?> theClass) {

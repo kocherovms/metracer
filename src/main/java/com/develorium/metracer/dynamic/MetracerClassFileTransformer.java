@@ -33,10 +33,7 @@ public class MetracerClassFileTransformer implements ClassFileTransformer {
 
 	@Override
 	public byte[] transform(ClassLoader theLoader, String theClassName, Class<?> theClassBeingRedefined, ProtectionDomain theProtectionDomain, byte[] theClassfileBuffer) throws IllegalClassFormatException {
-		Pattern pattern = agent.getPattern();
-
-		if(pattern == null)
-			return theClassfileBuffer;
+		Pattern pattern = agent.getMethodMatchingPattern();
 
 		try {
 			InstrumentClassResult icr = instrumentClass(theClassfileBuffer, theLoader != null ? theLoader : getClass().getClassLoader(), pattern);

@@ -55,31 +55,29 @@ public class MetracerClassVisitor extends ClassVisitor {
 		int theAccess, String theName, String theDescription,
 		String theSignature, String[] theExceptions) {
 		MethodVisitor methodVisitor = cv.visitMethod(theAccess, theName, theDescription, theSignature, theExceptions);
-		boolean isMethodChanged = false;
 
 		if(theName.equals("findClass") && theDescription.startsWith("(Ljava/lang/String;") && theDescription.endsWith("Ljava/lang/Class;")) {
 			// Looks like a findClass of ClassLoader, need to drill a hole
 			methodVisitor = new FindClassMethodMutator(className, api, methodVisitor, theAccess, theName, theDescription);
-			isMethodChanged = isChanged = true;
+			isChanged = true;
+			return methodVisitor;
 		}
 
-		if(!isMethodChanged) {
-			if(com.develorium.metracer.Runtime.isMethodPatternMatched(className.replace("/", "."), theName, pattern)) {
-				List<MethodNode> methods = parsedClass.methods;
-				MethodNode method = null;
+		if(pattern == null || !com.develorium.metracer.Runtime.isMethodPatternMatched(className.replace("/", "."), theName, pattern)) 
+			return methodVisitor;
+
+		List<MethodNode> methods = parsedClass.methods;
+		MethodNode method = null;
 				
-				for(MethodNode m : methods) {
-					if(m.name.equals(theName) && m.desc.equals(theDescription)) {
-						method = m;
-						break;
-					}
-				}
-				
-				methodVisitor = new PatternMatchedMethodMutator(className, method, api, methodVisitor, theAccess, theName, theDescription);
-				isChanged = true;
+		for(MethodNode m : methods) {
+			if(m.name.equals(theName) && m.desc.equals(theDescription)) {
+				method = m;
+				break;
 			}
 		}
-
+				
+		methodVisitor = new PatternMatchedMethodMutator(className, method, api, methodVisitor, theAccess, theName, theDescription);
+		isChanged = true;
 		return methodVisitor;
 	}
 

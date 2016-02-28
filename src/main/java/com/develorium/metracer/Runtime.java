@@ -32,7 +32,7 @@ public class Runtime {
 
 	public static boolean isMethodPatternMatched(String theClassName, String theMethodName, Pattern thePattern) {
 		String methodNameForPatternMatching = String.format("%s::%s", theClassName, theMethodName);
-		return thePattern.matcher(methodNameForPatternMatching).find(0);
+		return thePattern.matcher(methodNameForPatternMatching).find();
 	}
 
 	public static void say(String theMessage) {

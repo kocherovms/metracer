@@ -26,7 +26,8 @@ import com.develorium.metracer.dynamic.*;
 
 public class Main {
 	int pid = 0;
-	String pattern = null;
+	String classMatchingPattern = null;
+	String methodMatchingPattern = null;
 	MBeanServerConnection connection = null;
 	ObjectName agentMxBeanName = null;
 	AgentMXBean agent = null;
@@ -41,7 +42,7 @@ public class Main {
 			loadAgent();
 			configureAgent();
 			startListeningToAgentEvents();
-			kbhit();
+			waitForever();
 		} catch(Throwable e) {
 			System.err.println(e.getMessage());
 			e.printStackTrace();
@@ -49,88 +50,103 @@ public class Main {
 		}
 	}
 
-	private void parseArguments(String[] theArguments) throws Exception {
-		try {
-			if(theArguments.length != 2) 
-				throw new Exception(String.format("2 arguments are expected, but %d given", theArguments.length));
+	private void parseArguments(String[] theArguments) {
+		if(theArguments.length != 2 && theArguments.length != 3)
+			throw new RuntimeException(String.format("2 or 3 arguments are expected, but %d given", theArguments.length));
 
-			parsePid(theArguments[0]);
-			parsePattern(theArguments[1]);
-		} catch(Exception e) {
-			throw new Exception(String.format("%s\nUsage: metracer.jar <PID> <PATTERN>", e.getMessage()));
-        }
+		pid = parsePid(theArguments[0]);
+		classMatchingPattern = parsePattern(theArguments[1], "class matching pattern");
+		methodMatchingPattern = parsePattern(theArguments.length > 2 ? theArguments[2] : null, "method matching pattern");
 	}
 
-	private void loadAgent() throws Exception {
-		VirtualMachine vm = null;
+	private void loadAgent() {
+		String exceptionMessage = "";
 
 		try {
-			vm = VirtualMachine.attach(Integer.toString(pid));
+			exceptionMessage = String.format("Failed to connect to JVM with PID %d", pid);
+			VirtualMachine vm = VirtualMachine.attach(Integer.toString(pid));
 			say(String.format("Attached to JVM (PID %d)", pid));
-		} catch(Exception e) {
-			throw new Exception(String.format("Failed to connect to JVM with PID %d: %s", pid, e.getMessage()));
-		}
 
-		String jmxLocalConnectAddress = ensureManagementAgentIsRunning(vm);
-		say("Management agent is running");
+			exceptionMessage = "Failed to ensure management agent is running";
+			String jmxLocalConnectAddress = ensureManagementAgentIsRunning(vm);
+			say("Management agent is running");
 
-		connection = connectToMbeanServer(jmxLocalConnectAddress);
-		say("Connected to MBean server");
+			exceptionMessage = "Failed to connect to MBean server";
+			connection = connectToMbeanServer(jmxLocalConnectAddress);
+			say("Connected to MBean server");
 
-		agent = ensureMetracerAgentIsRunning(vm);
-		say("metracer agent is running");
+			exceptionMessage = "Failed to ensure metracer agent is running";
+			agent = ensureMetracerAgentIsRunning(vm);
+			say("metracer agent is running");
 
-		vm.detach(); 
-		say(String.format("Detached from JVM (PID %d)", pid));
-	}
-
-	private void configureAgent() throws Exception {
-		agent.setPattern(pattern);
-		say(String.format("Pattern set to \"%s\"", pattern));
-	}
-
-	private void startListeningToAgentEvents() throws Exception {
-		connection.addNotificationListener(agentMxBeanName, new NotificationListener() {
-				@Override
-				public void handleNotification(Notification theNotification, Object theHandback) {
-					System.out.println(theNotification.getMessage());
-				}
-			}, 
-			null, null);
-	}
-
-	private void kbhit() {
-		try {
-            System.in.read();
-        } catch (Exception e) {
+			vm.detach(); 
+			say(String.format("Detached from JVM (PID %d)", pid));
+		} catch(Throwable e) {
+			throw new RuntimeException(String.format("%s: %s", exceptionMessage, e.getMessage()), e);
 		}
 	}
 
-	private void parsePid(String thePid) throws Exception {
+	private void configureAgent() {
+		agent.setPatterns(classMatchingPattern, methodMatchingPattern);
+		say(String.format("Class matching pattern set to \"%s\"", classMatchingPattern));
+
+		if(methodMatchingPattern != null)
+			say(String.format("Method matching pattern set to \"%s\"", methodMatchingPattern));
+	}
+
+	private void startListeningToAgentEvents() {
 		try {
-			pid = Integer.parseInt(thePid);
+			connection.addNotificationListener(agentMxBeanName, new NotificationListener() {
+					@Override
+						public void handleNotification(Notification theNotification, Object theHandback) {
+						System.out.println(theNotification.getMessage());
+					}
+				}, 
+				null, null);
+		} catch(Throwable e) {
+			throw new RuntimeException(String.format("Failed to start listening to agent events: %s", e.getMessage()), e);
+		}
+	}
+
+	private void waitForever() {
+		while(true) {
+			try {
+				Thread.sleep(Long.MAX_VALUE);
+			} catch (InterruptedException e) {
+			}
+		}
+	}
+
+	private static int parsePid(String thePid) {
+		int rv = 0;
+
+		try {
+			rv = Integer.parseInt(thePid);
 		} catch(NumberFormatException e) {
-			throw new Exception(String.format("Value \"%s\" of argument #0 doesn't denote a PID", thePid));
+			throw new RuntimeException(String.format("Value \"%s\" of argument #0 doesn't denote a PID", thePid), e);
 		}
 				
-		if(pid <= 0)
-			throw new Exception(String.format("Given PID %d is invalid", pid));
+		if(rv <= 0)
+			throw new RuntimeException(String.format("Given PID %d is invalid", rv));
+
+		return rv;
 	}
 
-	private void parsePattern(String thePattern) throws Exception {
-		pattern = thePattern;
-
-		if(pattern.isEmpty())
-			throw new Exception("Pattern is empty");
+	private static String parsePattern(String thePattern, String thePatternName) {
+		if(thePattern == null)
+			return thePattern;
+		else if(thePattern.isEmpty())
+			throw new RuntimeException(String.format("Pattern %s is empty", thePatternName));
 
 		try {
-			Pattern.compile(pattern);
+			Pattern.compile(thePattern);
+			return thePattern;
 		} catch(PatternSyntaxException e) {
-			throw new Exception(String.format("Provided pattern \"%s\" is malformed: %s", pattern, e.toString()));
+			throw new RuntimeException(String.format("Provided pattern \"%s\" is malformed: %s", thePattern, e.getMessage()), e);
 		}
 	}
 
-	private String ensureManagementAgentIsRunning(VirtualMachine theVm) throws Exception, IOException {
+	private String ensureManagementAgentIsRunning(VirtualMachine theVm) throws Exception {
 		String address = getJmxLocalConnectAddress(theVm);
 
 		if(address != null)
@@ -193,7 +209,7 @@ public class Main {
 			throw new Exception(String.format("Resolved metracer jar \"%s\" doesn't exist", metracerAgentFileName));
 
 		say(String.format("Loading metracer agent from \"%s\"", metracerAgentFileName));
-		theVm.loadAgent(metracerAgentFileName, pattern);
+		theVm.loadAgent(metracerAgentFileName, null);
 		say("metracer agent loaded");
 
 		agent = getMetracerAgentMxBean();
