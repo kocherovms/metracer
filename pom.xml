@@ -66,6 +66,7 @@
               <Premain-Class>com.develorium.metracer.statik.Agent</Premain-Class>
               <Agent-Class>com.develorium.metracer.dynamic.Agent</Agent-Class>
 			  <Can-Retransform-Classes>true</Can-Retransform-Classes>
+			  <Main-Class>com.develorium.metracer.Main</Main-Class>
             </manifestEntries>
           </archive>
         </configuration>
