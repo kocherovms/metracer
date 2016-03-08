@@ -92,7 +92,8 @@ public class Agent extends NotificationBroadcasterSupport implements AgentMXBean
 			instrumentLoadedClasses(new ClassNeedsInstrumentationAssessor() {
 				@Override
 				public String assess(Class<?> theClass) {
-					return classMatchingPattern.matcher(theClass.getName()).find() ? "matches given pattern" : null;
+					String className = theClass.getName();
+					return !className.startsWith("com.develorium.metracer.") && classMatchingPattern.matcher(theClass.getName()).find() ? "matches given pattern" : null;
 				}
 			});
 		} catch(Throwable e) {
