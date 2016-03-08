@@ -1,0 +1,6 @@
+Usage: ${launchstring} [-h] [-v] PID CLASS-MATCHING-PATTERN [METHOD-MATCHING-PATTERN]
+	-h - prints this help
+	-v - enables verbose output of what is going on (useful for troubleshoting)
+	PID - PID of a Java program to attach to
+	CLASS-MATCHING-PATTERN - a regex to decide for which classes tracing must be added
+	METHOD-MATCHING-PATTERN - a regex to decide which methods must be traced; if not specified then all methods of a matching classes will be traced

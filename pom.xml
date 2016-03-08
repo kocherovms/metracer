@@ -20,6 +20,9 @@
 
   <properties>
     <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
+	<metracer.author>Michael Kocherov</metracer.author>
+	<metracer.release.year>2016</metracer.release.year>
+	<metracer.homepage>http://develorium.com/metracer</metracer.homepage>
   </properties>
 
   <dependencies>
@@ -44,6 +47,12 @@
   </dependencies>
 
   <build>
+	<resources>
+      <resource>
+        <directory>src/main/resources</directory>
+        <filtering>true</filtering>
+      </resource>
+	</resources>
     <plugins>
       <plugin>
         <groupId>org.apache.maven.plugins</groupId>
@@ -61,12 +70,13 @@
         <configuration>
           <archive>
             <manifestEntries>
-              <Built-By>Michael Kocherov</Built-By>
-              <Site>http://develorium.com</Site>
+              <Built-By>${metracer.author}</Built-By>
+              <Site>${metracer.homepage}</Site>
               <Premain-Class>com.develorium.metracer.statik.Agent</Premain-Class>
               <Agent-Class>com.develorium.metracer.dynamic.Agent</Agent-Class>
 			  <Can-Retransform-Classes>true</Can-Retransform-Classes>
 			  <Main-Class>com.develorium.metracer.Main</Main-Class>
+			  <Package-Version>${project.version}</Package-Version>
             </manifestEntries>
           </archive>
         </configuration>

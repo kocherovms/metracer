@@ -39,7 +39,18 @@ public class Main {
 
 	private void execute(String[] theArguments) {
 		try {
-			parseArguments(theArguments);
+			if(isHelpRequested(theArguments)) {
+				printHelp();
+				System.exit(0);
+			}
+
+			try {
+				parseArguments(theArguments);
+			} catch(Throwable e) {
+				printUsage();
+				throw e;
+			}
+
 			loadAgent();
 			configureAgent();
 			startListeningToAgentEvents();
@@ -51,9 +62,66 @@ public class Main {
 		}
 	}
 
+	private boolean isHelpRequested(String[] theArguments) {
+		return theArguments.length > 0 && theArguments[0].equals("-h");
+	}
+
+	private void printUsage() {
+		try {
+			System.out.println(loadInfoResource("usage.txt"));
+		} catch(Throwable t) {
+			throw new RuntimeException(String.format("Failed to print usage: %s", t.getMessage()), t);
+		}
+	}
+
+	private void printHelp() {
+		try {
+			String usage = loadInfoResource("usage.txt");
+			String help = loadInfoResource("help.txt");
+			String processedHelp = help.replace("${usage}", usage);
+			System.out.println(processedHelp);
+		} catch(Throwable t) {
+			throw new RuntimeException(String.format("Failed to print help: %s", t.getMessage()), t);
+		}
+	}
+
+	private String loadInfoResource(String theResourceId) {
+		try {
+			ClassLoader loader = getClass().getClassLoader();
+			InputStream stream = loader.getResourceAsStream(theResourceId);
+
+			if(stream == null)
+				throw new RuntimeException("Failed to locate a resource " + theResourceId);
+
+			InputStreamReader streamReader = new InputStreamReader(stream);
+			BufferedReader reader = new BufferedReader(streamReader);
+			Map<String, String> env = System.getenv();
+			String launchString = env.get("LAUNCH_STRING");
+
+			if(launchString == null)
+				launchString = "java -Xbootclasspath/a:<path-to-tools.jar> -jar metracer.jar";
+
+			StringBuilder rv = new StringBuilder();
+			String line;
+
+			while((line = reader.readLine()) != null) {
+				String processedLine = line.replace("${launchstring}", launchString);
+
+				if(rv.length() > 0)
+					rv.append("\n");
+
+				rv.append(processedLine);
+			}
+
+			return rv.toString();
+		} catch(Throwable t) {
+			throw new RuntimeException(String.format("Failed to load info resource %s: %s", theResourceId, t.getMessage()), t);
+		}
+	}
+
 	private void parseArguments(String[] theArguments) {
 		int index = 0;
-		
+
 		if(theArguments.length > index && theArguments[0].equals("-v")) {
 			isVerbose = true;
 			++index;
@@ -136,7 +204,7 @@ public class Main {
 		try {
 			rv = Integer.parseInt(thePid);
 		} catch(NumberFormatException e) {
-			throw new RuntimeException(String.format("Value \"%s\" of argument #0 doesn't denote a PID", thePid), e);
+			throw new RuntimeException(String.format("Value \"%s\" of a PID argument is not an integer", thePid), e);
 		}
 				
 		if(rv <= 0)
