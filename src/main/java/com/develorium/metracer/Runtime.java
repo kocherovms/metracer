@@ -64,7 +64,7 @@ public class Runtime {
 
 		Integer callDepth = TracingStateThreadLocal.instance.get() + 1;
 		TracingStateThreadLocal.instance.set(callDepth);
-		String message = String.format("%1$s +++ [%2$d] %3$s.%4$s(%5$s)", getIndent(callDepth), callDepth, theClass.getName(), theMethodName, arguments.toString());
+		String message = String.format("[metracer.%s]%s +++ [%d] %s.%s(%s)", getFormattedThreadId(), getIndent(callDepth), callDepth, theClass.getName(), theMethodName, arguments.toString());
 
 		if(logger != null) 
 			logger.printMessage(theClass, theMethodName, message);
@@ -74,7 +74,7 @@ public class Runtime {
 		Integer callDepth = TracingStateThreadLocal.instance.get();
 		TracingStateThreadLocal.instance.set(callDepth - 1);
 		String returnValueInfo = analyzeReturnValueInfo(theReturnValue);
-		String message = String.format("%1$s --- [%2$d] %3$s.%4$s%5$s", getIndent(callDepth), callDepth, theClass.getName(), theMethodName, returnValueInfo);
+		String message = String.format("[metracer.%s]%s --- [%d] %s.%s%s", getFormattedThreadId(), getIndent(callDepth), callDepth, theClass.getName(), theMethodName, returnValueInfo);
 
 		if(logger != null) 
 			logger.printMessage(theClass, theMethodName, message);
@@ -89,6 +89,13 @@ public class Runtime {
 			return String.format(" => return: %s", theReturnValue.toString());
 	}
 
+	private static String getFormattedThreadId() {
+		long threadId = Thread.currentThread().getId();
+		return threadId <= Integer.MAX_VALUE && threadId >= Integer.MIN_VALUE
+			? String.format("%08X", threadId)
+			: String.format("%016X", threadId);
+	}
+	
 	private static String getIndent(int theCallDepth) {
 		return theCallDepth > 0 ? String.format("%" + Math.min(32, theCallDepth) + "s", "") : "";
 	}
