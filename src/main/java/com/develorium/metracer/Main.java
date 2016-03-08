@@ -25,6 +25,7 @@ import javax.management.remote.*;
 import com.develorium.metracer.dynamic.*;
 
 public class Main {
+	boolean isVerbose = false;
 	int pid = 0;
 	String classMatchingPattern = null;
 	String methodMatchingPattern = null;
@@ -51,12 +52,23 @@ public class Main {
 	}
 
 	private void parseArguments(String[] theArguments) {
-		if(theArguments.length != 2 && theArguments.length != 3)
-			throw new RuntimeException(String.format("2 or 3 arguments are expected, but %d given", theArguments.length));
+		int index = 0;
+		
+		if(theArguments.length > index && theArguments[0].equals("-v")) {
+			isVerbose = true;
+			++index;
+		}
 
-		pid = parsePid(theArguments[0]);
-		classMatchingPattern = parsePattern(theArguments[1], "class matching pattern");
-		methodMatchingPattern = parsePattern(theArguments.length > 2 ? theArguments[2] : null, "method matching pattern");
+		if(theArguments.length <= index)
+			throw new RuntimeException("mandatory 'PID' parameter is not specified");
+
+		pid = parsePid(theArguments[index++]);
+
+		if(theArguments.length <= index)
+			throw new RuntimeException("mandatory 'class matching pattern' parameter is not specified");
+
+		classMatchingPattern = parsePattern(theArguments[index++], "class matching pattern");
+		methodMatchingPattern = parsePattern(theArguments.length > index ? theArguments[index] : null, "method matching pattern");
 	}
 
 	private void loadAgent() {
@@ -87,6 +99,7 @@ public class Main {
 	}
 
 	private void configureAgent() {
+		agent.setIsVerbose(isVerbose);
 		agent.setPatterns(classMatchingPattern, methodMatchingPattern);
 		say(String.format("Class matching pattern set to \"%s\"", classMatchingPattern));
 
@@ -98,7 +111,7 @@ public class Main {
 		try {
 			connection.addNotificationListener(agentMxBeanName, new NotificationListener() {
 					@Override
-						public void handleNotification(Notification theNotification, Object theHandback) {
+					public void handleNotification(Notification theNotification, Object theHandback) {
 						System.out.println(theNotification.getMessage());
 					}
 				}, 
@@ -234,7 +247,10 @@ public class Main {
 		return java.net.URLDecoder.decode(sourcePath, "UTF-8");
 	}
 
-	private static void say(String theMessage) {
+	private void say(String theMessage) {
+		if(!isVerbose)
+			return;
+
 		System.out.println(theMessage);
 	}
 }

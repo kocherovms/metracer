@@ -17,5 +17,6 @@
 package com.develorium.metracer.dynamic;
 
 public interface AgentMXBean {
+	public void setIsVerbose(boolean theIsVerbose);
 	public void setPatterns(String theClassMatchingPattern, String theMethodMatchingPattern);
 }

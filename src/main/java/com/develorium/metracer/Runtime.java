@@ -19,6 +19,8 @@ package com.develorium.metracer;
 import java.util.regex.*;
 
 public class Runtime {
+	static public boolean isVerbose = false;
+	
 	public interface LoggerInterface {
 		public void printMessage(Class<?> theClass, String theMethodName, String theMessage);
 	}
@@ -36,6 +38,9 @@ public class Runtime {
 	}
 
 	public static void say(String theMessage) {
+		if(!isVerbose)
+			return;
+
 		System.out.println("[metracer] " + theMessage);
 	}
 

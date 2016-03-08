@@ -20,6 +20,7 @@ import java.lang.instrument.*;
 import java.security.ProtectionDomain;
 import java.util.*;
 import java.util.regex.*;
+import java.io.*;
 import org.objectweb.asm.*;
 import org.objectweb.asm.tree.*;
 import com.develorium.metracer.asm.*;
@@ -43,8 +44,9 @@ public class MetracerClassFileTransformer implements ClassFileTransformer {
 
 			return icr.bytecode;
 		} catch(Throwable t) {
-			System.err.format("Failed to instrument class %s, loader %s, error message: %s\n", theClassName, theLoader, t.toString());
-			t.printStackTrace();
+			StringWriter sw = new StringWriter();
+			t.printStackTrace(new PrintWriter(sw));
+			com.develorium.metracer.Runtime.say(String.format("Failed to instrument class %s, loader %s, error message: %s\n%s", theClassName, theLoader, t.toString(), sw.toString()));
 		}
 	
 		return theClassfileBuffer;

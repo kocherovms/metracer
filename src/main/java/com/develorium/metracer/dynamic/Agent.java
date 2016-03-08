@@ -76,6 +76,11 @@ public class Agent extends NotificationBroadcasterSupport implements AgentMXBean
 	}
 
 	@Override
+	public void setIsVerbose(boolean theIsVerbose) {
+		com.develorium.metracer.Runtime.isVerbose = theIsVerbose;
+	}
+
+	@Override
 	public void setPatterns(String theClassMatchingPattern, String theMethodMatchingPattern) {
 		if(theClassMatchingPattern == null)
 			throw new NullPointerException("Class matching pattern is null");
