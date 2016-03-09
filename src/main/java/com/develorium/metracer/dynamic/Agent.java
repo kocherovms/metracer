@@ -116,11 +116,17 @@ public class Agent extends NotificationBroadcasterSupport implements AgentMXBean
 	}
 
 	private void bootstrap(String theArguments, Instrumentation theInstrumentation) {
+		ClassFileTransformer transformer = null;
+
 		try {
 			instrumentation = theInstrumentation;
 			createRuntime(theArguments);
+			runtime.say("Runtime created");
 			registerMxBean();
-			instrumentation.addTransformer(new MetracerClassFileTransformer(this), true);
+			runtime.say("MX bean registered");
+			transformer = new MetracerClassFileTransformer(this);
+			instrumentation.addTransformer(transformer, true);
+			runtime.say("Class file transformer added");
 			instrumentLoadedClasses(new ClassNeedsInstrumentationAssessor() {
 				@Override
 				public String assess(Class<?> theClass) {
@@ -128,6 +134,13 @@ public class Agent extends NotificationBroadcasterSupport implements AgentMXBean
 				}
 			});
 		} catch(Throwable e) {
+			if(transformer != null) {
+					instrumentation.removeTransformer(transformer);
+					runtime.say("Class file transformer removed");
+			}
+			
+			unregisterMxBean();
+			runtime.say("MX bean unregistered");
 			throw new RuntimeException(String.format("Failed to bootstrap agent: %s", e.getMessage()), e);
 		}
 	}
@@ -141,6 +154,17 @@ public class Agent extends NotificationBroadcasterSupport implements AgentMXBean
 		MBeanServer beanServer = ManagementFactory.getPlatformMBeanServer();
 		ObjectName beanName = new ObjectName(MxBeanName);
 		beanServer.registerMBean(this, beanName);
+	}
+
+	private void unregisterMxBean() {
+		try {
+				MBeanServer beanServer = ManagementFactory.getPlatformMBeanServer();
+				ObjectName beanName = new ObjectName(MxBeanName);
+				beanServer.unregisterMBean(beanName);
+		} catch(Throwable e) {
+				runtime.say(String.format("Failed to unregister MX bean: %s", e.getMessage()));
+				e.printStackTrace();
+		}
 	}
 
 	private static Patterns createPatterns(String theClassMatchingPattern, String theMethodMatchingPattern) {
@@ -165,7 +189,7 @@ public class Agent extends NotificationBroadcasterSupport implements AgentMXBean
 		public String assess(Class<?> theClass); // null -> no need to instrument, otherwise - reason why it's needed
 	}
 
-	private void instrumentLoadedClasses(ClassNeedsInstrumentationAssessor theAssessor) throws UnmodifiableClassException {
+	private void instrumentLoadedClasses(ClassNeedsInstrumentationAssessor theAssessor) throws Throwable, UnmodifiableClassException {
 		List<Class<?>> classesForInstrumentation = new ArrayList<Class<?>>();
 
 		for(Class<?> c: instrumentation.getAllLoadedClasses()) {
@@ -190,7 +214,7 @@ public class Agent extends NotificationBroadcasterSupport implements AgentMXBean
 	private boolean isCustomClassLoader(Class<?> theClass) {
 		if(ClassLoader.class.isAssignableFrom(theClass)) {
 			String className = theClass.getName();
-			String[] vetoedPrefixes = { "java.", "javax.", "sun.", "com.sun." };
+			String[] vetoedPrefixes = { "java.", "javax.", "sun.", "com.sun.", "org.codehaus.janino" };
 			
 			for(String vetoedPrefix: vetoedPrefixes) 
 				if(className.startsWith(vetoedPrefix))
