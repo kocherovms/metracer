@@ -135,8 +135,8 @@ public class Agent extends NotificationBroadcasterSupport implements AgentMXBean
 			});
 		} catch(Throwable e) {
 			if(transformer != null) {
-					instrumentation.removeTransformer(transformer);
-					runtime.say("Class file transformer removed");
+				instrumentation.removeTransformer(transformer);
+				runtime.say("Class file transformer removed");
 			}
 			
 			unregisterMxBean();
@@ -158,12 +158,12 @@ public class Agent extends NotificationBroadcasterSupport implements AgentMXBean
 
 	private void unregisterMxBean() {
 		try {
-				MBeanServer beanServer = ManagementFactory.getPlatformMBeanServer();
-				ObjectName beanName = new ObjectName(MxBeanName);
-				beanServer.unregisterMBean(beanName);
+			MBeanServer beanServer = ManagementFactory.getPlatformMBeanServer();
+			ObjectName beanName = new ObjectName(MxBeanName);
+			beanServer.unregisterMBean(beanName);
 		} catch(Throwable e) {
-				runtime.say(String.format("Failed to unregister MX bean: %s", e.getMessage()));
-				e.printStackTrace();
+			runtime.say(String.format("Failed to unregister MX bean: %s", e.getMessage()));
+			e.printStackTrace();
 		}
 	}
 
@@ -189,7 +189,7 @@ public class Agent extends NotificationBroadcasterSupport implements AgentMXBean
 		public String assess(Class<?> theClass); // null -> no need to instrument, otherwise - reason why it's needed
 	}
 
-	private void instrumentLoadedClasses(ClassNeedsInstrumentationAssessor theAssessor) throws Throwable, UnmodifiableClassException {
+	private void instrumentLoadedClasses(ClassNeedsInstrumentationAssessor theAssessor) throws UnmodifiableClassException {
 		List<Class<?>> classesForInstrumentation = new ArrayList<Class<?>>();
 
 		for(Class<?> c: instrumentation.getAllLoadedClasses()) {
