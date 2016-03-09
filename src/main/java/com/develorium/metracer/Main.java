@@ -96,7 +96,7 @@ public class Main {
 			InputStreamReader streamReader = new InputStreamReader(stream);
 			BufferedReader reader = new BufferedReader(streamReader);
 			Map<String, String> env = System.getenv();
-			String launchString = env.get("LAUNCH_STRING");
+			String launchString = env.get("METRACER_LAUNCH_STRING");
 
 			if(launchString == null)
 				launchString = "java -Xbootclasspath/a:<path-to-tools.jar> -jar metracer.jar";
@@ -133,10 +133,10 @@ public class Main {
 		pid = parsePid(theArguments[index++]);
 
 		if(theArguments.length <= index)
-			throw new RuntimeException("mandatory 'class matching pattern' parameter is not specified");
+			throw new RuntimeException("mandatory 'CLASS-MATCHING-PATTERN' parameter is not specified");
 
-		classMatchingPattern = parsePattern(theArguments[index++], "class matching pattern");
-		methodMatchingPattern = parsePattern(theArguments.length > index ? theArguments[index] : null, "method matching pattern");
+		classMatchingPattern = parsePattern(theArguments[index++], "CLASS-MATCHING-PARAMETER");
+		methodMatchingPattern = parsePattern(theArguments.length > index ? theArguments[index] : null, "METHOD-MATCHING-PATTERN");
 	}
 
 	private void loadAgent() {

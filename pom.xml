@@ -20,9 +20,9 @@
 
   <properties>
     <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
-	<metracer.author>Michael Kocherov</metracer.author>
-	<metracer.release.year>2016</metracer.release.year>
-	<metracer.homepage>http://develorium.com/metracer</metracer.homepage>
+    <metracer.author>Michael Kocherov</metracer.author>
+    <metracer.release.year>2016</metracer.release.year>
+    <metracer.homepage>http://develorium.com/metracer</metracer.homepage>
   </properties>
 
   <dependencies>
@@ -37,27 +37,27 @@
       <artifactId>asm-all</artifactId>
       <version>5.0.4</version>
     </dependency>
-	<dependency>
-	  <groupId>com.sun</groupId>
-	  <artifactId>tools</artifactId>
-	  <version>1.6.0</version>
-	  <scope>system</scope>
-	  <systemPath>${java.home}/../lib/tools.jar</systemPath>
-	</dependency>
+    <dependency>
+      <groupId>com.sun</groupId>
+      <artifactId>tools</artifactId>
+      <version>1.6.0</version>
+      <scope>system</scope>
+      <systemPath>${java.home}/../lib/tools.jar</systemPath>
+    </dependency>
   </dependencies>
 
   <build>
-	<resources>
+    <resources>
       <resource>
         <directory>src/main/resources</directory>
         <filtering>true</filtering>
       </resource>
-	</resources>
+    </resources>
     <plugins>
       <plugin>
         <groupId>org.apache.maven.plugins</groupId>
         <artifactId>maven-compiler-plugin</artifactId>
-		<version>2.0.2</version>
+        <version>2.0.2</version>
         <configuration>
           <source>1.7</source>
           <target>1.7</target>
@@ -74,9 +74,9 @@
               <Site>${metracer.homepage}</Site>
               <Premain-Class>com.develorium.metracer.statik.Agent</Premain-Class>
               <Agent-Class>com.develorium.metracer.dynamic.Agent</Agent-Class>
-			  <Can-Retransform-Classes>true</Can-Retransform-Classes>
-			  <Main-Class>com.develorium.metracer.Main</Main-Class>
-			  <Package-Version>${project.version}</Package-Version>
+              <Can-Retransform-Classes>true</Can-Retransform-Classes>
+              <Main-Class>com.develorium.metracer.Main</Main-Class>
+              <Package-Version>${project.version}</Package-Version>
             </manifestEntries>
           </archive>
         </configuration>
@@ -96,4 +96,39 @@
       </plugin>
     </plugins>
   </build>
+
+  <profiles>
+    <profile>
+      <id>unix</id>
+      <activation>
+        <os>
+          <family>unix</family>
+        </os>
+      </activation>
+      <build>
+        <plugins>
+          <plugin>
+            <artifactId>exec-maven-plugin</artifactId>
+            <groupId>org.codehaus.mojo</groupId>
+            <executions>
+              <execution>
+                <id>metracer.sh compilation</id>
+                <phase>package</phase>
+                <goals>
+                  <goal>exec</goal>
+                </goals>
+                <configuration>
+                  <executable>/bin/sh</executable>
+                  <arguments>
+                    <argument>-c</argument>
+                    <argument>cat ${basedir}/scripts/metracer.sh.head ${project.build.directory}/${project.build.finalName}.jar &gt; ${project.build.directory}/metracer.sh</argument>
+                  </arguments>
+                </configuration>
+              </execution>
+            </executions>
+          </plugin>
+        </plugins>
+      </build>
+    </profile>
+  </profiles>
 </project>

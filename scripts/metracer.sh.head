@@ -1,0 +1,63 @@
+#!/bin/sh
+
+usage() {
+	echo "Usage: $0 [-h] [-v] PID CLASS-MATCHING-PATTERN [METHOD-MATCHING-PATTERN]"
+}
+
+# Thanks to https://coderwall.com/p/ssuaxa/how-to-make-a-jar-file-linux-executable
+MYSELF=$(which "$0" 2>/dev/null)
+[ $? -gt 0 -a -f "$0" ] && MYSELF="./$0"
+
+if test -n "$JAVA_HOME"; then
+	java="$JAVA_HOME/bin/java"
+	java_home=$JAVA_HOME
+else
+	java=$(which java 2>/dev/null)
+
+	if [ ! -f "$java" ]; then
+		echo "Failed to find 'java' executable. Please, make sure that Java is installed"
+		exit 1
+	fi
+
+	while [ -L "$java" ]; do
+		java=$(readlink "$java")
+	done
+
+	java_home=$(dirname "$java")/..
+fi
+
+if [ ! -d "$java_home" ]; then
+	echo "Failed to resolve JDK home path. Please, make sure that JDK is installed and JAVA_HOME environment variable is properly set"
+	exit 1
+fi
+
+while getopts ":vh" opt; do
+	case $opt in
+		v) 
+			;;
+		h) 
+			;;
+		\?)
+			echo "Unknown option -$OPTARG"
+			usage
+			exit 1
+			;;
+	esac
+done
+
+pid=${@:$OPTIND:1}
+user_name=""
+
+if [ -n "$pid" ]; then
+	user_name=$(ps -Ao pid,user | grep $pid | awk '{ print $2 }')
+fi
+
+export METRACER_LAUNCH_STRING="metracer.sh"
+
+if [ -n "$user_name" ]; then
+	exec sudo -u $user_name "$java" -Xbootclasspath/a:"$java_home/lib/tools.jar" -jar $MYSELF "$@"
+else
+	exec "$java" -Xbootclasspath/a:"$java_home/lib/tools.jar" -jar $MYSELF "$@"
+fi
+
+exit 1
