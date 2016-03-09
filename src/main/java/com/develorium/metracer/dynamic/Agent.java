@@ -118,7 +118,7 @@ public class Agent extends NotificationBroadcasterSupport implements AgentMXBean
 	private void bootstrap(String theArguments, Instrumentation theInstrumentation) {
 		try {
 			instrumentation = theInstrumentation;
-			createRuntime();
+			createRuntime(theArguments);
 			registerMxBean();
 			instrumentation.addTransformer(new MetracerClassFileTransformer(this), true);
 			instrumentLoadedClasses(new ClassNeedsInstrumentationAssessor() {
@@ -132,8 +132,9 @@ public class Agent extends NotificationBroadcasterSupport implements AgentMXBean
 		}
 	}
 
-	private void createRuntime() {
+	private void createRuntime(String theArguments) {
 		runtime = new com.develorium.metracer.Runtime(this);
+		runtime.isVerbose = theArguments != null && theArguments.contains("-v");
 	}
 
 	private void registerMxBean() throws Exception {

@@ -290,7 +290,7 @@ public class Main {
 			throw new Exception(String.format("Resolved metracer jar \"%s\" doesn't exist", metracerAgentFileName));
 
 		say(String.format("Loading metracer agent from \"%s\"", metracerAgentFileName));
-		theVm.loadAgent(metracerAgentFileName, null);
+		theVm.loadAgent(metracerAgentFileName, isVerbose ? "-v" : null);
 		say("metracer agent loaded");
 
 		agent = getMetracerAgentMxBean();
