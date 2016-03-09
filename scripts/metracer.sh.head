@@ -10,7 +10,7 @@ MYSELF=$(which "$0" 2>/dev/null)
 
 if test -n "$JAVA_HOME"; then
 	java="$JAVA_HOME/bin/java"
-	java_home=$JAVA_HOME
+	tools_jar=$JAVA_HOME/lib/tools.jar
 else
 	java=$(which java 2>/dev/null)
 
@@ -23,11 +23,16 @@ else
 		java=$(readlink "$java")
 	done
 
-	java_home=$(dirname "$java")/..
+	tools_jar=$(dirname "$java")/../lib/tools.jar
+
+	if [ ! -f "$tools_jar" ]; then
+		# Case when we are in a jre subdirectory of a JDK
+		tools_jar=$(dirname "$java")/../../lib/tools.jar
+	fi
 fi
 
-if [ ! -d "$java_home" ]; then
-	echo "Failed to resolve JDK home path. Please, make sure that JDK is installed and JAVA_HOME environment variable is properly set"
+if [ ! -f "$tools_jar" ]; then
+	echo "Failed to resolve tools.jar from a JDK. Please, make sure that JDK is installed and JAVA_HOME environment variable is properly set"
 	exit 1
 fi
 
@@ -45,7 +50,7 @@ while getopts ":vh" opt; do
 	esac
 done
 
-pid=${@:$OPTIND:1}
+eval pid="\$$OPTIND"
 user_name=""
 
 if [ -n "$pid" ]; then
@@ -55,9 +60,9 @@ fi
 export METRACER_LAUNCH_STRING="metracer.sh"
 
 if [ -n "$user_name" ]; then
-	exec sudo -u $user_name "$java" -Xbootclasspath/a:"$java_home/lib/tools.jar" -jar $MYSELF "$@"
+	exec sudo -u $user_name "$java" -Xbootclasspath/a:"$tools_jar" -jar $MYSELF "$@"
 else
-	exec "$java" -Xbootclasspath/a:"$java_home/lib/tools.jar" -jar $MYSELF "$@"
+	exec "$java" -Xbootclasspath/a:"$tools_jar" -jar $MYSELF "$@"
 fi
 
 exit 1
