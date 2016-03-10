@@ -1,5 +1,4 @@
 #!/bin/sh
-set -x
 
 usage() {
 	echo "Usage: ${0} -h"
