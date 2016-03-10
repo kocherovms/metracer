@@ -41,7 +41,7 @@ public class Agent extends NotificationBroadcasterSupport implements AgentMXBean
 	// but this again tends to be an overkill within some JavaEE application - too many classes, analysis would take significiant time
 	// Hence the solution is to use a classMatchingPattern for filtering classes which require instrumentation and
 	// an optional methodMatchingPattern for a fine-grained control of which methods must be instrumented
-	private static class Patterns {
+	public static class Patterns {
 		public Pattern classMatchingPattern = null;
 		public Pattern methodMatchingPattern = null;
 	};
@@ -109,13 +109,8 @@ public class Agent extends NotificationBroadcasterSupport implements AgentMXBean
 		}
 	}
 
-	public Pattern getMethodMatchingPattern() {
-		Patterns p = patterns;
-
-		if(p == null)
-			return null;
-		else 
-			return p.methodMatchingPattern != null ? p.methodMatchingPattern : p.classMatchingPattern;
+	public Patterns getPatterns() {
+		return patterns;
 	}
 
 	private void bootstrap(String theArguments, Instrumentation theInstrumentation) {

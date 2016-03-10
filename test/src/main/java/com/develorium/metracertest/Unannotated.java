@@ -54,6 +54,16 @@ public class Unannotated extends UnannotatedBase {
 		}
 	}
 
+	Unannotated(float theOther) {
+		try {
+			try {
+				privateVar = "float";
+			} catch(Throwable e) {
+			}
+		} finally {
+		}
+	}
+
 	public static void main( String[] args ) {
 		testA();
 		int res = testB(false, true);
