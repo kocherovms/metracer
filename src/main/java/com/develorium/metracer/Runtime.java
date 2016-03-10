@@ -32,6 +32,10 @@ public class Runtime {
 		new TracingStateThreadLocal(); // to trigger static initializer
 	}
 
+	public static boolean isClassPatternMatched(String theClassName, Pattern thePattern) {
+		return !theClassName.startsWith("com.develorium.metracer.") && thePattern.matcher(theClassName).find();
+	}
+
 	public static boolean isMethodPatternMatched(String theClassName, String theMethodName, Pattern thePattern) {
 		String methodNameForPatternMatching = String.format("%s::%s", theClassName, theMethodName);
 		return thePattern.matcher(methodNameForPatternMatching).find();

@@ -34,18 +34,28 @@ public class MetracerClassFileTransformer implements ClassFileTransformer {
 
 	@Override
 	public byte[] transform(ClassLoader theLoader, String theClassName, Class<?> theClassBeingRedefined, ProtectionDomain theProtectionDomain, byte[] theClassfileBuffer) throws IllegalClassFormatException {
-		Pattern pattern = agent.getMethodMatchingPattern();
+		Agent.Patterns patterns = agent.getPatterns();
+
+		if(patterns == null || patterns.classMatchingPattern == null)
+			return theClassfileBuffer;
 
 		try {
-			InstrumentClassResult icr = instrumentClass(theClassfileBuffer, theLoader != null ? theLoader : getClass().getClassLoader(), pattern);
+			String classNameWithDots = theClassName.replace("/", ".");
 
-			if(icr.isChanged)
-				com.develorium.metracer.Runtime.say(String.format("%s (class loader %s) was instrumented (pattern %s)", 
-						theClassName, 
-						theLoader != null ? theLoader.toString() : "<boostrap>",
-						pattern));
+			if(!com.develorium.metracer.Runtime.isClassPatternMatched(classNameWithDots, patterns.classMatchingPattern)) 
+				return theClassfileBuffer;
 
-			return icr.bytecode;
+			Pattern methodMatchingPattern = patterns.methodMatchingPattern != null ? patterns.methodMatchingPattern : patterns.classMatchingPattern;
+			InstrumentClassResult icr = instrumentClass(theClassfileBuffer, theLoader != null ? theLoader : getClass().getClassLoader(), methodMatchingPattern);
+
+			if(icr.isChanged) {
+				String classLoaderName = theLoader != null ? theLoader.toString() : "<boostrap>";
+				com.develorium.metracer.Runtime.say(String.format("%s (class loader %s) was instrumented (%s, %s)", 
+						theClassName, classLoaderName, patterns.classMatchingPattern, methodMatchingPattern));
+				return icr.bytecode;
+			}
+
+			return theClassfileBuffer;
 		} catch(Throwable t) {
 			StringWriter sw = new StringWriter();
 			t.printStackTrace(new PrintWriter(sw));
