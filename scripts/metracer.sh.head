@@ -1,4 +1,5 @@
 #!/bin/sh
+set -x
 
 usage() {
 	echo "Usage: ${0} -h"
@@ -83,8 +84,10 @@ else
 	user_name=""
 
 	if [ -n "$pid" ]; then
-		user_name=$(ps -Ao pid,user | grep -P '^\s*$pid' | head -n1 | awk '{ print $2 }')
+		user_name=$(ps -Ao pid,user | grep -P "^\s*$pid" | head -n1 | awk '{ print $2 }')
 	fi
+
+	echo "user_name = $user_name"
 
 	if [ -n "$user_name" ]; then
 		exec sudo -u $user_name "$java" -Xbootclasspath/a:"$tools_jar" -jar $MYSELF "$@"
