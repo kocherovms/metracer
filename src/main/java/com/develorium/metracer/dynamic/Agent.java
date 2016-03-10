@@ -85,6 +85,9 @@ public class Agent extends NotificationBroadcasterSupport implements AgentMXBean
 		if(theClassMatchingPattern == null)
 			throw new NullPointerException("Class matching pattern is null");
 
+		runtime.say(String.format("Going to set patterns: class matching pattern = %s%s", 
+				theClassMatchingPattern, 
+				theMethodMatchingPattern != null ? String.format(", method matching pattern = %s", theMethodMatchingPattern) : ""));
 		// Reads and writes are atomic for reference variables (Java Language Specification), 
 		// so it's not required to use syncrhonized when changing patterns
 		patterns = null; // to avoid previous patterns to be effective in case of error

@@ -126,6 +126,7 @@ class PatternMatchedMethodMutator extends AdviceAdapter {
 		}
 
 		mv.visitMethodInsn(INVOKESTATIC, "com/develorium/metracer/Runtime", "traceEntry", "(Ljava/lang/Class;Ljava/lang/String;[Ljava/lang/String;[Ljava/lang/Object;)V", false);
+		mv.visitTryCatchBlock(methodEnterStart, methodEnterEnd, methodEnterEnd, null); // do nothing on any errors
 		mv.visitLabel(methodEnterEnd);
 	}
 
@@ -137,6 +138,10 @@ class PatternMatchedMethodMutator extends AdviceAdapter {
 	}
 
 	private void injectTraceExit(int theOpcode) {
+		Label startLabel = new Label(); 
+		Label endLabel = new Label(); 
+		mv.visitLabel(startLabel);
+
 		if(theOpcode == RETURN) {
 			visitInsn(ACONST_NULL);
 		} else if(theOpcode == ARETURN || theOpcode == ATHROW) {
@@ -154,5 +159,7 @@ class PatternMatchedMethodMutator extends AdviceAdapter {
 		mv.visitLdcInsn(Type.getType(String.format("L%1$s;", className)));
 		mv.visitLdcInsn(methodName);
 		mv.visitMethodInsn(INVOKESTATIC, "com/develorium/metracer/Runtime", "traceExit", "(Ljava/lang/Object;Ljava/lang/Class;Ljava/lang/String;)V", false);
+		mv.visitTryCatchBlock(startLabel, endLabel, endLabel, null); // do nothing on any errors
+		mv.visitLabel(endLabel);
 	}
 }

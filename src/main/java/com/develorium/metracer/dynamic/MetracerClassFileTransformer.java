@@ -40,13 +40,16 @@ public class MetracerClassFileTransformer implements ClassFileTransformer {
 			InstrumentClassResult icr = instrumentClass(theClassfileBuffer, theLoader != null ? theLoader : getClass().getClassLoader(), pattern);
 
 			if(icr.isChanged)
-				com.develorium.metracer.Runtime.say(String.format("%s (class loader %s) was instrumented", theClassName, theLoader != null ? theLoader.toString() : "<boostrap>"));
+				com.develorium.metracer.Runtime.say(String.format("%s (class loader %s) was instrumented (pattern %s)", 
+						theClassName, 
+						theLoader != null ? theLoader.toString() : "<boostrap>",
+						pattern));
 
 			return icr.bytecode;
 		} catch(Throwable t) {
 			StringWriter sw = new StringWriter();
 			t.printStackTrace(new PrintWriter(sw));
-			com.develorium.metracer.Runtime.say(String.format("Failed to instrument class %s, loader %s, error message: %s\n%s", theClassName, theLoader, t.toString(), sw.toString()));
+			com.develorium.metracer.Runtime.say(String.format("Failed to instrument class %s, class loader %s, error message: %s\n%s", theClassName, theLoader, t.toString(), sw.toString()));
 		}
 	
 		return theClassfileBuffer;
