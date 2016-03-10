@@ -25,61 +25,35 @@ class PatternMatchedMethodMutator extends AdviceAdapter {
 	private String className = null;
 	private MethodNode method = null;
 	private String methodName = null;
-	private boolean isConstructor = false;
 	private boolean isStatic = false;
 	private boolean isInvokeSpecialEncountered = false;
 	private Label methodEnterStart = new Label(); 
 	private Label methodEnterEnd = new Label(); 
 	private Label startFinally = new Label(); 
 	private Label endFinally = new Label(); 
-	private int argumentNamesVariableIndex = -1;
-	private int eInMethodEnterVariableIndex = -1;
-	private int eInMethodEndVariableIndex = -1;
-
-	Label methodEnterCatchBlock = new Label();
-	Label ll1 = new Label();
-	Label ll2 = new Label();
 
 	public PatternMatchedMethodMutator(String theClassName, MethodNode theMethod, int theApiVersion, MethodVisitor theDelegatingMethodVisitor, int theAccess, String theMethodName, String theMethodDescription) {
 		super(theApiVersion, theDelegatingMethodVisitor, theAccess, theMethodName, theMethodDescription);
 		className = theClassName;
 		method = theMethod;
 		methodName = theMethodName;
-		isConstructor = methodName.equals("<init>");
 		isStatic = (theAccess & Opcodes.ACC_STATIC) != 0;
 	}
 
 	@Override
 	public void visitMaxs(int theMaxStack, int theMaxLocals) {
-		mv.visitTryCatchBlock(methodEnterStart, methodEnterEnd, methodEnterCatchBlock, "java/lang/Throwable"); 
-		mv.visitTryCatchBlock(methodEnterStart, methodEnterEnd, methodEnterCatchBlock, null); 
 		mv.visitTryCatchBlock(startFinally,	endFinally, endFinally, null);
 		mv.visitLabel(endFinally);
 		injectTraceExit(ATHROW);
 		mv.visitInsn(ATHROW);
-
-		if(argumentNamesVariableIndex > -1)
-			mv.visitLocalVariable("argumentNames_4195e1f8144944ab856301acecbf6a43", "[Ljava/lang/String;", null, methodEnterStart, methodEnterEnd, argumentNamesVariableIndex);
-
-		if(eInMethodEndVariableIndex) 
-			mv.visitLocalVariable("e", "Ljava/lang/Throwable;", null, catchInMethodEnterStart, catchInMethodEnterEnd, eInMethodEndVariableIndex);
-
-		if(eInMethodEndVariableIndex) 
-			mv.visitLocalVariable("e", "Ljava/lang/Throwable;", null, catchInMethodExitStart, catchInMethodExitEnd, eInMethodEndVariableIndex);
 
 		super.visitMaxs(theMaxStack, theMaxLocals);
 	}
 
 	@Override
 	protected void onMethodEnter() {
-		zzz = newLocal(Type.getType("[Ljava/lang/Throwable;"));
-
-
+		int argumentNamesVariableIndex = -1;
 		mv.visitLabel(startFinally);
-		//Label methodEnterCatchBlock = new Label();
-		Label methodEnterEndUltimate = new Label();
-		//mv.visitTryCatchBlock(methodEnterStart, methodEnterEnd, methodEnterCatchBlock, "java/lang/Throwable"); // do nothing on any errors
-
 		Type[] argumentTypes = Type.getArgumentTypes(methodDesc);
 		boolean areAnyArguments = argumentTypes != null && argumentTypes.length > 0;
 		mv.visitLabel(methodEnterStart);
@@ -123,12 +97,25 @@ class PatternMatchedMethodMutator extends AdviceAdapter {
 
 		mv.visitMethodInsn(INVOKESTATIC, "com/develorium/metracer/Runtime", "traceEntry", "(Ljava/lang/Class;Ljava/lang/String;[Ljava/lang/String;[Ljava/lang/Object;)V", false);
 		mv.visitLabel(methodEnterEnd);
+		Label methodEnterEndUltimate = new Label();
 		mv.visitJumpInsn(GOTO, methodEnterEndUltimate);
+		
+		int exceptionVariableIndex = newLocal(Type.getType("[Ljava/lang/Throwable;"));
+		Label methodEnterCatchBlock = new Label();
 		mv.visitLabel(methodEnterCatchBlock);
-		mv.visitVarInsn(ASTORE, zzz);
-		mv.visitLabel(ll1);
-		mv.visitLabel(ll2);
+		mv.visitVarInsn(ASTORE, exceptionVariableIndex);
+		Label methodEnterCatchStart = new Label();
+		Label methodEnterCatchEnd = new Label();
+		mv.visitLabel(methodEnterCatchStart);
+		mv.visitLabel(methodEnterCatchEnd);
 		mv.visitLabel(methodEnterEndUltimate);
+		
+		mv.visitTryCatchBlock(methodEnterStart, methodEnterEnd, methodEnterCatchBlock, "java/lang/Throwable"); 
+
+		if(argumentNamesVariableIndex > -1)
+			mv.visitLocalVariable("argumentNames_4195e1f8144944ab856301acecbf6a43", "[Ljava/lang/String;", null, methodEnterStart, methodEnterEnd, argumentNamesVariableIndex);
+
+		mv.visitLocalVariable("e_e9e8d057c71043328d688bec83715d7e", "Ljava/lang/Throwable;", null, methodEnterCatchStart, methodEnterCatchEnd, exceptionVariableIndex);
 	}
 
 	@Override

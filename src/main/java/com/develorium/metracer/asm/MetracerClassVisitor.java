@@ -25,12 +25,14 @@ public class MetracerClassVisitor extends ClassVisitor {
 	private boolean isChanged = false;
 	private boolean hasSlf4Logger = false;
 	private String className = null;
-	private Pattern pattern = null;
+	private Pattern classMatchingPattern = null;
+	private Pattern methodMatchingPattern = null;
 	private ClassNode parsedClass = null;
 
-	public MetracerClassVisitor(ClassVisitor theClassVisitor, Pattern thePattern, ClassNode theParsedClass) {
+	public MetracerClassVisitor(ClassVisitor theClassVisitor, Pattern theClassMatchingPattern, Pattern theMethodMatchingPattern, ClassNode theParsedClass) {
 		super(Opcodes.ASM5, theClassVisitor);
-		pattern = thePattern;
+		classMatchingPattern = theClassMatchingPattern;
+		methodMatchingPattern = theMethodMatchingPattern;
 		parsedClass = theParsedClass;
 	}
 
@@ -63,7 +65,11 @@ public class MetracerClassVisitor extends ClassVisitor {
 			return methodVisitor;
 		}
 
-		if(pattern == null || !com.develorium.metracer.Runtime.isMethodPatternMatched(className.replace("/", "."), theName, pattern)) 
+		String classNameWithDots = className.replace("/", ".");
+
+		if(classMatchingPattern == null || !com.develorium.metracer.Runtime.isClassPatternMatched(classNameWithDots, classMatchingPattern))
+			return methodVisitor;
+		else if(methodMatchingPattern != null && !com.develorium.metracer.Runtime.isMethodPatternMatched(classNameWithDots, theName, methodMatchingPattern)) 
 			return methodVisitor;
 
 		List<MethodNode> methods = parsedClass.methods;

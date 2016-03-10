@@ -27,6 +27,7 @@ import com.develorium.metracer.asm.*;
 
 public class MetracerClassFileTransformer implements ClassFileTransformer {
 	private Agent agent = null;
+	private Agent.Patterns defaultPatterns = new Agent.Patterns();
 
 	MetracerClassFileTransformer(Agent theAgent) {
 		agent = theAgent;
@@ -34,24 +35,16 @@ public class MetracerClassFileTransformer implements ClassFileTransformer {
 
 	@Override
 	public byte[] transform(ClassLoader theLoader, String theClassName, Class<?> theClassBeingRedefined, ProtectionDomain theProtectionDomain, byte[] theClassfileBuffer) throws IllegalClassFormatException {
-		Agent.Patterns patterns = agent.getPatterns();
-
-		if(patterns == null || patterns.classMatchingPattern == null)
-			return theClassfileBuffer;
+		Agent.Patterns unsafePatterns = agent.getPatterns();
+		Agent.Patterns patterns = unsafePatterns != null ? unsafePatterns : defaultPatterns;
 
 		try {
-			String classNameWithDots = theClassName.replace("/", ".");
-
-			if(!com.develorium.metracer.Runtime.isClassPatternMatched(classNameWithDots, patterns.classMatchingPattern)) 
-				return theClassfileBuffer;
-
-			Pattern methodMatchingPattern = patterns.methodMatchingPattern != null ? patterns.methodMatchingPattern : patterns.classMatchingPattern;
-			InstrumentClassResult icr = instrumentClass(theClassfileBuffer, theLoader != null ? theLoader : getClass().getClassLoader(), methodMatchingPattern);
+			InstrumentClassResult icr = instrumentClass(theClassfileBuffer, theLoader != null ? theLoader : getClass().getClassLoader(), patterns);
 
 			if(icr.isChanged) {
 				String classLoaderName = theLoader != null ? theLoader.toString() : "<boostrap>";
 				com.develorium.metracer.Runtime.say(String.format("%s (class loader %s) was instrumented (%s, %s)", 
-						theClassName, classLoaderName, patterns.classMatchingPattern, methodMatchingPattern));
+						theClassName, classLoaderName, patterns.classMatchingPattern, patterns.methodMatchingPattern));
 				return icr.bytecode;
 			}
 
@@ -59,7 +52,7 @@ public class MetracerClassFileTransformer implements ClassFileTransformer {
 		} catch(Throwable t) {
 			StringWriter sw = new StringWriter();
 			t.printStackTrace(new PrintWriter(sw));
-			com.develorium.metracer.Runtime.say(String.format("Failed to instrument class %s, class loader %s, error message: %s\n%s", theClassName, theLoader, t.toString(), sw.toString()));
+			com.develorium.metracer.Runtime.say(String.format("Failed to instrument class %s, class loader %s: %s\n%s", theClassName, theLoader, t.toString(), sw.toString()));
 		}
 	
 		return theClassfileBuffer;
@@ -70,13 +63,13 @@ public class MetracerClassFileTransformer implements ClassFileTransformer {
 		byte[] bytecode = null;
 	} 
 
-	private InstrumentClassResult instrumentClass(byte theBytecode[], ClassLoader theLoader, Pattern thePattern) {
+	private InstrumentClassResult instrumentClass(byte theBytecode[], ClassLoader theLoader, Agent.Patterns thePatterns) {
 		ClassReader reader = new ClassReader(theBytecode);
 		ClassNode parsedClass = new ClassNode();
 		reader.accept(parsedClass, 0);
 		
 		MetracerClassWriter writer = new MetracerClassWriter(reader, theLoader);
-		MetracerClassVisitor visitor = new MetracerClassVisitor(writer, thePattern, parsedClass);
+		MetracerClassVisitor visitor = new MetracerClassVisitor(writer, thePatterns.classMatchingPattern, thePatterns.methodMatchingPattern, parsedClass);
 		reader.accept(visitor, ClassReader.EXPAND_FRAMES);
 
 		InstrumentClassResult rv = new InstrumentClassResult();
