@@ -18,11 +18,11 @@ Usage examples:
 
 4) Spy for invocations of all methods which name either contains doThisThing OR doAnotherThing of classes which name starts from com.myprogram.MyClass (e.g. this could be com.myprogram.MyClass1 and com.myprogram.MyClas2 ) in a Java program with PID 345
 
-# ${launchstring} 345 com.myprogram.MyClass doThisThing|doAnotherThing
+# ${launchstring} 345 com.myprogram.MyClass "(doThisThing|doAnotherThing)"
 
 5) Spy for invocations of all methods of classes which name either starts from com.myprogram.ThisClass or from com.myprogram.ThatClass in a Java program with PID 345
 
-# ${launchstring} 345 com.myprogram.ThisClass|com.myprogram.ThatClass
+# ${launchstring} 345 "(com.myprogram.ThisClass|com.myprogram.ThatClass)"
 ---
 
 Note 1: ${name} requires tools.jar from a JDK in a classpath.

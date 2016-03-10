@@ -39,10 +39,7 @@ public class Main {
 
 	private void execute(String[] theArguments) {
 		try {
-			if(isHelpRequested(theArguments)) {
-				printHelp();
-				System.exit(0);
-			}
+			processAuxCommands(theArguments);
 
 			try {
 				parseArguments(theArguments);
@@ -60,6 +57,15 @@ public class Main {
 			e.printStackTrace();
 			System.exit(1);
 		}
+	}
+
+	if(isHelpRequested(theArguments)) {
+		printHelp();
+		System.exit(0);
+	}
+	else if(isJvmListRequested(theArguments)) {
+		printJvmList();
+		System.exit(0);
 	}
 
 	private boolean isHelpRequested(String[] theArguments) {

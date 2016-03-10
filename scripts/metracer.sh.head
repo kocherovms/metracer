@@ -1,24 +1,62 @@
 #!/bin/sh
 
 usage() {
-	echo "Usage: $0 [-h] [-v] PID CLASS-MATCHING-PATTERN [METHOD-MATCHING-PATTERN]"
+	echo "Usage: ${0} -h"
+	echo "       ${0} -l"
+	echo "       ${0} [-v] PID CLASS-MATCHING-PATTERN [METHOD-MATCHING-PATTERN]"
 }
 
+if [ $# -eq 0 ]; then
+	usage
+	exit 1
+fi
+
+export METRACER_LAUNCH_STRING="metracer.sh"
 # Thanks to https://coderwall.com/p/ssuaxa/how-to-make-a-jar-file-linux-executable
 MYSELF=$(which "$0" 2>/dev/null)
 [ $? -gt 0 -a -f "$0" ] && MYSELF="./$0"
 
 if test -n "$JAVA_HOME"; then
 	java="$JAVA_HOME/bin/java"
-	tools_jar=$JAVA_HOME/lib/tools.jar
 else
 	java=$(which java 2>/dev/null)
+fi
 
-	if [ ! -f "$java" ]; then
-		echo "Failed to find 'java' executable. Please, make sure that Java is installed"
-		exit 1
-	fi
+if [ ! -f "$java" ]; then
+	echo "Failed to find 'java' executable. Please, make sure that Java is installed"
+	exit 1
+fi
 
+is_help_requested=""
+is_list_requested=""
+
+while getopts ":vhl" opt; do
+	case $opt in
+		h) 
+			is_help_requested="1"
+			;;
+		l) 
+			is_list_requested="1"
+			;;
+		v) 
+			;;
+		\?)
+			echo "Unknown option -$OPTARG"
+			usage
+			exit 1
+			;;
+	esac
+done
+
+if [ -n "$is_help_requested" ]; then
+	exec "$java" -jar $MYSELF "$@"
+	exit 0
+fi
+
+# For all other options we need tools.jar, resolve it
+if test -n "$JAVA_HOME"; then
+	tools_jar=$JAVA_HOME/lib/tools.jar
+else
 	while [ -L "$java" ]; do
 		java=$(readlink "$java")
 	done
@@ -36,33 +74,23 @@ if [ ! -f "$tools_jar" ]; then
 	exit 1
 fi
 
-while getopts ":vh" opt; do
-	case $opt in
-		v) 
-			;;
-		h) 
-			;;
-		\?)
-			echo "Unknown option -$OPTARG"
-			usage
-			exit 1
-			;;
-	esac
-done
-
-eval pid="\$$OPTIND"
-user_name=""
-
-if [ -n "$pid" ]; then
-	user_name=$(ps -Ao pid,user | grep $pid | awk '{ print $2 }')
-fi
-
-export METRACER_LAUNCH_STRING="metracer.sh"
-
-if [ -n "$user_name" ]; then
-	exec sudo -u $user_name "$java" -Xbootclasspath/a:"$tools_jar" -jar $MYSELF "$@"
-else
+if [ -n "$is_list_requested" ]; then
+	# For JVM listing no impersonation is required	
 	exec "$java" -Xbootclasspath/a:"$tools_jar" -jar $MYSELF "$@"
+	exit 0
+else
+	eval pid="\$$OPTIND"
+	user_name=""
+
+	if [ -n "$pid" ]; then
+		user_name=$(ps -Ao pid,user | grep $pid | awk '{ print $2 }')
+	fi
+
+	if [ -n "$user_name" ]; then
+		exec sudo -u $user_name "$java" -Xbootclasspath/a:"$tools_jar" -jar $MYSELF "$@"
+	else
+		exec "$java" -Xbootclasspath/a:"$tools_jar" -jar $MYSELF "$@"
+	fi
 fi
 
 exit 1
