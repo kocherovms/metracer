@@ -39,7 +39,7 @@ public class Main {
 
 	private void execute(String[] theArguments) {
 		try {
-			processAuxCommands(theArguments);
+			executeAuxCommands(theArguments);
 
 			try {
 				parseArguments(theArguments);
@@ -59,25 +59,23 @@ public class Main {
 		}
 	}
 
-	if(isHelpRequested(theArguments)) {
-		printHelp();
-		System.exit(0);
-	}
-	else if(isJvmListRequested(theArguments)) {
-		printJvmList();
-		System.exit(0);
-	}
-
-	private boolean isHelpRequested(String[] theArguments) {
-		return theArguments.length > 0 && theArguments[0].equals("-h");
-	}
-
-	private void printUsage() {
-		try {
-			System.out.println(loadInfoResource("usage.txt"));
-		} catch(Throwable t) {
-			throw new RuntimeException(String.format("Failed to print usage: %s", t.getMessage()), t);
+	private void executeAuxCommands(String[] theArguments) {
+		if(isOptionSpecified("-h", theArguments)) {
+			printHelp();
+			System.exit(0);
 		}
+		else if(isOptionSpecified("-l", theArguments)) {
+			printJvmList();
+			System.exit(0);
+		}
+	}
+
+	private boolean isOptionSpecified(String theOption, String[] theArguments) {
+		for(String argument : theArguments) 
+			if(argument.equals(theOption))
+				return true;
+
+		return false;
 	}
 
 	private void printHelp() {
@@ -88,6 +86,22 @@ public class Main {
 			System.out.println(processedHelp);
 		} catch(Throwable t) {
 			throw new RuntimeException(String.format("Failed to print help: %s", t.getMessage()), t);
+		}
+	}
+
+	private void printJvmList() {
+		List<VirtualMachineDescriptor> jvmList = VirtualMachine.list();
+
+		for(VirtualMachineDescriptor jvm: jvmList) {
+			System.out.println(String.format("%s\t%s", jvm.id(), jvm.displayName()));
+		}
+	}
+
+	private void printUsage() {
+		try {
+			System.out.println(loadInfoResource("usage.txt"));
+		} catch(Throwable t) {
+			throw new RuntimeException(String.format("Failed to print usage: %s", t.getMessage()), t);
 		}
 	}
 
