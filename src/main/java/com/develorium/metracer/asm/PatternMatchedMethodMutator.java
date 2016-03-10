@@ -31,6 +31,7 @@ class PatternMatchedMethodMutator extends AdviceAdapter {
 	private Label methodEnterEnd = new Label(); 
 	private Label startFinally = new Label(); 
 	private Label endFinally = new Label(); 
+	int zzz = 0;
 
 	public PatternMatchedMethodMutator(String theClassName, MethodNode theMethod, int theApiVersion, MethodVisitor theDelegatingMethodVisitor, int theAccess, String theMethodName, String theMethodDescription) {
 		super(theApiVersion, theDelegatingMethodVisitor, theAccess, theMethodName, theMethodDescription);
@@ -44,7 +45,7 @@ class PatternMatchedMethodMutator extends AdviceAdapter {
 	public void visitMaxs(int theMaxStack, int theMaxLocals) {
 		mv.visitTryCatchBlock(startFinally,	endFinally, endFinally, null);
 		mv.visitLabel(endFinally);
-		injectTraceExit(ATHROW);
+		//injectTraceExit(ATHROW);
 		mv.visitInsn(ATHROW);
 
 		super.visitMaxs(theMaxStack, theMaxLocals);
@@ -97,9 +98,9 @@ class PatternMatchedMethodMutator extends AdviceAdapter {
 
 		mv.visitMethodInsn(INVOKESTATIC, "com/develorium/metracer/Runtime", "traceEntry", "(Ljava/lang/Class;Ljava/lang/String;[Ljava/lang/String;[Ljava/lang/Object;)V", false);
 		mv.visitLabel(methodEnterEnd);
+
 		Label methodEnterEndUltimate = new Label();
 		mv.visitJumpInsn(GOTO, methodEnterEndUltimate);
-		
 		int exceptionVariableIndex = newLocal(Type.getType("[Ljava/lang/Throwable;"));
 		Label methodEnterCatchBlock = new Label();
 		mv.visitLabel(methodEnterCatchBlock);
@@ -126,28 +127,43 @@ class PatternMatchedMethodMutator extends AdviceAdapter {
 	}
 
 	private void injectTraceExit(int theOpcode) {
-		Label startLabel = new Label(); 
-		Label endLabel = new Label(); 
-		//mv.visitLabel(startLabel);
+		Label methodExitStart = new Label(); 
+		mv.visitLabel(methodExitStart);
 
-		if(theOpcode == RETURN) {
-			visitInsn(ACONST_NULL);
-		} else if(theOpcode == ARETURN || theOpcode == ATHROW) {
-			dup();
-		} else {
-			if(theOpcode == LRETURN || theOpcode == DRETURN) {
-				dup2();
-			} else {
-				dup();
-			}
+		//if(theOpcode == RETURN) {
+		//	visitInsn(ACONST_NULL);
+		//} else if(theOpcode == ARETURN || theOpcode == ATHROW) {
+		//	dup();
+		//} else {
+		//	if(theOpcode == LRETURN || theOpcode == DRETURN) {
+		//		dup2();
+		//	} else {
+		//		dup();
+		//	}
+		//
+		//	box(Type.getReturnType(methodDesc));
+		//}
 
-			box(Type.getReturnType(methodDesc));
-		}
-
+		visitInsn(ACONST_NULL);
 		mv.visitLdcInsn(Type.getType(String.format("L%1$s;", className)));
 		mv.visitLdcInsn(methodName);
 		mv.visitMethodInsn(INVOKESTATIC, "com/develorium/metracer/Runtime", "traceExit", "(Ljava/lang/Object;Ljava/lang/Class;Ljava/lang/String;)V", false);
-		//mv.visitLabel(endLabel);
-		//mv.visitTryCatchBlock(startLabel, endLabel, endLabel, null); // do nothing on any errors
+		Label methodExitEnd = new Label(); 
+		mv.visitLabel(methodExitEnd);
+
+		Label methodExitEndUltimate = new Label();
+		mv.visitJumpInsn(GOTO, methodExitEndUltimate);
+		int exceptionVariableIndex = newLocal(Type.getType("[Ljava/lang/Throwable;"));
+		Label methodExitCatchBlock = new Label();
+		mv.visitLabel(methodExitCatchBlock);
+		mv.visitVarInsn(ASTORE, exceptionVariableIndex);
+		Label methodExitCatchStart = new Label();
+		Label methodExitCatchEnd = new Label();
+		mv.visitLabel(methodExitCatchStart);
+		mv.visitLabel(methodExitCatchEnd);
+		mv.visitLabel(methodExitEndUltimate);
+		
+		mv.visitTryCatchBlock(methodExitStart, methodExitEnd, methodExitCatchBlock, "java/lang/Throwable"); 
+		mv.visitLocalVariable("e_e9e8d057c71043328d688bec83715d7e" + (++zzz), "Ljava/lang/Throwable;", null, methodExitCatchStart, methodExitCatchEnd, exceptionVariableIndex);
 	}
 }

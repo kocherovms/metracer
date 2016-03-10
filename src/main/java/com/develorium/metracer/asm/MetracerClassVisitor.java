@@ -72,6 +72,8 @@ public class MetracerClassVisitor extends ClassVisitor {
 		else if(methodMatchingPattern != null && !com.develorium.metracer.Runtime.isMethodPatternMatched(classNameWithDots, theName, methodMatchingPattern)) 
 			return methodVisitor;
 
+		com.develorium.metracer.Runtime.say("instrumenting " + classNameWithDots + "::" + theName + " - " + methodMatchingPattern);
+
 		List<MethodNode> methods = parsedClass.methods;
 		MethodNode method = null;
 				
