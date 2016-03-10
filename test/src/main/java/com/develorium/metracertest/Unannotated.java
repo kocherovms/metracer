@@ -72,6 +72,7 @@ public class Unannotated extends UnannotatedBase {
 		testInheritanceBackward();
 		testInheritanceForward();
 		testIntRetVal();
+		testIntegerRetVal();
 		testDoubleRetVal();
 		testStringRetVal();
 
@@ -138,6 +139,9 @@ public class Unannotated extends UnannotatedBase {
 	}
 	static int testIntRetVal() {
 		return 42;
+	}
+	static Integer testIntegerRetVal() {
+		return new Integer(42);
 	}
 	static double testDoubleRetVal() {
 		return 42.0;

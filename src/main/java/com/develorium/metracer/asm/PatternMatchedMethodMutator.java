@@ -26,12 +26,10 @@ class PatternMatchedMethodMutator extends AdviceAdapter {
 	private MethodNode method = null;
 	private String methodName = null;
 	private boolean isStatic = false;
-	private boolean isInvokeSpecialEncountered = false;
 	private Label methodEnterStart = new Label(); 
 	private Label methodEnterEnd = new Label(); 
 	private Label startFinally = new Label(); 
 	private Label endFinally = new Label(); 
-	int zzz = 0;
 
 	public PatternMatchedMethodMutator(String theClassName, MethodNode theMethod, int theApiVersion, MethodVisitor theDelegatingMethodVisitor, int theAccess, String theMethodName, String theMethodDescription) {
 		super(theApiVersion, theDelegatingMethodVisitor, theAccess, theMethodName, theMethodDescription);
@@ -45,7 +43,7 @@ class PatternMatchedMethodMutator extends AdviceAdapter {
 	public void visitMaxs(int theMaxStack, int theMaxLocals) {
 		mv.visitTryCatchBlock(startFinally,	endFinally, endFinally, null);
 		mv.visitLabel(endFinally);
-		//injectTraceExit(ATHROW);
+		injectTraceExit(ATHROW);
 		mv.visitInsn(ATHROW);
 
 		super.visitMaxs(theMaxStack, theMaxLocals);
@@ -114,9 +112,9 @@ class PatternMatchedMethodMutator extends AdviceAdapter {
 		mv.visitTryCatchBlock(methodEnterStart, methodEnterEnd, methodEnterCatchBlock, "java/lang/Throwable"); 
 
 		if(argumentNamesVariableIndex > -1)
-			mv.visitLocalVariable("argumentNames_4195e1f8144944ab856301acecbf6a43", "[Ljava/lang/String;", null, methodEnterStart, methodEnterEnd, argumentNamesVariableIndex);
+			mv.visitLocalVariable("argumentNames", "[Ljava/lang/String;", null, methodEnterStart, methodEnterEnd, argumentNamesVariableIndex);
 
-		mv.visitLocalVariable("e_e9e8d057c71043328d688bec83715d7e", "Ljava/lang/Throwable;", null, methodEnterCatchStart, methodEnterCatchEnd, exceptionVariableIndex);
+		mv.visitLocalVariable("e", "Ljava/lang/Throwable;", null, methodEnterCatchStart, methodEnterCatchEnd, exceptionVariableIndex);
 	}
 
 	@Override
@@ -127,24 +125,30 @@ class PatternMatchedMethodMutator extends AdviceAdapter {
 	}
 
 	private void injectTraceExit(int theOpcode) {
+		boolean isReturnValueBoxed = false;
+		int returnValueVariableIndex = newLocal(Type.getType("[Ljava/lang/Object;"));
+		Label methodExitEarlyStart = new Label(); 
+		mv.visitLabel(methodExitEarlyStart);
+
+		if(theOpcode == RETURN) {
+			visitInsn(ACONST_NULL);
+		} else {
+			switch(theOpcode) {
+			case LRETURN:
+			case DRETURN:
+			case FRETURN:
+			case IRETURN:
+				box(Type.getReturnType(methodDesc));
+				isReturnValueBoxed = true;
+				break;
+			}
+		}
+
+		mv.visitVarInsn(ASTORE, returnValueVariableIndex);
 		Label methodExitStart = new Label(); 
 		mv.visitLabel(methodExitStart);
 
-		//if(theOpcode == RETURN) {
-		//	visitInsn(ACONST_NULL);
-		//} else if(theOpcode == ARETURN || theOpcode == ATHROW) {
-		//	dup();
-		//} else {
-		//	if(theOpcode == LRETURN || theOpcode == DRETURN) {
-		//		dup2();
-		//	} else {
-		//		dup();
-		//	}
-		//
-		//	box(Type.getReturnType(methodDesc));
-		//}
-
-		visitInsn(ACONST_NULL);
+		mv.visitVarInsn(ALOAD, returnValueVariableIndex);
 		mv.visitLdcInsn(Type.getType(String.format("L%1$s;", className)));
 		mv.visitLdcInsn(methodName);
 		mv.visitMethodInsn(INVOKESTATIC, "com/develorium/metracer/Runtime", "traceExit", "(Ljava/lang/Object;Ljava/lang/Class;Ljava/lang/String;)V", false);
@@ -162,8 +166,14 @@ class PatternMatchedMethodMutator extends AdviceAdapter {
 		mv.visitLabel(methodExitCatchStart);
 		mv.visitLabel(methodExitCatchEnd);
 		mv.visitLabel(methodExitEndUltimate);
+
+		mv.visitVarInsn(ALOAD, returnValueVariableIndex);
+
+		if(isReturnValueBoxed)
+			unbox(Type.getReturnType(methodDesc));
 		
 		mv.visitTryCatchBlock(methodExitStart, methodExitEnd, methodExitCatchBlock, "java/lang/Throwable"); 
-		mv.visitLocalVariable("e_e9e8d057c71043328d688bec83715d7e" + (++zzz), "Ljava/lang/Throwable;", null, methodExitCatchStart, methodExitCatchEnd, exceptionVariableIndex);
+		mv.visitLocalVariable("rv", "Ljava/lang/Object;", null, methodExitEarlyStart, methodExitEndUltimate, returnValueVariableIndex);
+		mv.visitLocalVariable("e", "Ljava/lang/Throwable;", null, methodExitCatchStart, methodExitCatchEnd, exceptionVariableIndex);
 	}
 }
