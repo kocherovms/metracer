@@ -187,7 +187,7 @@ public class Agent extends NotificationBroadcasterSupport implements AgentMXBean
 		public String assess(Class<?> theClass); // null -> no need to instrument, otherwise - reason why it's needed
 	}
 
-	private void instrumentLoadedClasses(ClassNeedsInstrumentationAssessor theAssessor) throws UnmodifiableClassException {
+	private void instrumentLoadedClasses(ClassNeedsInstrumentationAssessor theAssessor) {
 		List<Class<?>> classesForInstrumentation = new ArrayList<Class<?>>();
 
 		for(Class<?> c: instrumentation.getAllLoadedClasses()) {
@@ -205,8 +205,35 @@ public class Agent extends NotificationBroadcasterSupport implements AgentMXBean
 		if(classesForInstrumentation.isEmpty())
 			return;
 
-		Class<?>[] classesArray = classesForInstrumentation.toArray(new Class<?>[classesForInstrumentation.size()]);
-		instrumentation.retransformClasses(classesArray);
+		if(!restransformLoadedClassesBatch(classesForInstrumentation))
+			restransformLoadedClassesByOne(classesForInstrumentation);
+	}
+
+	private boolean restransformLoadedClassesBatch(List<Class<?>> theClassesForInstrumentation) {
+		try {
+			Class<?>[] classesArray = theClassesForInstrumentation.toArray(new Class<?>[theClassesForInstrumentation.size()]);
+			instrumentation.retransformClasses(classesArray);
+			return true;
+		} catch(Throwable e) {
+			StringWriter sw = new StringWriter();
+			e.printStackTrace(new PrintWriter(sw));
+			runtime.say(String.format("Failed to restransform classes in a batch mode: %s\n%s", e.toString(), sw.toString()));
+		}
+
+		return false;
+	}
+
+	private void restransformLoadedClassesByOne(List<Class<?>> theClassesForInstrumentation) {
+		for(Class<?> c : theClassesForInstrumentation) {
+			try {
+				Class<?>[] classesArray = new Class<?>[] { c };
+				instrumentation.retransformClasses(classesArray);
+			} catch(Throwable e) {
+				StringWriter sw = new StringWriter();
+				e.printStackTrace(new PrintWriter(sw));
+				runtime.say(String.format("Failed to retransform class \"%s\": %s\n%s", c.getName(), e.toString(), sw.toString()));
+			}
+		}
 	}
 
 	private boolean isCustomClassLoader(Class<?> theClass) {

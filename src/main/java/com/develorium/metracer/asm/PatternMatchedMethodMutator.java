@@ -125,6 +125,8 @@ class PatternMatchedMethodMutator extends AdviceAdapter {
 	}
 
 	private void injectTraceExit(int theOpcode) {
+		// need to grab return value from a stack into local variable before establishin new try / catch frame,
+		// otherwise VerifyError would be thrown
 		boolean isReturnValueBoxed = false;
 		int returnValueVariableIndex = newLocal(Type.getType("[Ljava/lang/Object;"));
 		Label methodExitEarlyStart = new Label(); 
