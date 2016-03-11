@@ -57,14 +57,6 @@ public class MetracerClassVisitor extends ClassVisitor {
 		int theAccess, String theName, String theDescription,
 		String theSignature, String[] theExceptions) {
 		MethodVisitor methodVisitor = cv.visitMethod(theAccess, theName, theDescription, theSignature, theExceptions);
-
-		if(theName.equals("findClass") && theDescription.startsWith("(Ljava/lang/String;") && theDescription.endsWith("Ljava/lang/Class;")) {
-			// Looks like a findClass of ClassLoader, need to drill a hole
-			methodVisitor = new FindClassMethodMutator(className, api, methodVisitor, theAccess, theName, theDescription);
-			isChanged = true;
-			return methodVisitor;
-		}
-
 		String classNameWithDots = className.replace("/", ".");
 
 		if(classMatchingPattern == null || !com.develorium.metracer.Runtime.isClassPatternMatched(classNameWithDots, classMatchingPattern))
@@ -72,7 +64,7 @@ public class MetracerClassVisitor extends ClassVisitor {
 		else if(methodMatchingPattern != null && !com.develorium.metracer.Runtime.isMethodPatternMatched(classNameWithDots, theName, methodMatchingPattern)) 
 			return methodVisitor;
 
-		com.develorium.metracer.Runtime.say("instrumenting " + classNameWithDots + "::" + theName + " - " + methodMatchingPattern);
+		com.develorium.metracer.Runtime.say(String.format("Instrumenting %s::%s", classNameWithDots, theName));
 
 		List<MethodNode> methods = parsedClass.methods;
 		MethodNode method = null;

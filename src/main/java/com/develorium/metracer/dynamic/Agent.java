@@ -125,12 +125,6 @@ public class Agent extends NotificationBroadcasterSupport implements AgentMXBean
 			transformer = new MetracerClassFileTransformer(this);
 			instrumentation.addTransformer(transformer, true);
 			runtime.say("Class file transformer added");
-			instrumentLoadedClasses(new ClassNeedsInstrumentationAssessor() {
-				@Override
-				public String assess(Class<?> theClass) {
-					return isCustomClassLoader(theClass) ? "custom class loader" : null;
-				}
-			});
 		} catch(Throwable e) {
 			if(transformer != null) {
 				instrumentation.removeTransformer(transformer);
@@ -234,20 +228,5 @@ public class Agent extends NotificationBroadcasterSupport implements AgentMXBean
 				runtime.say(String.format("Failed to retransform class \"%s\": %s\n%s", c.getName(), e.toString(), sw.toString()));
 			}
 		}
-	}
-
-	private boolean isCustomClassLoader(Class<?> theClass) {
-		if(ClassLoader.class.isAssignableFrom(theClass)) {
-			String className = theClass.getName();
-			String[] vetoedPrefixes = { "java.", "javax.", "sun.", "com.sun.", "org.codehaus.janino" };
-			
-			for(String vetoedPrefix: vetoedPrefixes) 
-				if(className.startsWith(vetoedPrefix))
-					return false;
-
-			return true;
-		}
-
-		return false;
 	}
 }
