@@ -86,9 +86,9 @@ else
 		user_name=$(ps -Ao pid,user | grep -P "^\s*$pid" | head -n1 | awk '{ print $2 }')
 	fi
 
-	echo "user_name = $user_name"
+	current_user_name=$(whoami)
 
-	if [ -n "$user_name" ]; then
+	if [ -n "$user_name" ] && [ "$current_user_name" != "$user_name" ]; then
 		exec sudo -u $user_name "$java" -Xbootclasspath/a:"$tools_jar" -jar $MYSELF "$@"
 	else
 		exec "$java" -Xbootclasspath/a:"$tools_jar" -jar $MYSELF "$@"
