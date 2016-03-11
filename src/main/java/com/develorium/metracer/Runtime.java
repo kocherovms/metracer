@@ -79,7 +79,7 @@ public class Runtime {
 			logger.printMessage(theClass, theMethodName, message);
 	}
 
-	public static void traceExit(Object theReturnValue, Class theClass, String theMethodName) {
+	public static void traceExit(Class theClass, String theMethodName, Object theReturnValue) {
 		Integer callDepth = TracingStateThreadLocal.instance.get();
 		TracingStateThreadLocal.instance.set(callDepth - 1);
 		String returnValueInfo = analyzeReturnValueInfo(theReturnValue);

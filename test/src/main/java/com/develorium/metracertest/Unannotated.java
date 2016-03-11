@@ -65,6 +65,17 @@ public class Unannotated extends UnannotatedBase {
 	}
 
 	public static void main( String[] args ) {
+		testBundle();
+
+		new Unannotated("C").startTestJob();
+
+		try {
+            System.in.read();
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+	}
+	static void testBundle() {
 		testA();
 		int res = testB(false, true);
 		System.out.println("result of testB = " + res);
@@ -82,14 +93,6 @@ public class Unannotated extends UnannotatedBase {
 		} catch(Exception e) {
 			e.printStackTrace();
 		}
-
-		new Unannotated("C").startTestJob();
-
-		try {
-            System.in.read();
-        } catch (Exception e) {
-            e.printStackTrace();
-        }
 	}
 	static void testA() {
 		System.out.println("testA");
@@ -164,6 +167,7 @@ public class Unannotated extends UnannotatedBase {
         testJob = new Thread(new Runnable() {
 				public void run() {
 					while(true) {
+						testBundle();
 						doSomething();
 						try {
 							Thread.sleep(3000);

@@ -26,8 +26,6 @@ class PatternMatchedMethodMutator extends AdviceAdapter {
 	private MethodNode method = null;
 	private String methodName = null;
 	private boolean isStatic = false;
-	private Label methodEnterStart = new Label(); 
-	private Label methodEnterEnd = new Label(); 
 	private Label startFinally = new Label(); 
 	private Label endFinally = new Label(); 
 
@@ -51,14 +49,66 @@ class PatternMatchedMethodMutator extends AdviceAdapter {
 
 	@Override
 	protected void onMethodEnter() {
-		int argumentNamesVariableIndex = -1;
 		mv.visitLabel(startFinally);
+
+		// ClassLoader systemClassLoader = ClassLoader.getSystemClassLoader();
+		int systemClassLoaderVariableIndex = newLocal(Type.getType("Ljava/lang/ClassLoader;"));
+		mv.visitMethodInsn(INVOKESTATIC, "java/lang/ClassLoader", "getSystemClassLoader", "()Ljava/lang/ClassLoader;", false);
+		mv.visitVarInsn(ASTORE, systemClassLoaderVariableIndex);
+
+		// Class<?> runtimeClass = Class.forName("com.develorium.metracer.Runtime", true, systemClassLoader);
+		mv.visitLdcInsn("com.develorium.metracer.Runtime");
+		mv.visitInsn(ICONST_1);
+		mv.visitVarInsn(ALOAD, systemClassLoaderVariableIndex);
+		mv.visitMethodInsn(INVOKESTATIC, "java/lang/Class", "forName", "(Ljava/lang/String;ZLjava/lang/ClassLoader;)Ljava/lang/Class;", false);
+		int runtimeClassVariableIndex = newLocal(Type.getType("Ljava/lang/Class;"));
+		mv.visitVarInsn(ASTORE, runtimeClassVariableIndex);
+
+		// Class<?>[] traceEntryArgumentTypes = { Class.class, String.class, String[].class, Object[].class };
+		mv.visitInsn(ICONST_4);
+		mv.visitTypeInsn(ANEWARRAY, "java/lang/Class");
+		mv.visitInsn(DUP);
+		mv.visitInsn(ICONST_0);
+		mv.visitLdcInsn(Type.getType("Ljava/lang/Class;"));
+		mv.visitInsn(AASTORE);
+		mv.visitInsn(DUP);
+		mv.visitInsn(ICONST_1);
+		mv.visitLdcInsn(Type.getType("Ljava/lang/String;"));
+		mv.visitInsn(AASTORE);
+		mv.visitInsn(DUP);
+		mv.visitInsn(ICONST_2);
+		mv.visitLdcInsn(Type.getType("[Ljava/lang/String;"));
+		mv.visitInsn(AASTORE);
+		mv.visitInsn(DUP);
+		mv.visitInsn(ICONST_3);
+		mv.visitLdcInsn(Type.getType("[Ljava/lang/Object;"));
+		mv.visitInsn(AASTORE);
+		int traceEntryArgumentTypesVariableIndex = newLocal(Type.getType("[Ljava/lang/Class;"));
+		mv.visitVarInsn(ASTORE, traceEntryArgumentTypesVariableIndex);
+
+		// Method traceEntryMethod = runtimeClass.getMethod("traceEntry", traceEntryArgumentTypes);
+		mv.visitVarInsn(ALOAD, runtimeClassVariableIndex);
+		mv.visitLdcInsn("traceEntry");
+		mv.visitVarInsn(ALOAD, traceEntryArgumentTypesVariableIndex);
+		mv.visitMethodInsn(INVOKEVIRTUAL, "java/lang/Class", "getMethod", "(Ljava/lang/String;[Ljava/lang/Class;)Ljava/lang/reflect/Method;", false);
+		int traceEntryMethodVariableIndex = newLocal(Type.getType("Ljava/lang/reflect/Method;"));
+		mv.visitVarInsn(ASTORE, traceEntryMethodVariableIndex);
+
+		// String[] argumentNames = null;
+		int argumentNamesVariableIndex = newLocal(Type.getType("[Ljava/lang/String;"));
+		mv.visitInsn(ACONST_NULL);
+		mv.visitVarInsn(ASTORE, argumentNamesVariableIndex);
+
+		// String[] argumentValues = null;
+		int argumentValuesVariableIndex = newLocal(Type.getType("[Ljava/lang/Object;"));
+		mv.visitInsn(ACONST_NULL);
+		mv.visitVarInsn(ASTORE, argumentValuesVariableIndex);
+
 		Type[] argumentTypes = Type.getArgumentTypes(methodDesc);
 		boolean areAnyArguments = argumentTypes != null && argumentTypes.length > 0;
-		mv.visitLabel(methodEnterStart);
 		
 		if(areAnyArguments) {
-			argumentNamesVariableIndex = newLocal(Type.getType("[Ljava/lang/String;"));
+			// populate argumentNames array with names of method arguments
 			mv.visitLdcInsn(new Integer(argumentTypes.length));
 			mv.visitTypeInsn(ANEWARRAY, "java/lang/String");
 			mv.visitVarInsn(ASTORE, argumentNamesVariableIndex);
@@ -80,21 +130,42 @@ class PatternMatchedMethodMutator extends AdviceAdapter {
 				mv.visitLdcInsn(argumentName);
 				mv.visitInsn(AASTORE);
 			}
-		}
 
-		mv.visitLdcInsn(Type.getType(String.format("L%1$s;", className)));
-		mv.visitLdcInsn(methodName);
-
-		if(areAnyArguments) {
-			mv.visitVarInsn(ALOAD, argumentNamesVariableIndex);
+			//populate argumentValues array with values of method arguments
 			loadArgArray();
-		}
-		else {
-			mv.visitInsn(ACONST_NULL);
-			mv.visitInsn(ACONST_NULL);
+			mv.visitVarInsn(ASTORE, argumentValuesVariableIndex);
 		}
 
-		mv.visitMethodInsn(INVOKESTATIC, "com/develorium/metracer/Runtime", "traceEntry", "(Ljava/lang/Class;Ljava/lang/String;[Ljava/lang/String;[Ljava/lang/Object;)V", false);
+		// Object[] traceEntryArgumentValues = { ?.class, "testMethod", argumentNames, argumentValues };
+		mv.visitInsn(ICONST_4);
+		mv.visitTypeInsn(ANEWARRAY, "java/lang/Object");
+		mv.visitInsn(DUP);
+		mv.visitInsn(ICONST_0);
+		mv.visitLdcInsn(Type.getType(String.format("L%1$s;", className)));
+		mv.visitInsn(AASTORE);
+		mv.visitInsn(DUP);
+		mv.visitInsn(ICONST_1);
+		mv.visitLdcInsn(methodName);
+		mv.visitInsn(AASTORE);
+		mv.visitInsn(DUP);
+		mv.visitInsn(ICONST_2);
+		mv.visitVarInsn(ALOAD, argumentNamesVariableIndex);
+		mv.visitInsn(AASTORE);
+		mv.visitInsn(DUP);
+		mv.visitInsn(ICONST_3);
+		mv.visitVarInsn(ALOAD, argumentValuesVariableIndex);
+		mv.visitInsn(AASTORE);
+		int traceEntryArgumentValuesVariableIndex = newLocal(Type.getType("Ljava/lang/Object;"));
+		mv.visitVarInsn(ASTORE, traceEntryArgumentValuesVariableIndex);
+
+		// traceEntryMethod.invoke(null, traceEntryArgumentValues);
+		mv.visitVarInsn(ALOAD, traceEntryMethodVariableIndex);
+		mv.visitInsn(ACONST_NULL);
+		mv.visitVarInsn(ALOAD, traceEntryArgumentValuesVariableIndex);
+		mv.visitMethodInsn(INVOKEVIRTUAL, "java/lang/reflect/Method", "invoke", "(Ljava/lang/Object;[Ljava/lang/Object;)Ljava/lang/Object;", false);
+		mv.visitInsn(POP);
+
+		Label methodEnterEnd = new Label(); 
 		mv.visitLabel(methodEnterEnd);
 
 		Label methodEnterEndUltimate = new Label();
@@ -109,11 +180,15 @@ class PatternMatchedMethodMutator extends AdviceAdapter {
 		mv.visitLabel(methodEnterCatchEnd);
 		mv.visitLabel(methodEnterEndUltimate);
 		
-		mv.visitTryCatchBlock(methodEnterStart, methodEnterEnd, methodEnterCatchBlock, "java/lang/Throwable"); 
+		mv.visitTryCatchBlock(startFinally, methodEnterEnd, methodEnterCatchBlock, "java/lang/Throwable"); 
 
-		if(argumentNamesVariableIndex > -1)
-			mv.visitLocalVariable("argumentNames", "[Ljava/lang/String;", null, methodEnterStart, methodEnterEnd, argumentNamesVariableIndex);
-
+		mv.visitLocalVariable("systemClassLoader", "Ljava/lang/ClassLoader;", null, startFinally, methodEnterEnd, systemClassLoaderVariableIndex);
+		mv.visitLocalVariable("runtimeClass", "Ljava/lang/Class;", "Ljava/lang/Class<*>;", startFinally, methodEnterEnd, runtimeClassVariableIndex);
+		mv.visitLocalVariable("traceEntryArgumentTypes", "[Ljava/lang/Class;", null, startFinally, methodEnterEnd, traceEntryArgumentTypesVariableIndex);
+		mv.visitLocalVariable("traceEntryMethod", "Ljava/lang/reflect/Method;", null, startFinally, methodEnterEnd, traceEntryMethodVariableIndex);
+		mv.visitLocalVariable("argumentNames", "[Ljava/lang/String;", null, startFinally, methodEnterEnd, argumentNamesVariableIndex);
+		mv.visitLocalVariable("argumentValues", "[Ljava/lang/Object;", null, startFinally, methodEnterEnd, argumentValuesVariableIndex);
+		mv.visitLocalVariable("traceEntryArgumentValues", "[Ljava/lang/Object;", null, startFinally, methodEnterEnd, traceEntryArgumentValuesVariableIndex);
 		mv.visitLocalVariable("e", "Ljava/lang/Throwable;", null, methodEnterCatchStart, methodEnterCatchEnd, exceptionVariableIndex);
 	}
 
@@ -125,7 +200,7 @@ class PatternMatchedMethodMutator extends AdviceAdapter {
 	}
 
 	private void injectTraceExit(int theOpcode) {
-		// need to grab return value from a stack into local variable before establishin new try / catch frame,
+		// need to grab return value from a stack into local variable before establishing new try / catch frame,
 		// otherwise VerifyError would be thrown
 		boolean isReturnValueBoxed = false;
 		int returnValueVariableIndex = newLocal(Type.getType("[Ljava/lang/Object;"));
@@ -147,13 +222,74 @@ class PatternMatchedMethodMutator extends AdviceAdapter {
 		}
 
 		mv.visitVarInsn(ASTORE, returnValueVariableIndex);
+
 		Label methodExitStart = new Label(); 
 		mv.visitLabel(methodExitStart);
 
-		mv.visitVarInsn(ALOAD, returnValueVariableIndex);
+		// ClassLoader systemClassLoader = ClassLoader.getSystemClassLoader();
+		int systemClassLoaderVariableIndex = newLocal(Type.getType("Ljava/lang/ClassLoader;"));
+		mv.visitMethodInsn(INVOKESTATIC, "java/lang/ClassLoader", "getSystemClassLoader", "()Ljava/lang/ClassLoader;", false);
+		mv.visitVarInsn(ASTORE, systemClassLoaderVariableIndex);
+
+		// Class<?> runtimeClass = Class.forName("com.develorium.metracer.Runtime", true, systemClassLoader);
+		mv.visitLdcInsn("com.develorium.metracer.Runtime");
+		mv.visitInsn(ICONST_1);
+		mv.visitVarInsn(ALOAD, systemClassLoaderVariableIndex);
+		mv.visitMethodInsn(INVOKESTATIC, "java/lang/Class", "forName", "(Ljava/lang/String;ZLjava/lang/ClassLoader;)Ljava/lang/Class;", false);
+		int runtimeClassVariableIndex = newLocal(Type.getType("Ljava/lang/Class;"));
+		mv.visitVarInsn(ASTORE, runtimeClassVariableIndex);
+
+		// Class<?>[] traceExitArgumentTypes = { Class.class, String.class, Object.class };
+		mv.visitInsn(ICONST_3);
+		mv.visitTypeInsn(ANEWARRAY, "java/lang/Class");
+		mv.visitInsn(DUP);
+		mv.visitInsn(ICONST_0);
+		mv.visitLdcInsn(Type.getType("Ljava/lang/Class;"));
+		mv.visitInsn(AASTORE);
+		mv.visitInsn(DUP);
+		mv.visitInsn(ICONST_1);
+		mv.visitLdcInsn(Type.getType("Ljava/lang/String;"));
+		mv.visitInsn(AASTORE);
+		mv.visitInsn(DUP);
+		mv.visitInsn(ICONST_2);
+		mv.visitLdcInsn(Type.getType("Ljava/lang/Object;"));
+		mv.visitInsn(AASTORE);
+		int traceExitArgumentTypesVariableIndex = newLocal(Type.getType("[Ljava/lang/Class;"));
+		mv.visitVarInsn(ASTORE, traceExitArgumentTypesVariableIndex);
+
+		// Method traceExitMethod = runtimeClass.getMethod("traceExit", traceExitArgumentTypes);
+		mv.visitVarInsn(ALOAD, runtimeClassVariableIndex);
+		mv.visitLdcInsn("traceExit");
+		mv.visitVarInsn(ALOAD, traceExitArgumentTypesVariableIndex);
+		mv.visitMethodInsn(INVOKEVIRTUAL, "java/lang/Class", "getMethod", "(Ljava/lang/String;[Ljava/lang/Class;)Ljava/lang/reflect/Method;", false);
+		int traceExitMethodVariableIndex = newLocal(Type.getType("Ljava/lang/reflect/Method;"));
+		mv.visitVarInsn(ASTORE, traceExitMethodVariableIndex);
+
+		// Object[] traceExitArgumentValues = { ?.class, "testMethod", rv };
+		mv.visitInsn(ICONST_3);
+		mv.visitTypeInsn(ANEWARRAY, "java/lang/Object");
+		mv.visitInsn(DUP);
+		mv.visitInsn(ICONST_0);
 		mv.visitLdcInsn(Type.getType(String.format("L%1$s;", className)));
+		mv.visitInsn(AASTORE);
+		mv.visitInsn(DUP);
+		mv.visitInsn(ICONST_1);
 		mv.visitLdcInsn(methodName);
-		mv.visitMethodInsn(INVOKESTATIC, "com/develorium/metracer/Runtime", "traceExit", "(Ljava/lang/Object;Ljava/lang/Class;Ljava/lang/String;)V", false);
+		mv.visitInsn(AASTORE);
+		mv.visitInsn(DUP);
+		mv.visitInsn(ICONST_2);
+		mv.visitVarInsn(ALOAD, returnValueVariableIndex);
+		mv.visitInsn(AASTORE);
+		int traceExitArgumentValuesVariableIndex = newLocal(Type.getType("Ljava/lang/Object;"));
+		mv.visitVarInsn(ASTORE, traceExitArgumentValuesVariableIndex);
+
+		// traceExitMethod.invoke(null, traceExitArgumentValues);
+		mv.visitVarInsn(ALOAD, traceExitMethodVariableIndex);
+		mv.visitInsn(ACONST_NULL);
+		mv.visitVarInsn(ALOAD, traceExitArgumentValuesVariableIndex);
+		mv.visitMethodInsn(INVOKEVIRTUAL, "java/lang/reflect/Method", "invoke", "(Ljava/lang/Object;[Ljava/lang/Object;)Ljava/lang/Object;", false);
+		mv.visitInsn(POP);
+
 		Label methodExitEnd = new Label(); 
 		mv.visitLabel(methodExitEnd);
 
@@ -176,6 +312,11 @@ class PatternMatchedMethodMutator extends AdviceAdapter {
 		
 		mv.visitTryCatchBlock(methodExitStart, methodExitEnd, methodExitCatchBlock, "java/lang/Throwable"); 
 		mv.visitLocalVariable("rv", "Ljava/lang/Object;", null, methodExitEarlyStart, methodExitEndUltimate, returnValueVariableIndex);
+		mv.visitLocalVariable("systemClassLoader", "Ljava/lang/ClassLoader;", null, methodExitStart, methodExitEnd, systemClassLoaderVariableIndex);
+		mv.visitLocalVariable("runtimeClass", "Ljava/lang/Class;", "Ljava/lang/Class<*>;", methodExitStart, methodExitEnd, runtimeClassVariableIndex);
+		mv.visitLocalVariable("traceExitArgumentTypes", "[Ljava/lang/Class;", null, methodExitStart, methodExitEnd, traceExitArgumentTypesVariableIndex);
+		mv.visitLocalVariable("traceExitMethod", "Ljava/lang/reflect/Method;", null, methodExitStart, methodExitEnd, traceExitMethodVariableIndex);
+		mv.visitLocalVariable("traceExitArgumentValues", "[Ljava/lang/Object;", null, methodExitStart, methodExitEnd, traceExitArgumentValuesVariableIndex);
 		mv.visitLocalVariable("e", "Ljava/lang/Throwable;", null, methodExitCatchStart, methodExitCatchEnd, exceptionVariableIndex);
 	}
 }
