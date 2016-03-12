@@ -27,7 +27,6 @@ import com.develorium.metracer.asm.*;
 
 public class MetracerClassFileTransformer implements ClassFileTransformer {
 	private Agent agent = null;
-	private Agent.Patterns defaultPatterns = new Agent.Patterns();
 
 	MetracerClassFileTransformer(Agent theAgent) {
 		agent = theAgent;
@@ -35,10 +34,12 @@ public class MetracerClassFileTransformer implements ClassFileTransformer {
 
 	@Override
 	public byte[] transform(ClassLoader theLoader, String theClassName, Class<?> theClassBeingRedefined, ProtectionDomain theProtectionDomain, byte[] theClassfileBuffer) throws IllegalClassFormatException {
-		Agent.Patterns unsafePatterns = agent.getPatterns();
-		Agent.Patterns patterns = unsafePatterns != null ? unsafePatterns : defaultPatterns;
+		Agent.Patterns patterns = agent.getPatterns();
 
 		try {
+			if(patterns == null || patterns.classMatchingPattern == null)
+				return theClassfileBuffer;
+
 			InstrumentClassResult icr = instrumentClass(theClassfileBuffer, theLoader != null ? theLoader : getClass().getClassLoader(), patterns);
 
 			if(icr.isChanged) {

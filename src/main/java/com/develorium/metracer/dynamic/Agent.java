@@ -44,8 +44,23 @@ public class Agent extends NotificationBroadcasterSupport implements AgentMXBean
 	public static class Patterns {
 		public Pattern classMatchingPattern = null;
 		public Pattern methodMatchingPattern = null;
+
+		@Override
+		public boolean equals(Object theOther) {
+			if(theOther == null)
+				return false;
+			else if(this == theOther)
+				return true;
+			else if(theOther instanceof Patterns) {
+				Patterns other = (Patterns)theOther;
+				return classMatchingPattern.equals(other.classMatchingPattern) && methodMatchingPattern.equals(other.methodMatchingPattern);
+			}
+
+			return false;
+		}
 	};
-	Patterns patterns = null;
+	volatile Patterns patterns = null;
+	List<Patterns> historyPatterns = new LinkedList<Patterns>();
 
 	public static void agentmain(String theArguments, Instrumentation theInstrumentation) {
 		new Agent().bootstrap(theArguments, theInstrumentation);
@@ -81,24 +96,60 @@ public class Agent extends NotificationBroadcasterSupport implements AgentMXBean
 	}
 
 	@Override
-	public void setPatterns(String theClassMatchingPattern, String theMethodMatchingPattern) {
+	synchronized public void setPatterns(String theClassMatchingPattern, String theMethodMatchingPattern) {
 		if(theClassMatchingPattern == null)
 			throw new NullPointerException("Class matching pattern is null");
 
-		runtime.say(String.format("Going to set patterns: class matching pattern = %s%s", 
+		Patterns newPatterns = createPatterns(theClassMatchingPattern, theMethodMatchingPattern);
+
+		if(patterns != null && patterns.equals(newPatterns)) {
+			runtime.say(String.format("Patterns already set to: class matching pattern = %s%s", 
+					theClassMatchingPattern, 
+					theMethodMatchingPattern != null ? String.format(", method matching pattern = %s", theMethodMatchingPattern) : ""));
+			return;
+		}
+
+		runtime.say(String.format("Setting patterns: class matching pattern = %s%s", 
 				theClassMatchingPattern, 
 				theMethodMatchingPattern != null ? String.format(", method matching pattern = %s", theMethodMatchingPattern) : ""));
-		// Reads and writes are atomic for reference variables (Java Language Specification), 
-		// so it's not required to use syncrhonized when changing patterns
-		patterns = null; // to avoid previous patterns to be effective in case of error
-		Patterns newPatterns = createPatterns(theClassMatchingPattern, theMethodMatchingPattern);
+
+		if(patterns != null)
+			historyPatterns.add(patterns);
+
 		patterns = newPatterns;
 
 		try {
-			// newPatterns is used here to avoid possible races when setPatterns is called from two different sessions
-			instrumentLoadedClasses(newPatterns);
+			List<Patterns> newPatternsList = new LinkedList<Patterns>();
+			newPatternsList.add(patterns);
+			instrumentLoadedClasses(newPatternsList, "instrument");
+			runtime.say("Loaded classes instrumented");
 		} catch(Throwable e) {
 			throw new RuntimeException(String.format("Failed to instrument loaded classes: %s", e.getMessage()), e);
+		}
+	}
+
+	@Override
+	synchronized public void removePatterns() {
+		runtime.say("Removing patterns");
+
+		if(patterns == null && historyPatterns.isEmpty()) {
+			runtime.say("Patterns already removed");
+			return;
+		}
+		else if(patterns != null) {
+			historyPatterns.add(patterns);
+			patterns = null;
+		}
+		
+		try {
+			try {
+				instrumentLoadedClasses(historyPatterns, "deinstrument");
+				runtime.say("Loaded classes deinstrumented");
+			} catch(Throwable e) {
+				throw new RuntimeException(String.format("Failed to deinstrument loaded classes: %s", e.getMessage()), e);
+			}
+		} finally {
+			historyPatterns.clear();
 		}
 	}
 
@@ -170,8 +221,7 @@ public class Agent extends NotificationBroadcasterSupport implements AgentMXBean
 		}
 	}
 
-	private void instrumentLoadedClasses(Patterns theNewPatterns) {
-		final Pattern classMatchingPattern = theNewPatterns.classMatchingPattern;
+	private void instrumentLoadedClasses(List<Patterns> thePatternsList, String theVerb) {
 		List<Class<?>> classesForInstrumentation = new ArrayList<Class<?>>();
 
 		for(Class<?> c: instrumentation.getAllLoadedClasses()) {
@@ -180,9 +230,15 @@ public class Agent extends NotificationBroadcasterSupport implements AgentMXBean
 
 			String className = c.getName();
 
-			if(!className.startsWith("com.develorium.metracer.") && classMatchingPattern.matcher(className).find()) {
-				runtime.say(String.format("Going to instrument %s", className));
-				classesForInstrumentation.add(c);
+			if(className.startsWith("com.develorium.metracer."))
+				continue;
+
+			for(Patterns p: thePatternsList) {
+				if(p.classMatchingPattern.matcher(className).find()) {
+					runtime.say(String.format("Going to %s %s", theVerb, className));
+					classesForInstrumentation.add(c);
+					break;
+				}
 			}
 		}
 
