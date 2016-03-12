@@ -96,14 +96,7 @@ public class Agent extends NotificationBroadcasterSupport implements AgentMXBean
 
 		try {
 			// newPatterns is used here to avoid possible races when setPatterns is called from two different sessions
-			final Pattern classMatchingPattern = newPatterns.classMatchingPattern;
-			instrumentLoadedClasses(new ClassNeedsInstrumentationAssessor() {
-				@Override
-				public String assess(Class<?> theClass) {
-					String className = theClass.getName();
-					return !className.startsWith("com.develorium.metracer.") && classMatchingPattern.matcher(theClass.getName()).find() ? "matches given pattern" : null;
-				}
-			});
+			instrumentLoadedClasses(newPatterns);
 		} catch(Throwable e) {
 			throw new RuntimeException(String.format("Failed to instrument loaded classes: %s", e.getMessage()), e);
 		}
@@ -177,21 +170,18 @@ public class Agent extends NotificationBroadcasterSupport implements AgentMXBean
 		}
 	}
 
-	private interface ClassNeedsInstrumentationAssessor {
-		public String assess(Class<?> theClass); // null -> no need to instrument, otherwise - reason why it's needed
-	}
-
-	private void instrumentLoadedClasses(ClassNeedsInstrumentationAssessor theAssessor) {
+	private void instrumentLoadedClasses(Patterns theNewPatterns) {
+		final Pattern classMatchingPattern = theNewPatterns.classMatchingPattern;
 		List<Class<?>> classesForInstrumentation = new ArrayList<Class<?>>();
 
 		for(Class<?> c: instrumentation.getAllLoadedClasses()) {
 			if(!instrumentation.isModifiableClass(c))
 				continue;
 
-			String instrumentationReason = theAssessor.assess(c);
+			String className = c.getName();
 
-			if(instrumentationReason != null) {
-				runtime.say(String.format("Going to instrument %s (%s)", c.getName(), instrumentationReason));
+			if(!className.startsWith("com.develorium.metracer.") && classMatchingPattern.matcher(className).find()) {
+				runtime.say(String.format("Going to instrument %s", className));
 				classesForInstrumentation.add(c);
 			}
 		}
@@ -225,7 +215,7 @@ public class Agent extends NotificationBroadcasterSupport implements AgentMXBean
 			} catch(Throwable e) {
 				StringWriter sw = new StringWriter();
 				e.printStackTrace(new PrintWriter(sw));
-				runtime.say(String.format("Failed to retransform class \"%s\": %s\n%s", c.getName(), e.toString(), sw.toString()));
+				runtime.say(String.format("Failed to retransform class \"%s\": %s %s\n%s", c.getName(), e.toString(), e.getMessage(), sw.toString()));
 			}
 		}
 	}
