@@ -290,11 +290,20 @@ class PatternMatchedMethodMutator extends AdviceAdapter {
 		mv.visitMethodInsn(INVOKEVIRTUAL, "java/lang/reflect/Method", "invoke", "(Ljava/lang/Object;[Ljava/lang/Object;)Ljava/lang/Object;", false);
 		mv.visitInsn(POP);
 
-		Label methodExitEnd = new Label(); 
-		mv.visitLabel(methodExitEnd);
+		if(theOpcode != RETURN) {// restore return value on stack only if it's not void
+			mv.visitVarInsn(ALOAD, returnValueVariableIndex);
 
-		Label methodExitEndUltimate = new Label();
-		mv.visitJumpInsn(GOTO, methodExitEndUltimate);
+			if(isReturnValueBoxed)
+				unbox(Type.getReturnType(methodDesc));
+		}
+
+		// RETURN/ARETURN/... or whatever
+		mv.visitInsn(theOpcode);
+
+		Label methodExitEnd = new Label(); 
+		mv.visitLabel(methodExitEnd); // normal (non-exceptional) case ends here
+
+		// exception block starts here
 		int exceptionVariableIndex = newLocal(Type.getType("[Ljava/lang/Throwable;"));
 		Label methodExitCatchBlock = new Label();
 		mv.visitLabel(methodExitCatchBlock);
@@ -303,12 +312,18 @@ class PatternMatchedMethodMutator extends AdviceAdapter {
 		Label methodExitCatchEnd = new Label();
 		mv.visitLabel(methodExitCatchStart);
 		mv.visitLabel(methodExitCatchEnd);
+
+		if(theOpcode != RETURN) {// restore return value on stack only if it's not void
+			mv.visitVarInsn(ALOAD, returnValueVariableIndex);
+
+			if(isReturnValueBoxed)
+				unbox(Type.getReturnType(methodDesc));
+		}
+
+		Label methodExitEndUltimate = new Label();
 		mv.visitLabel(methodExitEndUltimate);
 
-		mv.visitVarInsn(ALOAD, returnValueVariableIndex);
-
-		if(isReturnValueBoxed)
-			unbox(Type.getReturnType(methodDesc));
+		// RETURN/ARETURN/... or whatever will be added by ASM (we are in the onMethodExit)
 		
 		mv.visitTryCatchBlock(methodExitStart, methodExitEnd, methodExitCatchBlock, "java/lang/Throwable"); 
 		mv.visitLocalVariable("rv", "Ljava/lang/Object;", null, methodExitEarlyStart, methodExitEndUltimate, returnValueVariableIndex);
