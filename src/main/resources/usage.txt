@@ -1,6 +1,6 @@
 Usage: ${launchstring} -h
        ${launchstring} -l
-       ${launchstring} -r
+       ${launchstring} [-v] -r PID
        ${launchstring} [-v] PID CLASS-MATCHING-PATTERN [METHOD-MATCHING-PATTERN]
 	-h - prints this help
 	-l - list active Java processes
