@@ -59,7 +59,7 @@ public class Agent extends NotificationBroadcasterSupport implements AgentMXBean
 			return false;
 		}
 	};
-	volatile Patterns patterns = null;
+	Patterns patterns = null;
 	List<Patterns> historyPatterns = new LinkedList<Patterns>();
 
 	public static void agentmain(String theArguments, Instrumentation theInstrumentation) {
@@ -119,9 +119,7 @@ public class Agent extends NotificationBroadcasterSupport implements AgentMXBean
 		patterns = newPatterns;
 
 		try {
-			List<Patterns> newPatternsList = new LinkedList<Patterns>();
-			newPatternsList.add(patterns);
-			instrumentLoadedClasses(newPatternsList, "instrument");
+			instrumentLoadedClasses(Arrays.asList(patterns), "instrument");
 			runtime.say("Loaded classes instrumented");
 		} catch(Throwable e) {
 			throw new RuntimeException(String.format("Failed to instrument loaded classes: %s", e.getMessage()), e);
@@ -133,7 +131,7 @@ public class Agent extends NotificationBroadcasterSupport implements AgentMXBean
 		runtime.say("Removing patterns");
 
 		if(patterns == null && historyPatterns.isEmpty()) {
-			runtime.say("Patterns already removed");
+			runtime.say("There are no active patterns, nothing to remove");
 			return;
 		}
 		else if(patterns != null) {
@@ -153,7 +151,7 @@ public class Agent extends NotificationBroadcasterSupport implements AgentMXBean
 		}
 	}
 
-	public Patterns getPatterns() {
+	synchronized public Patterns getPatterns() {
 		return patterns;
 	}
 

@@ -3,6 +3,7 @@
 usage() {
 	echo "Usage: ${0} -h"
 	echo "       ${0} -l"
+	echo "       ${0} -r"
 	echo "       ${0} [-v] PID CLASS-MATCHING-PATTERN [METHOD-MATCHING-PATTERN]"
 }
 
@@ -30,13 +31,15 @@ fi
 is_help_requested=""
 is_list_requested=""
 
-while getopts ":vhl" opt; do
+while getopts ":vhlr" opt; do
 	case $opt in
 		h) 
 			is_help_requested="1"
 			;;
 		l) 
 			is_list_requested="1"
+			;;
+		r) 
 			;;
 		v) 
 			;;

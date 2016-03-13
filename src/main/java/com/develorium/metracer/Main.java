@@ -26,6 +26,7 @@ import com.develorium.metracer.dynamic.*;
 
 public class Main {
 	boolean isVerbose = false;
+	boolean isRemovalRequested = false;
 	int pid = 0;
 	String classMatchingPattern = null;
 	String methodMatchingPattern = null;
@@ -48,10 +49,13 @@ public class Main {
 				throw e;
 			}
 
-			loadAgent();
-			configureAgent();
-			startListeningToAgentEvents();
-			waitForever();
+			if(loadAgent())
+				configureAgent();
+
+			if(!isRemovalRequested) {
+				startListeningToAgentEvents();
+				waitForever();
+			}
 		} catch(Throwable e) {
 			System.err.println(e.getMessage());
 			e.printStackTrace();
@@ -60,22 +64,16 @@ public class Main {
 	}
 
 	private void executeAuxCommands(String[] theArguments) {
-		if(isOptionSpecified("-h", theArguments)) {
+		List<String> argumentList = Arrays.asList(theArguments);
+
+		if(argumentList.contains("-h")) {
 			printHelp();
 			System.exit(0);
 		}
-		else if(isOptionSpecified("-l", theArguments)) {
+		else if(argumentList.contains("-l")) {
 			printJvmList();
 			System.exit(0);
 		}
-	}
-
-	private boolean isOptionSpecified(String theOption, String[] theArguments) {
-		for(String argument : theArguments) 
-			if(argument.equals(theOption))
-				return true;
-
-		return false;
 	}
 
 	private void printHelp() {
@@ -140,47 +138,75 @@ public class Main {
 	}
 
 	private void parseArguments(String[] theArguments) {
-		int index = 0;
+		LinkedList<String> argumentList = new LinkedList<String>(Arrays.asList(theArguments));
+		int slashVIndex = argumentList.indexOf("-v");
 
-		if(theArguments.length > index && theArguments[0].equals("-v")) {
+		if(slashVIndex != -1) {
 			isVerbose = true;
-			++index;
+			argumentList.remove(slashVIndex);
 		}
 
-		if(theArguments.length <= index)
+		int slashRIndex = argumentList.indexOf("-r");
+
+		if(slashRIndex != -1) {
+			isRemovalRequested = true;
+			argumentList.remove(slashRIndex);
+		} 
+
+		if(argumentList.isEmpty())
 			throw new RuntimeException("mandatory 'PID' parameter is not specified");
 
-		pid = parsePid(theArguments[index++]);
+		pid = parsePid(argumentList.removeFirst());
 
-		if(theArguments.length <= index)
+		if(isRemovalRequested)
+			// patterns are not needed for removal
+			return;
+
+		if(argumentList.isEmpty())
 			throw new RuntimeException("mandatory 'CLASS-MATCHING-PATTERN' parameter is not specified");
 
-		classMatchingPattern = parsePattern(theArguments[index++], "CLASS-MATCHING-PARAMETER");
-		methodMatchingPattern = parsePattern(theArguments.length > index ? theArguments[index] : null, "METHOD-MATCHING-PATTERN");
+		classMatchingPattern = parsePattern(argumentList.removeFirst(), "CLASS-MATCHING-PARAMETER");
+		methodMatchingPattern = parsePattern(argumentList.peekFirst(), "METHOD-MATCHING-PATTERN");
 	}
 
-	private void loadAgent() {
+	private boolean loadAgent() {
 		String exceptionMessage = "";
 
 		try {
 			exceptionMessage = String.format("Failed to connect to JVM with PID %d", pid);
 			VirtualMachine vm = VirtualMachine.attach(Integer.toString(pid));
-			say(String.format("Attached to JVM (PID %d)", pid));
 
-			exceptionMessage = "Failed to ensure management agent is running";
-			String jmxLocalConnectAddress = ensureManagementAgentIsRunning(vm);
-			say("Management agent is running");
+			try {
+				say(String.format("Attached to JVM (PID %d)", pid));
 
-			exceptionMessage = "Failed to connect to MBean server";
-			connection = connectToMbeanServer(jmxLocalConnectAddress);
-			say("Connected to MBean server");
+				exceptionMessage = "Failed to ensure management agent is running";
+				String jmxLocalConnectAddress = ensureManagementAgentIsRunning(vm);
 
-			exceptionMessage = "Failed to ensure metracer agent is running";
-			agent = ensureMetracerAgentIsRunning(vm);
-			say("metracer agent is running");
+				if(jmxLocalConnectAddress == null && isRemovalRequested) {
+					say("Management agent is not running but this is ok for removal, nothing to do");
+					return false;
+				}
 
-			vm.detach(); 
-			say(String.format("Detached from JVM (PID %d)", pid));
+				say("Management agent is running");
+
+				exceptionMessage = "Failed to connect to MBean server";
+				connection = connectToMbeanServer(jmxLocalConnectAddress);
+				say("Connected to MBean server");
+
+				exceptionMessage = "Failed to ensure metracer agent is running";
+				agent = ensureMetracerAgentIsRunning(vm);
+
+				if(agent == null && isRemovalRequested) {
+					say("metracer agent is not running but this is ok for removal, nothing to do");
+					return false;
+				}
+
+				say("metracer agent is running");
+				return true;
+			} finally {
+				vm.detach(); 
+				say(String.format("Detached from JVM (PID %d)", pid));
+			}
 		} catch(Throwable e) {
 			throw new RuntimeException(String.format("%s: %s", exceptionMessage, e.getMessage()), e);
 		}
@@ -188,11 +214,18 @@ public class Main {
 
 	private void configureAgent() {
 		agent.setIsVerbose(isVerbose);
-		agent.setPatterns(classMatchingPattern, methodMatchingPattern);
-		say(String.format("Class matching pattern set to \"%s\"", classMatchingPattern));
 
-		if(methodMatchingPattern != null)
-			say(String.format("Method matching pattern set to \"%s\"", methodMatchingPattern));
+		if(isRemovalRequested) {
+			agent.removePatterns();
+			say("Patterns removed");
+		}
+		else {
+			agent.setPatterns(classMatchingPattern, methodMatchingPattern);
+			say(String.format("Class matching pattern set to \"%s\"", classMatchingPattern));
+
+			if(methodMatchingPattern != null)
+				say(String.format("Method matching pattern set to \"%s\"", methodMatchingPattern));
+		}
 	}
 
 	private void startListeningToAgentEvents() {
@@ -250,7 +283,9 @@ public class Main {
 	private String ensureManagementAgentIsRunning(VirtualMachine theVm) throws Exception {
 		String address = getJmxLocalConnectAddress(theVm);
 
-		if(address != null)
+		if(address == null && isRemovalRequested)
+			return null;
+		else if(address != null)
 			return address;
 
 		say("Management agent is not running");
@@ -300,7 +335,9 @@ public class Main {
 	private AgentMXBean ensureMetracerAgentIsRunning(VirtualMachine theVm) throws Exception {
 		agent = getMetracerAgentMxBean();
 
-		if(agent != null) 
+		if(agent == null && isRemovalRequested)
+			return null;
+		else if(agent != null) 
 			return agent;
 
 		say("metracer agent is not loaded");
