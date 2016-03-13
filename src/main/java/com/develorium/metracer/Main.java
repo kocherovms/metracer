@@ -216,15 +216,21 @@ public class Main {
 		agent.setIsVerbose(isVerbose);
 
 		if(isRemovalRequested) {
-			agent.removePatterns();
+			int[] counters = agent.removePatterns();
 			say("Patterns removed");
+
+			if(counters != null && counters.length == 2)
+				say(String.format("%d classes deinstrumented ok, %d failed", counters[0], counters[1]));
 		}
 		else {
-			agent.setPatterns(classMatchingPattern, methodMatchingPattern);
-			say(String.format("Class matching pattern set to \"%s\"", classMatchingPattern));
+			int[] counters = agent.setPatterns(classMatchingPattern, methodMatchingPattern);
+			say(String.format("Class matching pattern set to \"%s\"%s", classMatchingPattern));
 
 			if(methodMatchingPattern != null)
 				say(String.format("Method matching pattern set to \"%s\"", methodMatchingPattern));
+
+			if(counters != null && counters.length == 2)
+				say(String.format("%d classes instrumented ok, %d failed", counters[0], counters[1]));
 		}
 	}
 

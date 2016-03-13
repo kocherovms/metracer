@@ -96,7 +96,7 @@ public class Agent extends NotificationBroadcasterSupport implements AgentMXBean
 	}
 
 	@Override
-	synchronized public void setPatterns(String theClassMatchingPattern, String theMethodMatchingPattern) {
+	synchronized public int[] setPatterns(String theClassMatchingPattern, String theMethodMatchingPattern) {
 		if(theClassMatchingPattern == null)
 			throw new NullPointerException("Class matching pattern is null");
 
@@ -106,7 +106,7 @@ public class Agent extends NotificationBroadcasterSupport implements AgentMXBean
 			runtime.say(String.format("Patterns already set to: class matching pattern = %s%s", 
 					theClassMatchingPattern, 
 					theMethodMatchingPattern != null ? String.format(", method matching pattern = %s", theMethodMatchingPattern) : ""));
-			return;
+			return null;
 		}
 
 		runtime.say(String.format("Setting patterns: class matching pattern = %s%s", 
@@ -119,20 +119,21 @@ public class Agent extends NotificationBroadcasterSupport implements AgentMXBean
 		patterns = newPatterns;
 
 		try {
-			instrumentLoadedClasses(Arrays.asList(patterns), "instrument");
-			runtime.say("Loaded classes instrumented");
+			int[] counters = instrumentLoadedClasses(Arrays.asList(patterns), "instrument");
+			runtime.say(String.format("Loaded classes instrumented: %d ok, %d failed", counters[0], counters[1]));
+			return counters;
 		} catch(Throwable e) {
 			throw new RuntimeException(String.format("Failed to instrument loaded classes: %s", e.getMessage()), e);
 		}
 	}
 
 	@Override
-	synchronized public void removePatterns() {
+	synchronized public int[] removePatterns() {
 		runtime.say("Removing patterns");
 
 		if(patterns == null && historyPatterns.isEmpty()) {
 			runtime.say("There are no active patterns, nothing to remove");
-			return;
+			return null;
 		}
 		else if(patterns != null) {
 			historyPatterns.add(patterns);
@@ -141,8 +142,9 @@ public class Agent extends NotificationBroadcasterSupport implements AgentMXBean
 		
 		try {
 			try {
-				instrumentLoadedClasses(historyPatterns, "deinstrument");
-				runtime.say("Loaded classes deinstrumented");
+				int[] counters = instrumentLoadedClasses(historyPatterns, "deinstrument");
+				runtime.say(String.format("Loaded classes deinstrumented: %d ok, %d failed", counters[0], counters[1]));
+				return counters;
 			} catch(Throwable e) {
 				throw new RuntimeException(String.format("Failed to deinstrument loaded classes: %s", e.getMessage()), e);
 			}
@@ -219,7 +221,7 @@ public class Agent extends NotificationBroadcasterSupport implements AgentMXBean
 		}
 	}
 
-	private void instrumentLoadedClasses(List<Patterns> thePatternsList, String theVerb) {
+	private int[] instrumentLoadedClasses(List<Patterns> thePatternsList, String theVerb) {
 		List<Class<?>> classesForInstrumentation = new ArrayList<Class<?>>();
 
 		for(Class<?> c: instrumentation.getAllLoadedClasses()) {
@@ -240,17 +242,23 @@ public class Agent extends NotificationBroadcasterSupport implements AgentMXBean
 			}
 		}
 
-		if(classesForInstrumentation.isEmpty())
-			return;
+		int[] rv = new int[2];
 
-		if(!restransformLoadedClassesBatch(classesForInstrumentation))
-			restransformLoadedClassesByOne(classesForInstrumentation);
+		if(classesForInstrumentation.isEmpty())
+			return rv;
+
+		if(!restransformLoadedClassesBatch(classesForInstrumentation, rv))
+			restransformLoadedClassesByOne(classesForInstrumentation, rv);
+
+		return rv;
 	}
 
-	private boolean restransformLoadedClassesBatch(List<Class<?>> theClassesForInstrumentation) {
+	private boolean restransformLoadedClassesBatch(List<Class<?>> theClassesForInstrumentation, int[] theCounters) {
 		try {
 			Class<?>[] classesArray = theClassesForInstrumentation.toArray(new Class<?>[theClassesForInstrumentation.size()]);
 			instrumentation.retransformClasses(classesArray);
+			theCounters[0] = theClassesForInstrumentation.size();
+			theCounters[1] = 0;
 			return true;
 		} catch(Throwable e) {
 			StringWriter sw = new StringWriter();
@@ -258,19 +266,24 @@ public class Agent extends NotificationBroadcasterSupport implements AgentMXBean
 			runtime.say(String.format("Failed to restransform classes in a batch mode: %s\n%s", e.toString(), sw.toString()));
 		}
 
+		theCounters[0] = 0;
+		theCounters[1] = theClassesForInstrumentation.size();
 		return false;
 	}
 
-	private void restransformLoadedClassesByOne(List<Class<?>> theClassesForInstrumentation) {
+	private void restransformLoadedClassesByOne(List<Class<?>> theClassesForInstrumentation, int[] theCounters) {
 		for(Class<?> c : theClassesForInstrumentation) {
 			try {
 				Class<?>[] classesArray = new Class<?>[] { c };
 				instrumentation.retransformClasses(classesArray);
+				theCounters[0]++;
 			} catch(Throwable e) {
 				StringWriter sw = new StringWriter();
 				e.printStackTrace(new PrintWriter(sw));
 				runtime.say(String.format("Failed to retransform class \"%s\": %s %s\n%s", c.getName(), e.toString(), e.getMessage(), sw.toString()));
 			}
 		}
+
+		theCounters[1] = theClassesForInstrumentation.size() - theCounters[0];
 	}
 }

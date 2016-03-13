@@ -18,6 +18,6 @@ package com.develorium.metracer.dynamic;
 
 public interface AgentMXBean {
 	public void setIsVerbose(boolean theIsVerbose);
-	public void setPatterns(String theClassMatchingPattern, String theMethodMatchingPattern);
-	public void removePatterns();
+	public int[] setPatterns(String theClassMatchingPattern, String theMethodMatchingPattern); // return value is 2 elements array: 1 elem - number of instrument ok classes, number of instrument failed classes
+	public int[] removePatterns(); // return value meaning is the same as for setPatterns
 }
