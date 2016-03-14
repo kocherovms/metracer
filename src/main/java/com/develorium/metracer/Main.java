@@ -224,7 +224,7 @@ public class Main {
 		}
 		else {
 			int[] counters = agent.setPatterns(classMatchingPattern, methodMatchingPattern);
-			say(String.format("Class matching pattern set to \"%s\"%s", classMatchingPattern));
+			say(String.format("Class matching pattern set to \"%s\"", classMatchingPattern));
 
 			if(methodMatchingPattern != null)
 				say(String.format("Method matching pattern set to \"%s\"", methodMatchingPattern));
