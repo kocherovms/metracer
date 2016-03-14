@@ -5,10 +5,11 @@
   <artifactId>metracer</artifactId>
   <packaging>jar</packaging>
   <name>metracer</name>
-  <version>1.3.2</version>
+  <version>1.3.3</version>
 
   <organization>
-    <name>Michael Kocherov, http://develorium.com</name>
+    <name>Michael Kocherov</name>
+    <url>http://develorium.com</url>
   </organization>
 
   <licenses>
@@ -21,6 +22,7 @@
   <properties>
     <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
     <metracer.author>Michael Kocherov</metracer.author>
+    <metracer.author.email>m@develorium.com</metracer.author.email>
     <metracer.release.year>2016</metracer.release.year>
     <metracer.homepage>http://develorium.com/metracer</metracer.homepage>
   </properties>

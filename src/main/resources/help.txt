@@ -1,4 +1,4 @@
-${name} by ${metracer.author}, ${metracer.release.year}, version ${project.version}, ${metracer.homepage}
+${name} by ${metracer.author} (${metracer.author.email}), ${metracer.release.year}, version ${project.version}, ${metracer.homepage}
 ${name} is a tool that allows to spy for methods invocation (methods tracing) in a Java programs.
 
 ${usage}
@@ -8,15 +8,15 @@ Usage examples:
 
 # ${launchstring} 345 com.myprogram
 
-2) Spy for invocations of all methods of classes which name starts from com.myprogram.MyClass (e.g. this could be com.myprogram.MyClass1 and com.myprogram.MyClas2) in a Java program with PID 345
+2) Spy for invocations of all methods of classes which name starts from com.myprogram.MyClass (e.g. this could be com.myprogram.MyClass1 and com.myprogram.MyClass2) in a Java program with PID 345
 
 # ${launchstring} 345 com.myprogram.MyClass
 
-3) Spy for invocations of all methods which name contains doSomething of classes which name starts from com.myprogram.MyClass (e.g. this could be com.myprogram.MyClass1 and com.myprogram.MyClas2) in a Java program with PID 345
+3) Spy for invocations of all methods which name contains doSomething of classes which name starts from com.myprogram.MyClass (e.g. this could be com.myprogram.MyClass1 and com.myprogram.MyClass2) in a Java program with PID 345
 
 # ${launchstring} 345 com.myprogram.MyClass doSomething
 
-4) Spy for invocations of all methods which name either contains doThisThing OR doAnotherThing of classes which name starts from com.myprogram.MyClass (e.g. this could be com.myprogram.MyClass1 and com.myprogram.MyClas2) in a Java program with PID 345
+4) Spy for invocations of all methods which name either contains doThisThing OR doAnotherThing of classes which name starts from com.myprogram.MyClass (e.g. this could be com.myprogram.MyClass1 and com.myprogram.MyClass2) in a Java program with PID 345
 
 # ${launchstring} 345 com.myprogram.MyClass "(doThisThing|doAnotherThing)"
 
