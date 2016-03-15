@@ -221,7 +221,7 @@ public class Runtime {
 		};
 	}
 
-	private static String formatIterableArgumentValue(IterableArgumentAdapter theAdapter) {
+	static String formatIterableArgumentValue(IterableArgumentAdapter theAdapter) {
 		if(theAdapter == null)
 			return "null";
 

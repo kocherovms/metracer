@@ -25,11 +25,7 @@ import javax.management.remote.*;
 import com.develorium.metracer.dynamic.*;
 
 public class Main {
-	boolean isVerbose = false;
-	boolean isRemovalRequested = false;
-	int pid = 0;
-	String classMatchingPattern = null;
-	String methodMatchingPattern = null;
+	Config config = null;
 	MBeanServerConnection connection = null;
 	ObjectName agentMxBeanName = null;
 	AgentMXBean agent = null;
@@ -40,22 +36,22 @@ public class Main {
 
 	private void execute(String[] theArguments) {
 		try {
-			executeAuxCommands(theArguments);
-
-			try {
-				parseArguments(theArguments);
-			} catch(Throwable e) {
-				printUsage();
-				throw e;
-			}
+			config = new Config(theArguments);
+			
+			if(executeAuxCommands())
+				return;
 
 			if(loadAgent())
 				configureAgent();
 
-			if(!isRemovalRequested) {
+			if(config.command == Config.COMMAND.INSTRUMENT) {
 				startListeningToAgentEvents();
 				waitForever();
 			}
+		} catch(Config.BadConfig e) {
+			System.err.println(e.getMessage());
+			printUsage();
+			System.exit(1);
 		} catch(Throwable e) {
 			System.err.println(e.getMessage());
 			e.printStackTrace();
@@ -63,17 +59,17 @@ public class Main {
 		}
 	}
 
-	private void executeAuxCommands(String[] theArguments) {
-		List<String> argumentList = Arrays.asList(theArguments);
-
-		if(argumentList.contains("-h")) {
+	private boolean executeAuxCommands() {
+		switch(config.command) {
+		case HELP:
 			printHelp();
-			System.exit(0);
-		}
-		else if(argumentList.contains("-l")) {
+			return true;
+		case LIST:
 			printJvmList();
-			System.exit(0);
+			return true;
 		}
+
+		return false;
 	}
 
 	private void printHelp() {
@@ -137,52 +133,20 @@ public class Main {
 		}
 	}
 
-	private void parseArguments(String[] theArguments) {
-		LinkedList<String> argumentList = new LinkedList<String>(Arrays.asList(theArguments));
-		int slashVIndex = argumentList.indexOf("-v");
-
-		if(slashVIndex != -1) {
-			isVerbose = true;
-			argumentList.remove(slashVIndex);
-		}
-
-		int slashRIndex = argumentList.indexOf("-r");
-
-		if(slashRIndex != -1) {
-			isRemovalRequested = true;
-			argumentList.remove(slashRIndex);
-		} 
-
-		if(argumentList.isEmpty())
-			throw new RuntimeException("mandatory 'PID' parameter is not specified");
-
-		pid = parsePid(argumentList.removeFirst());
-
-		if(isRemovalRequested)
-			// patterns are not needed for removal
-			return;
-
-		if(argumentList.isEmpty())
-			throw new RuntimeException("mandatory 'CLASS-MATCHING-PATTERN' parameter is not specified");
-
-		classMatchingPattern = parsePattern(argumentList.removeFirst(), "CLASS-MATCHING-PARAMETER");
-		methodMatchingPattern = parsePattern(argumentList.peekFirst(), "METHOD-MATCHING-PATTERN");
-	}
-
 	private boolean loadAgent() {
 		String exceptionMessage = "";
 
 		try {
-			exceptionMessage = String.format("Failed to connect to JVM with PID %d", pid);
-			VirtualMachine vm = VirtualMachine.attach(Integer.toString(pid));
+			exceptionMessage = String.format("Failed to connect to JVM with PID %d", config.pid);
+			VirtualMachine vm = VirtualMachine.attach(Integer.toString(config.pid));
 
 			try {
-				say(String.format("Attached to JVM (PID %d)", pid));
+				say(String.format("Attached to JVM (PID %d)", config.pid));
 
 				exceptionMessage = "Failed to ensure management agent is running";
 				String jmxLocalConnectAddress = ensureManagementAgentIsRunning(vm);
 
-				if(jmxLocalConnectAddress == null && isRemovalRequested) {
+				if(jmxLocalConnectAddress == null && config.command == Config.COMMAND.DEINSTRUMENT) {
 					say("Management agent is not running but this is ok for removal, nothing to do");
 					return false;
 				}
@@ -196,7 +160,7 @@ public class Main {
 				exceptionMessage = "Failed to ensure metracer agent is running";
 				agent = ensureMetracerAgentIsRunning(vm);
 
-				if(agent == null && isRemovalRequested) {
+				if(agent == null && config.command == Config.COMMAND.DEINSTRUMENT) {
 					say("metracer agent is not running but this is ok for removal, nothing to do");
 					return false;
 				}
@@ -205,7 +169,7 @@ public class Main {
 				return true;
 			} finally {
 				vm.detach(); 
-				say(String.format("Detached from JVM (PID %d)", pid));
+				say(String.format("Detached from JVM (PID %d)", config.pid));
 			}
 		} catch(Throwable e) {
 			throw new RuntimeException(String.format("%s: %s", exceptionMessage, e.getMessage()), e);
@@ -213,9 +177,9 @@ public class Main {
 	}
 
 	private void configureAgent() {
-		agent.setIsVerbose(isVerbose);
+		agent.setIsVerbose(config.isVerbose);
 
-		if(isRemovalRequested) {
+		if(config.command == Config.COMMAND.DEINSTRUMENT) {
 			int[] counters = agent.removePatterns();
 			say("Patterns removed");
 
@@ -223,11 +187,11 @@ public class Main {
 				say(String.format("%d classes deinstrumented ok, %d failed", counters[0], counters[1]));
 		}
 		else {
-			int[] counters = agent.setPatterns(classMatchingPattern, methodMatchingPattern);
-			say(String.format("Class matching pattern set to \"%s\"", classMatchingPattern));
+			int[] counters = agent.setPatterns(config.classMatchingPattern, config.methodMatchingPattern);
+			say(String.format("Class matching pattern set to \"%s\"", config.classMatchingPattern));
 
-			if(methodMatchingPattern != null)
-				say(String.format("Method matching pattern set to \"%s\"", methodMatchingPattern));
+			if(config.methodMatchingPattern != null)
+				say(String.format("Method matching pattern set to \"%s\"", config.methodMatchingPattern));
 
 			if(counters != null && counters.length == 2)
 				say(String.format("%d classes instrumented ok, %d failed", counters[0], counters[1]));
@@ -257,39 +221,10 @@ public class Main {
 		}
 	}
 
-	private static int parsePid(String thePid) {
-		int rv = 0;
-
-		try {
-			rv = Integer.parseInt(thePid);
-		} catch(NumberFormatException e) {
-			throw new RuntimeException(String.format("Value \"%s\" of a PID argument is not an integer", thePid), e);
-		}
-				
-		if(rv <= 0)
-			throw new RuntimeException(String.format("Given PID %d is invalid", rv));
-
-		return rv;
-	}
-
-	private static String parsePattern(String thePattern, String thePatternName) {
-		if(thePattern == null)
-			return thePattern;
-		else if(thePattern.isEmpty())
-			throw new RuntimeException(String.format("Pattern %s is empty", thePatternName));
-
-		try {
-			Pattern.compile(thePattern);
-			return thePattern;
-		} catch(PatternSyntaxException e) {
-			throw new RuntimeException(String.format("Provided pattern \"%s\" is malformed: %s", thePattern, e.getMessage()), e);
-		}
-	}
-
 	private String ensureManagementAgentIsRunning(VirtualMachine theVm) throws Exception {
 		String address = getJmxLocalConnectAddress(theVm);
 
-		if(address == null && isRemovalRequested)
+		if(address == null && config.command == Config.COMMAND.DEINSTRUMENT)
 			return null;
 		else if(address != null)
 			return address;
@@ -341,7 +276,7 @@ public class Main {
 	private AgentMXBean ensureMetracerAgentIsRunning(VirtualMachine theVm) throws Exception {
 		agent = getMetracerAgentMxBean();
 
-		if(agent == null && isRemovalRequested)
+		if(agent == null && config.command == Config.COMMAND.DEINSTRUMENT)
 			return null;
 		else if(agent != null) 
 			return agent;
@@ -353,7 +288,7 @@ public class Main {
 			throw new Exception(String.format("Resolved metracer jar \"%s\" doesn't exist", metracerAgentFileName));
 
 		say(String.format("Loading metracer agent from \"%s\"", metracerAgentFileName));
-		theVm.loadAgent(metracerAgentFileName, isVerbose ? "-v" : null);
+		theVm.loadAgent(metracerAgentFileName, config.isVerbose ? "-v" : null);
 		say("metracer agent loaded");
 
 		agent = getMetracerAgentMxBean();
@@ -379,7 +314,7 @@ public class Main {
 	}
 
 	private void say(String theMessage) {
-		if(!isVerbose)
+		if(!config.isVerbose)
 			return;
 
 		System.out.println(theMessage);

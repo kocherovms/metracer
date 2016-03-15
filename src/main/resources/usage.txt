@@ -1,10 +1,11 @@
 Usage: ${launchstring} -h
        ${launchstring} -l
        ${launchstring} [-v] -r PID
-       ${launchstring} [-v] PID CLASS-MATCHING-PATTERN [METHOD-MATCHING-PATTERN]
+       ${launchstring} [-s] [-v] PID CLASS-MATCHING-PATTERN [METHOD-MATCHING-PATTERN]
 	-h - prints this help
 	-l - list active Java processes
 	-r - remove all previous instrumentation (from all previous sessions)
+	-s - print stack trace for each entry event
 	-v - enables verbose output of what is going on (useful for troubleshoting)
 	PID - PID of a Java program to attach to
 	CLASS-MATCHING-PATTERN - a regex to decide for which classes tracing must be added

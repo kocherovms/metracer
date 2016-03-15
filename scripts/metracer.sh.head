@@ -4,7 +4,7 @@ usage() {
 	echo "Usage: ${0} -h"
 	echo "       ${0} -l"
 	echo "       ${0} [-v] -r PID"
-	echo "       ${0} [-v] PID CLASS-MATCHING-PATTERN [METHOD-MATCHING-PATTERN]"
+	echo "       ${0} [-s] [-v] PID CLASS-MATCHING-PATTERN [METHOD-MATCHING-PATTERN]"
 }
 
 if [ $# -eq 0 ]; then
