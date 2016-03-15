@@ -16,6 +16,7 @@
 
 package com.develorium.metracer;
 
+import java.util.*;
 import java.util.regex.*;
 
 public class Runtime {
@@ -62,7 +63,7 @@ public class Runtime {
 		if(theArgumentValues != null) {
 			for(int i = 0; i < theArgumentValues.length; ++i) {
 				String argumentName = theArgumentNames != null && i < theArgumentNames.length && theArgumentNames[i] != null ? theArgumentNames[i] : "<unk>";
-				String argumentValue = theArgumentValues[i] != null ? theArgumentValues[i].toString() : "null";
+				String argumentValue = formatArgumentValue(theArgumentValues[i]);
 				
 				if(arguments.length() > 0)
 					arguments.append(", ");
@@ -87,6 +88,103 @@ public class Runtime {
 
 		if(logger != null) 
 			logger.printMessage(theClass, theMethodName, message);
+	}
+
+	private static String formatArgumentValue(Object theArgumentValue) {
+		if(theArgumentValue == null)
+			return "null";
+
+		if(theArgumentValue.getClass().isArray()) {
+			return formatArrayArgumentValue(getArrayAdapter(theArgumentValue));
+		}
+		else if(theArgumentValue instanceof java.util.Collection<?>) {
+			return formatCollectionArgumentValue((Collection<?>)theArgumentValue);
+		}
+
+		return theArgumentValue.toString();
+	}
+
+	private static abstract class IterableArgumentAdapter {
+		public abstract boolean hasNext();
+		public abstract String getNext();
+	}
+
+	private static abstract class ArrayAdapter {
+		ArrayAdapter(int theSize) {
+			size = theSize;
+		}
+		public int size = 0;
+		public abstract String toString(int theIndex);
+	}
+
+	private static ArrayAdapter getArrayAdapter(final Object theArray) {
+		if(theArray instanceof boolean[]) {
+			return new ArrayAdapter(((boolean[])theArray).length) {
+				public String toString(int theIndex) { return "" + ((boolean[])theArray)[theIndex]; }
+			};
+		}
+		else if(theArray instanceof byte[]) {
+			return new ArrayAdapter(((byte[])theArray).length) {
+				public String toString(int theIndex) { return "" + ((byte[])theArray)[theIndex]; }
+			};
+		}
+		else if(theArray instanceof char[]) {
+			return new ArrayAdapter(((char[])theArray).length) {
+				public String toString(int theIndex) { return "" + ((char[])theArray)[theIndex]; }
+			};
+		}
+		else if(theArray instanceof short[]) {
+			return new ArrayAdapter(((short[])theArray).length) {
+				public String toString(int theIndex) { return "" + ((short[])theArray)[theIndex]; }
+			};
+		}
+		else if(theArray instanceof int[]) {
+			return new ArrayAdapter(((int[])theArray).length) {
+				public String toString(int theIndex) { return "" + ((int[])theArray)[theIndex]; }
+			};
+		}
+		else if(theArray instanceof long[]) {
+			return new ArrayAdapter(((long[])theArray).length) {
+				public String toString(int theIndex) { return "" + ((long[])theArray)[theIndex]; }
+			};
+		}
+		else if(theArray instanceof float[]) {
+			return new ArrayAdapter(((float[])theArray).length) {
+				public String toString(int theIndex) { return "" + ((float[])theArray)[theIndex]; }
+			};
+		}
+		else if(theArray instanceof double[]) {
+			return new ArrayAdapter(((double[])theArray).length) {
+				public String toString(int theIndex) { return "" + ((double[])theArray)[theIndex]; }
+			};
+		}
+
+		return null;
+	}
+
+	private static String formatArrayArgumentValue(ArrayAdapter theAdapter) {
+		if(theAdapter == null)
+			return "null";
+
+		StringBuilder rv = new StringBuilder();
+		int arraySize = theAdapter.size;
+		int maxI = Math.min(10, arraySize);
+		
+		for(int i = 0; i < maxI; ++i) {
+			if(i > 0)
+				rv.append(", ");
+		
+			rv.append(theAdapter.toString(i));
+		}
+		
+		if(maxI < arraySize) {
+			rv.append(", ...");
+		}
+		
+		return "[" + rv.toString() + "]";
+	}
+
+	private static String formatCollectionArgumentValue(Collection<?> theCollection) {
 	}
 
 	private static String analyzeReturnValueInfo(Object theReturnValue) {

@@ -16,6 +16,8 @@
 
 package com.develorium.metracertest;
 
+import java.util.*;
+
 class UnannotatedBase {
 	UnannotatedBase() {
 		System.out.println("UnannotatedBase");
@@ -86,6 +88,10 @@ public class Unannotated extends UnannotatedBase {
 		testIntegerRetVal();
 		testDoubleRetVal();
 		testStringRetVal();
+		testStringArray(new String[] { "hello", "world!" });
+		testIntArray(new int[] { 1, 2, 3 });
+		testIntegerArray(new Integer[] { 1, 2, 3 });
+		testList(Arrays.asList("lorem", "ipsum"));
 
 		try {
 			new Unannotated("A").findClass("test");
@@ -151,6 +157,14 @@ public class Unannotated extends UnannotatedBase {
 	}
 	static String testStringRetVal() {
 		return "lorem ipsum...";
+	}
+	static void testStringArray(String[] theStrings) {
+	}
+	static void testIntArray(int[] theNumbers) {
+	}
+	static void testIntegerArray(Integer[] theNumbers) {
+	}
+	static void testList(List<String> theStrings) {
 	}
 	Class<?> findClass(String theClassName) throws ClassNotFoundException {
 		System.out.println("zzz search for class " + theClassName);
