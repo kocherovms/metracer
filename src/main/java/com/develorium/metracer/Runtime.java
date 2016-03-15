@@ -95,10 +95,13 @@ public class Runtime {
 			return "null";
 
 		if(theArgumentValue.getClass().isArray()) {
-			return formatArrayArgumentValue(getArrayAdapter(theArgumentValue));
+			return formatIterableArgumentValue(getArrayArgumentAdapter(theArgumentValue));
 		}
 		else if(theArgumentValue instanceof java.util.Collection<?>) {
-			return formatCollectionArgumentValue((Collection<?>)theArgumentValue);
+			return formatIterableArgumentValue(getCollectionArgumentAdapter((Collection<?>)theArgumentValue));
+		}
+		else if(theArgumentValue instanceof java.util.Map<?, ?>) {
+			return formatIterableArgumentValue(getMapArgumentAdapter((Map<?, ?>)theArgumentValue));
 		}
 
 		return theArgumentValue.toString();
@@ -109,82 +112,132 @@ public class Runtime {
 		public abstract String getNext();
 	}
 
-	private static abstract class ArrayAdapter {
-		ArrayAdapter(int theSize) {
+	private static abstract class ArrayArgumentAdapter extends IterableArgumentAdapter {
+		ArrayArgumentAdapter(int theSize) {
 			size = theSize;
 		}
+		public int i = 0;
 		public int size = 0;
+		public boolean hasNext() {  return i < size; }
+		public String getNext() { return toString(i++); }
 		public abstract String toString(int theIndex);
 	}
 
-	private static ArrayAdapter getArrayAdapter(final Object theArray) {
+	private static IterableArgumentAdapter getArrayArgumentAdapter(final Object theArray) {
 		if(theArray instanceof boolean[]) {
-			return new ArrayAdapter(((boolean[])theArray).length) {
-				public String toString(int theIndex) { return "" + ((boolean[])theArray)[theIndex]; }
+			return new ArrayArgumentAdapter(((boolean[])theArray).length) {
+				public String toString(int theIndex) { 
+					return "" + ((boolean[])theArray)[theIndex]; 
+				}
 			};
 		}
 		else if(theArray instanceof byte[]) {
-			return new ArrayAdapter(((byte[])theArray).length) {
-				public String toString(int theIndex) { return "" + ((byte[])theArray)[theIndex]; }
+			return new ArrayArgumentAdapter(((byte[])theArray).length) {
+				public String toString(int theIndex) { 
+					return "" + ((byte[])theArray)[theIndex]; 
+				}
 			};
 		}
 		else if(theArray instanceof char[]) {
-			return new ArrayAdapter(((char[])theArray).length) {
-				public String toString(int theIndex) { return "" + ((char[])theArray)[theIndex]; }
+			return new ArrayArgumentAdapter(((char[])theArray).length) {
+				public String toString(int theIndex) { 
+					return "" + ((char[])theArray)[theIndex]; 
+				}
 			};
 		}
 		else if(theArray instanceof short[]) {
-			return new ArrayAdapter(((short[])theArray).length) {
-				public String toString(int theIndex) { return "" + ((short[])theArray)[theIndex]; }
+			return new ArrayArgumentAdapter(((short[])theArray).length) {
+				public String toString(int theIndex) { 
+					return "" + ((short[])theArray)[theIndex]; 
+				}
 			};
 		}
 		else if(theArray instanceof int[]) {
-			return new ArrayAdapter(((int[])theArray).length) {
-				public String toString(int theIndex) { return "" + ((int[])theArray)[theIndex]; }
+			return new ArrayArgumentAdapter(((int[])theArray).length) {
+				public String toString(int theIndex) { 
+					return "" + ((int[])theArray)[theIndex]; 
+				}
 			};
 		}
 		else if(theArray instanceof long[]) {
-			return new ArrayAdapter(((long[])theArray).length) {
-				public String toString(int theIndex) { return "" + ((long[])theArray)[theIndex]; }
+			return new ArrayArgumentAdapter(((long[])theArray).length) {
+				public String toString(int theIndex) { 
+					return "" + ((long[])theArray)[theIndex]; 
+				}
 			};
 		}
 		else if(theArray instanceof float[]) {
-			return new ArrayAdapter(((float[])theArray).length) {
-				public String toString(int theIndex) { return "" + ((float[])theArray)[theIndex]; }
+			return new ArrayArgumentAdapter(((float[])theArray).length) {
+				public String toString(int theIndex) { 
+					return "" + ((float[])theArray)[theIndex]; 
+				}
 			};
 		}
 		else if(theArray instanceof double[]) {
-			return new ArrayAdapter(((double[])theArray).length) {
-				public String toString(int theIndex) { return "" + ((double[])theArray)[theIndex]; }
+			return new ArrayArgumentAdapter(((double[])theArray).length) {
+				public String toString(int theIndex) { 
+					return "" + ((double[])theArray)[theIndex]; 
+				}
+			};
+		}
+		else if(theArray instanceof Object[]) {
+			return new ArrayArgumentAdapter(((Object[])theArray).length) {
+				public String toString(int theIndex) { 
+					return ((Object[])theArray)[theIndex].toString();
+				}
 			};
 		}
 
 		return null;
 	}
 
-	private static String formatArrayArgumentValue(ArrayAdapter theAdapter) {
+	private static IterableArgumentAdapter getCollectionArgumentAdapter(final Collection<?> theCollection) {
+		return new IterableArgumentAdapter() {
+			Iterator<?> it = theCollection.iterator();
+			public boolean hasNext() { 
+				return it.hasNext(); 
+			}
+			public String getNext() { 
+				Object x = it.next();
+				return x != null ? x.toString() : "null"; 
+			}
+		};
+	}
+
+	private static IterableArgumentAdapter getMapArgumentAdapter(final Map<?, ?> theMap) {
+		return new IterableArgumentAdapter() {
+			Iterator<? extends Map.Entry<?, ?>> it = theMap.entrySet().iterator();
+			public boolean hasNext() { 
+				return it.hasNext(); 
+			}
+			public String getNext() { 
+				Map.Entry<?, ?> entry = it.next();
+				Object k = entry.getKey();
+				Object v = entry.getValue();
+				return String.format("%s => %s", k != null ? k.toString() : "null", v != null ? v.toString() : "null" );
+			}
+		};
+	}
+
+	private static String formatIterableArgumentValue(IterableArgumentAdapter theAdapter) {
 		if(theAdapter == null)
 			return "null";
 
 		StringBuilder rv = new StringBuilder();
-		int arraySize = theAdapter.size;
-		int maxI = Math.min(10, arraySize);
+		int maxI = 10;
 		
-		for(int i = 0; i < maxI; ++i) {
+		for(int i = 0; i < maxI && theAdapter.hasNext(); ++i) {
 			if(i > 0)
 				rv.append(", ");
 		
-			rv.append(theAdapter.toString(i));
+			rv.append(theAdapter.getNext());
 		}
 		
-		if(maxI < arraySize) {
+		if(theAdapter.hasNext()) {
 			rv.append(", ...");
 		}
 		
 		return "[" + rv.toString() + "]";
-	}
-
-	private static String formatCollectionArgumentValue(Collection<?> theCollection) {
 	}
 
 	private static String analyzeReturnValueInfo(Object theReturnValue) {

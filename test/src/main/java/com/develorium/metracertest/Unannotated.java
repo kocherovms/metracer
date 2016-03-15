@@ -92,6 +92,12 @@ public class Unannotated extends UnannotatedBase {
 		testIntArray(new int[] { 1, 2, 3 });
 		testIntegerArray(new Integer[] { 1, 2, 3 });
 		testList(Arrays.asList("lorem", "ipsum"));
+		HashMap<Integer, String> dict = new HashMap<Integer, String>();
+		dict.put(1, "test");
+		dict.put(2, "alice");
+		dict.put(3, "bob");
+		dict.put(4, null);
+		testMap(dict);
 
 		try {
 			new Unannotated("A").findClass("test");
@@ -165,6 +171,8 @@ public class Unannotated extends UnannotatedBase {
 	static void testIntegerArray(Integer[] theNumbers) {
 	}
 	static void testList(List<String> theStrings) {
+	}
+	static void testMap(HashMap<Integer, String> theMap) {
 	}
 	Class<?> findClass(String theClassName) throws ClassNotFoundException {
 		System.out.println("zzz search for class " + theClassName);
