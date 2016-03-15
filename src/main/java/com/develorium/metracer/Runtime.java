@@ -21,6 +21,7 @@ import java.util.regex.*;
 
 public class Runtime {
 	static public boolean isVerbose = false;
+	static public int MaxElementsForPrinting = 10;
 	
 	public interface LoggerInterface {
 		public void printMessage(Class<?> theClass, String theMethodName, String theMessage);
@@ -90,7 +91,7 @@ public class Runtime {
 			logger.printMessage(theClass, theMethodName, message);
 	}
 
-	private static String formatArgumentValue(Object theArgumentValue) {
+	public static String formatArgumentValue(Object theArgumentValue) {
 		if(theArgumentValue == null)
 			return "null";
 
@@ -183,7 +184,8 @@ public class Runtime {
 		else if(theArray instanceof Object[]) {
 			return new ArrayArgumentAdapter(((Object[])theArray).length) {
 				public String toString(int theIndex) { 
-					return ((Object[])theArray)[theIndex].toString();
+					Object o = ((Object[])theArray)[theIndex];
+					return o != null ? o.toString() : "null";
 				}
 			};
 		}
@@ -224,9 +226,8 @@ public class Runtime {
 			return "null";
 
 		StringBuilder rv = new StringBuilder();
-		int maxI = 10;
 		
-		for(int i = 0; i < maxI && theAdapter.hasNext(); ++i) {
+		for(int i = 0; i < MaxElementsForPrinting && theAdapter.hasNext(); ++i) {
 			if(i > 0)
 				rv.append(", ");
 		
