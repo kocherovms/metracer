@@ -66,8 +66,6 @@ public class MetracerClassVisitor extends ClassVisitor {
 		else if(methodMatchingPattern != null && !com.develorium.metracer.Runtime.isMethodPatternMatched(classNameWithDots, theName, methodMatchingPattern)) 
 			return methodVisitor;
 
-		com.develorium.metracer.Runtime.say(String.format("Instrumenting %s::%s", classNameWithDots, theName));
-
 		List<MethodNode> methods = parsedClass.methods;
 		MethodNode method = null;
 				
@@ -77,7 +75,8 @@ public class MetracerClassVisitor extends ClassVisitor {
 				break;
 			}
 		}
-				
+
+		sayAboutInstrumentation(classNameWithDots, theName, theDescription);
 		methodVisitor = new PatternMatchedMethodMutator(className, method, api, methodVisitor, theAccess, theName, theDescription, isWithStackTraces);
 		isChanged = true;
 		return methodVisitor;
@@ -89,5 +88,26 @@ public class MetracerClassVisitor extends ClassVisitor {
 
 	public boolean getHasSlf4Logger() {
 		return hasSlf4Logger;
+	}
+
+	private static void sayAboutInstrumentation(String theClassName, String theMethodName, String theMethodDescription) {
+		if(!com.develorium.metracer.Runtime.isVerbose) 
+			return;
+
+		Type[] argumentTypes = Type.getArgumentTypes(theMethodDescription);
+		StringBuilder argumentsInfo = null;
+
+		if(argumentTypes.length > 0) {
+			argumentsInfo = new StringBuilder();
+
+			for(int i = 0; i < argumentTypes.length; ++i) {
+				if(i > 0)
+					argumentsInfo.append(", ");
+
+				argumentsInfo.append(argumentTypes[i].getClassName());
+			}
+		}
+
+		com.develorium.metracer.Runtime.say(String.format("Instrumenting %s::%s(%s)", theClassName, theMethodName, argumentsInfo != null ? argumentsInfo.toString() : ""));
 	}
 }
