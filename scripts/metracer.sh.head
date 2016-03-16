@@ -79,7 +79,7 @@ fi
 
 if [ -n "$is_list_requested" ]; then
 	# For JVM listing no impersonation is required	
-	exec "$java" -Xbootclasspath/a:"$tools_jar" -jar $MYSELF "$@"
+	"$java" -Xbootclasspath/a:"$tools_jar" -jar $MYSELF "$@"
 	exit 0
 else
 	eval pid="\$$OPTIND"
@@ -90,12 +90,18 @@ else
 	fi
 
 	current_user_name=$(whoami)
+	stty_save=$(stty -g)
+	stty -echo
+	#stty igncr
 
 	if [ -n "$user_name" ] && [ "$current_user_name" != "$user_name" ]; then
-		exec sudo -u $user_name "$java" -Xbootclasspath/a:"$tools_jar" -jar $MYSELF "$@"
+		sudo -u $user_name "$java" -Xbootclasspath/a:"$tools_jar" -jar $MYSELF "$@"
 	else
-		exec "$java" -Xbootclasspath/a:"$tools_jar" -jar $MYSELF "$@"
+		"$java" -Xbootclasspath/a:"$tools_jar" -jar $MYSELF "$@"
 	fi
+
+	stty $stty_save
+	exit 0
 fi
 
 exit 1

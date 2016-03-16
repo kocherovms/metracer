@@ -46,7 +46,7 @@ public class Main {
 
 			if(config.command == Config.COMMAND.INSTRUMENT) {
 				startListeningToAgentEvents();
-				waitForever();
+				waitForQuit();
 			}
 		} catch(Config.BadConfig e) {
 			System.err.println(e.getMessage());
@@ -106,11 +106,7 @@ public class Main {
 		agent.setIsVerbose(config.isVerbose);
 
 		if(config.command == Config.COMMAND.DEINSTRUMENT) {
-			int[] counters = agent.removePatterns();
-			say("Patterns removed");
-
-			if(counters != null && counters.length == 2)
-				say(String.format("%d classes deinstrumented ok, %d failed", counters[0], counters[1]));
+			deinstrument();
 		}
 		else {
 			if(config.classMatchingPattern == null) { 
@@ -132,6 +128,14 @@ public class Main {
 		}
 	}
 
+	private void deinstrument() {
+		int[] counters = agent.removePatterns();
+		say("Patterns removed");
+		
+		if(counters != null && counters.length == 2)
+			say(String.format("%d classes deinstrumented ok, %d failed", counters[0], counters[1]));
+	}
+
 	private void startListeningToAgentEvents() {
 		try {
 			connection.addNotificationListener(agentMxBeanName, new NotificationListener() {
@@ -146,12 +150,23 @@ public class Main {
 		}
 	}
 
-	private void waitForever() {
+	private void waitForQuit() throws IOException {
+		//Scanner scanner = new Scanner(System.in);
+		Console console = System.console();
+
 		while(true) {
-			try {
-				Thread.sleep(Long.MAX_VALUE);
-			} catch (InterruptedException e) {
-			}
+			//String input = scanner.next();			
+			System.out.println("kms@ a)");
+			int b = console.reader().read();
+			System.out.println("kms@ b) " + b);
+			
+			//if(input.equals("q")) {
+			//	deinstrument();
+			//	return;
+			//}
+			//else if(input.equals("Q")) {
+			//	return;
+			//}
 		}
 	}
 
