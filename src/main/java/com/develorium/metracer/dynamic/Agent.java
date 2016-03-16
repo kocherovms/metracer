@@ -23,6 +23,7 @@ import java.lang.reflect.*;
 import java.util.*;
 import java.util.concurrent.atomic.*;
 import java.util.regex.*;
+import java.text.*;
 import javax.management.*;
 
 public class Agent extends NotificationBroadcasterSupport implements AgentMXBean, com.develorium.metracer.Runtime.LoggerInterface {
@@ -70,8 +71,9 @@ public class Agent extends NotificationBroadcasterSupport implements AgentMXBean
 				return (theLeft != null) == (theRight != null);
 		}
 	};
-	Patterns patterns = null;
-	List<Patterns> historyPatterns = new LinkedList<Patterns>();
+	private Patterns patterns = null;
+	private List<Patterns> historyPatterns = new LinkedList<Patterns>();
+	private SimpleDateFormat timestampFormat = new SimpleDateFormat("yyyy.MM.dd hh:mm:ss.SSS");
 
 	public static void agentmain(String theArguments, Instrumentation theInstrumentation) {
 		new Agent().bootstrap(theArguments, theInstrumentation);
@@ -97,7 +99,8 @@ public class Agent extends NotificationBroadcasterSupport implements AgentMXBean
 		else if(p.methodMatchingPattern != null && !com.develorium.metracer.Runtime.isMethodPatternMatched(theClass.getName(), theMethodName, p.methodMatchingPattern)) 
 			return;
 
-		Notification notification = new Notification(NotificationType, this, messageSerial.incrementAndGet(), theMessage);
+		String messageWithTimestamp = timestampFormat.format(new Date()) + " " + theMessage;
+		Notification notification = new Notification(NotificationType, this, messageSerial.incrementAndGet(), messageWithTimestamp);
 		sendNotification(notification);
 	}
 
