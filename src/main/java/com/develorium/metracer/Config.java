@@ -99,10 +99,7 @@ public class Config {
 			return;
 		}
 	
-		if(argumentList.isEmpty())
-			throw new BadConfig("mandatory 'CLASS-MATCHING-PATTERN' parameter is not specified");
-	
-		classMatchingPattern = parsePattern(argumentList.removeFirst(), "CLASS-MATCHING-PARAMETER");
+		classMatchingPattern = parsePattern(argumentList.isEmpty() ? null : argumentList.removeFirst(), "CLASS-MATCHING-PARAMETER");
 		methodMatchingPattern = parsePattern(argumentList.isEmpty() ? null : argumentList.removeFirst(), "METHOD-MATCHING-PATTERN");
 	}
 

@@ -131,6 +131,16 @@ public class TestConfig {
 	}
 
 	@Test
+	public void testMinimalInstrumentCommand() throws Config.BadConfig {
+		Config config = new Config(new String[]{ "123" });
+		Assert.assertEquals(config.command, Config.COMMAND.INSTRUMENT);
+		Assert.assertEquals(config.pid, 123);
+		Assert.assertEquals(config.classMatchingPattern, null);
+		Assert.assertEquals(config.methodMatchingPattern, null);
+		Assert.assertEquals(config.isWithStackTrace, false);
+	}
+
+	@Test
 	public void testDesintrumentCommand() throws Config.BadConfig {
 		Config config = new Config(new String[]{ "-r", "123" });
 		Assert.assertEquals(config.command, Config.COMMAND.DEINSTRUMENT);
