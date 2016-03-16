@@ -320,6 +320,6 @@ public class Main {
 		if(!config.isVerbose)
 			return;
 
-		System.out.println(theMessage);
+		System.err.println(theMessage);
 	}
 }
