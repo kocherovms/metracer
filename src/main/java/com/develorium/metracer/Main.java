@@ -38,7 +38,7 @@ public class Main {
 		try {
 			config = new Config(theArguments);
 			
-			if(executeAuxCommands())
+			if(Aux.executeAuxCommands(config.command, System.out))
 				return;
 
 			if(loadAgent())
@@ -50,86 +50,12 @@ public class Main {
 			}
 		} catch(Config.BadConfig e) {
 			System.err.println(e.getMessage());
-			printUsage();
+			Aux.printUsage(System.err);
 			System.exit(1);
 		} catch(Throwable e) {
 			System.err.println(e.getMessage());
 			e.printStackTrace();
 			System.exit(1);
-		}
-	}
-
-	private boolean executeAuxCommands() {
-		switch(config.command) {
-		case HELP:
-			printHelp();
-			return true;
-		case LIST:
-			printJvmList();
-			return true;
-		}
-
-		return false;
-	}
-
-	private void printHelp() {
-		try {
-			String usage = loadInfoResource("usage.txt");
-			String help = loadInfoResource("help.txt");
-			String processedHelp = help.replace("${usage}", usage);
-			System.out.println(processedHelp);
-		} catch(Throwable t) {
-			throw new RuntimeException(String.format("Failed to print help: %s", t.getMessage()), t);
-		}
-	}
-
-	private void printJvmList() {
-		List<VirtualMachineDescriptor> jvmList = VirtualMachine.list();
-
-		for(VirtualMachineDescriptor jvm: jvmList) {
-			System.out.println(String.format("%s\t%s", jvm.id(), jvm.displayName()));
-		}
-	}
-
-	private void printUsage() {
-		try {
-			System.out.println(loadInfoResource("usage.txt"));
-		} catch(Throwable t) {
-			throw new RuntimeException(String.format("Failed to print usage: %s", t.getMessage()), t);
-		}
-	}
-
-	private String loadInfoResource(String theResourceId) {
-		try {
-			ClassLoader loader = getClass().getClassLoader();
-			InputStream stream = loader.getResourceAsStream(theResourceId);
-
-			if(stream == null)
-				throw new RuntimeException("Failed to locate a resource " + theResourceId);
-
-			InputStreamReader streamReader = new InputStreamReader(stream);
-			BufferedReader reader = new BufferedReader(streamReader);
-			Map<String, String> env = System.getenv();
-			String launchString = env.get("METRACER_LAUNCH_STRING");
-
-			if(launchString == null)
-				launchString = "java -Xbootclasspath/a:<path-to-tools.jar> -jar metracer.jar";
-
-			StringBuilder rv = new StringBuilder();
-			String line;
-
-			while((line = reader.readLine()) != null) {
-				String processedLine = line.replace("${launchstring}", launchString);
-
-				if(rv.length() > 0)
-					rv.append("\n");
-
-				rv.append(processedLine);
-			}
-
-			return rv.toString();
-		} catch(Throwable t) {
-			throw new RuntimeException(String.format("Failed to load info resource %s: %s", theResourceId, t.getMessage()), t);
 		}
 	}
 
