@@ -251,8 +251,8 @@ class PatternMatchedMethodMutator extends AdviceAdapter {
 		int runtimeClassVariableIndex = newLocal(Type.getType("Ljava/lang/Class;"));
 		mv.visitVarInsn(ASTORE, runtimeClassVariableIndex);
 
-		// Class<?>[] traceExitArgumentTypes = { Class.class, String.class, Object.class };
-		mv.visitInsn(ICONST_3);
+		// Class<?>[] traceExitArgumentTypes = { Class.class, String.class, boolean.class, Object.class };
+		mv.visitInsn(ICONST_4);
 		mv.visitTypeInsn(ANEWARRAY, "java/lang/Class");
 		mv.visitInsn(DUP);
 		mv.visitInsn(ICONST_0);
@@ -264,6 +264,10 @@ class PatternMatchedMethodMutator extends AdviceAdapter {
 		mv.visitInsn(AASTORE);
 		mv.visitInsn(DUP);
 		mv.visitInsn(ICONST_2);
+		mv.visitFieldInsn(GETSTATIC, "java/lang/Boolean", "TYPE", "Ljava/lang/Class;");
+		mv.visitInsn(AASTORE);
+		mv.visitInsn(DUP);
+		mv.visitInsn(ICONST_3);
 		mv.visitLdcInsn(Type.getType("Ljava/lang/Object;"));
 		mv.visitInsn(AASTORE);
 		int traceExitArgumentTypesVariableIndex = newLocal(Type.getType("[Ljava/lang/Class;"));
@@ -277,8 +281,8 @@ class PatternMatchedMethodMutator extends AdviceAdapter {
 		int traceExitMethodVariableIndex = newLocal(Type.getType("Ljava/lang/reflect/Method;"));
 		mv.visitVarInsn(ASTORE, traceExitMethodVariableIndex);
 
-		// Object[] traceExitArgumentValues = { ?.class, "testMethod", rv };
-		mv.visitInsn(ICONST_3);
+		// Object[] traceExitArgumentValues = { ?.class, "testMethod", isVoid, rv };
+		mv.visitInsn(ICONST_4);
 		mv.visitTypeInsn(ANEWARRAY, "java/lang/Object");
 		mv.visitInsn(DUP);
 		mv.visitInsn(ICONST_0);
@@ -290,6 +294,11 @@ class PatternMatchedMethodMutator extends AdviceAdapter {
 		mv.visitInsn(AASTORE);
 		mv.visitInsn(DUP);
 		mv.visitInsn(ICONST_2);
+		mv.visitInsn(theOpcode == RETURN ? ICONST_1 : ICONST_0);
+		mv.visitMethodInsn(INVOKESTATIC, "java/lang/Boolean", "valueOf", "(Z)Ljava/lang/Boolean;", false);
+		mv.visitInsn(AASTORE);
+		mv.visitInsn(DUP);
+		mv.visitInsn(ICONST_3);
 		mv.visitVarInsn(ALOAD, returnValueVariableIndex);
 		mv.visitInsn(AASTORE);
 		int traceExitArgumentValuesVariableIndex = newLocal(Type.getType("Ljava/lang/Object;"));

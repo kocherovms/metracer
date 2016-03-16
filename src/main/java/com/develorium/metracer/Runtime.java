@@ -95,10 +95,10 @@ public class Runtime {
 		}
 	}
 
-	public static void traceExit(Class theClass, String theMethodName, Object theReturnValue) {
+	public static void traceExit(Class theClass, String theMethodName, boolean theIsVoid, Object theReturnValue) {
 		Integer callDepth = TracingStateThreadLocal.instance.get();
 		TracingStateThreadLocal.instance.set(callDepth - 1);
-		String returnValueInfo = analyzeReturnValueInfo(theReturnValue);
+		String returnValueInfo = formatReturnValue(theIsVoid, theReturnValue);
 		String message = String.format("[metracer.%s]%s --- [%d] %s.%s%s", getFormattedThreadId(), getIndent(callDepth), callDepth, theClass.getName(), theMethodName, returnValueInfo);
 
 		if(logger != null) 
@@ -255,13 +255,13 @@ public class Runtime {
 		return "[" + rv.toString() + "]";
 	}
 
-	private static String analyzeReturnValueInfo(Object theReturnValue) {
-		if(theReturnValue == null)
+	static String formatReturnValue(boolean theIsVoid, Object theReturnValue) {
+		if(theIsVoid)
 			return " => void";
 		else if(theReturnValue instanceof Throwable)
 			return String.format(" => exception: %s", theReturnValue.toString());
 		else 
-			return String.format(" => return: %s", theReturnValue.toString());
+			return String.format(" => return: %s", theReturnValue != null ? theReturnValue.toString() : null);
 	}
 
 	private static String getFormattedThreadId() {
