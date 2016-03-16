@@ -18,6 +18,7 @@ package com.develorium.metracer;
 
 import java.util.*;
 import java.util.regex.*;
+import java.io.*;
 
 public class Runtime {
 	static public boolean isVerbose = false;
@@ -58,7 +59,7 @@ public class Runtime {
 		public static final TracingStateThreadLocal instance = new TracingStateThreadLocal();
 	}
 
-	public static void traceEntry(Class theClass, String theMethodName, String[] theArgumentNames, Object[] theArgumentValues) {
+	public static void traceEntry(Class theClass, String theMethodName, String[] theArgumentNames, Object[] theArgumentValues, boolean theIsWithStackTraces) {
 		StringBuilder arguments = new StringBuilder();
 
 		if(theArgumentValues != null) {
@@ -75,10 +76,23 @@ public class Runtime {
 
 		Integer callDepth = TracingStateThreadLocal.instance.get() + 1;
 		TracingStateThreadLocal.instance.set(callDepth);
-		String message = String.format("[metracer.%s]%s +++ [%d] %s.%s(%s)", getFormattedThreadId(), getIndent(callDepth), callDepth, theClass.getName(), theMethodName, arguments.toString());
+		String messagePrefix = String.format("[metracer.%s]%s +++ [%d] ", getFormattedThreadId(), getIndent(callDepth), callDepth);
+		String message = String.format("%s%s.%s(%s)", messagePrefix, theClass.getName(), theMethodName, arguments.toString());
 
-		if(logger != null) 
+		if(logger != null) {
 			logger.printMessage(theClass, theMethodName, message);
+
+			if(theIsWithStackTraces) {
+				StringWriter sw = new StringWriter();
+				new Throwable().printStackTrace(new PrintWriter(sw));
+				String lines[] = sw.toString().split("\\r?\\n");
+
+				// skip first and last lines
+				for(int i = 1; i < lines.length - 1; ++i) {
+					logger.printMessage(theClass, theMethodName, messagePrefix + lines[i]);
+				}
+			}
+		}
 	}
 
 	public static void traceExit(Class theClass, String theMethodName, Object theReturnValue) {

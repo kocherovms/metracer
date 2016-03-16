@@ -44,6 +44,7 @@ public class Agent extends NotificationBroadcasterSupport implements AgentMXBean
 	public static class Patterns {
 		public Pattern classMatchingPattern = null;
 		public Pattern methodMatchingPattern = null;
+		public boolean isWithStackTraces = false;
 
 		@Override
 		public boolean equals(Object theOther) {
@@ -53,10 +54,20 @@ public class Agent extends NotificationBroadcasterSupport implements AgentMXBean
 				return true;
 			else if(theOther instanceof Patterns) {
 				Patterns other = (Patterns)theOther;
-				return classMatchingPattern.equals(other.classMatchingPattern) && methodMatchingPattern.equals(other.methodMatchingPattern);
+				return 
+					arePatternsEqual(classMatchingPattern, other.classMatchingPattern) && 
+					arePatternsEqual(methodMatchingPattern, other.methodMatchingPattern) &&
+					isWithStackTraces == other.isWithStackTraces;
 			}
 
 			return false;
+		}
+
+		private static boolean arePatternsEqual(Pattern theLeft, Pattern theRight) {
+			if(theLeft != null && theRight != null)
+				return theLeft.toString().equals(theRight.toString());
+			else
+				return (theLeft != null) == (theRight != null);
 		}
 	};
 	Patterns patterns = null;
@@ -96,22 +107,24 @@ public class Agent extends NotificationBroadcasterSupport implements AgentMXBean
 	}
 
 	@Override
-	synchronized public int[] setPatterns(String theClassMatchingPattern, String theMethodMatchingPattern) {
+	synchronized public int[] setPatterns(String theClassMatchingPattern, String theMethodMatchingPattern, boolean theIsWithStackTraces) {
 		if(theClassMatchingPattern == null)
 			throw new NullPointerException("Class matching pattern is null");
 
-		Patterns newPatterns = createPatterns(theClassMatchingPattern, theMethodMatchingPattern);
+		Patterns newPatterns = createPatterns(theClassMatchingPattern, theMethodMatchingPattern, theIsWithStackTraces);
 
 		if(patterns != null && patterns.equals(newPatterns)) {
-			runtime.say(String.format("Patterns already set to: class matching pattern = %s%s", 
+			runtime.say(String.format("Patterns already set to: class matching pattern = %s%s, stack traces = %s", 
 					theClassMatchingPattern, 
-					theMethodMatchingPattern != null ? String.format(", method matching pattern = %s", theMethodMatchingPattern) : ""));
+					theMethodMatchingPattern != null ? String.format(", method matching pattern = %s", theMethodMatchingPattern) : "",
+					"" + theIsWithStackTraces));
 			return null;
 		}
 
-		runtime.say(String.format("Setting patterns: class matching pattern = %s%s", 
+		runtime.say(String.format("Setting patterns: class matching pattern = %s%s, stack traces = %s",
 				theClassMatchingPattern, 
-				theMethodMatchingPattern != null ? String.format(", method matching pattern = %s", theMethodMatchingPattern) : ""));
+				theMethodMatchingPattern != null ? String.format(", method matching pattern = %s", theMethodMatchingPattern) : "",
+				"" + theIsWithStackTraces));
 
 		if(patterns != null)
 			historyPatterns.add(patterns);
@@ -203,10 +216,11 @@ public class Agent extends NotificationBroadcasterSupport implements AgentMXBean
 		}
 	}
 
-	private static Patterns createPatterns(String theClassMatchingPattern, String theMethodMatchingPattern) {
+	static Patterns createPatterns(String theClassMatchingPattern, String theMethodMatchingPattern, boolean theIsWithStackTraces) {
 		Patterns rv = new Patterns();
 		rv.classMatchingPattern = createPattern(theClassMatchingPattern);
 		rv.methodMatchingPattern = createPattern(theMethodMatchingPattern);
+		rv.isWithStackTraces = theIsWithStackTraces;
 		return rv;
 	}
 

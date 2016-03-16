@@ -70,7 +70,12 @@ public class MetracerClassFileTransformer implements ClassFileTransformer {
 		reader.accept(parsedClass, 0);
 		
 		MetracerClassWriter writer = new MetracerClassWriter(reader, theLoader);
-		MetracerClassVisitor visitor = new MetracerClassVisitor(writer, thePatterns.classMatchingPattern, thePatterns.methodMatchingPattern, parsedClass);
+		MetracerClassVisitor visitor = new MetracerClassVisitor(
+			writer, 
+			thePatterns.classMatchingPattern, 
+			thePatterns.methodMatchingPattern, 
+			thePatterns.isWithStackTraces, 
+			parsedClass);
 		reader.accept(visitor, ClassReader.EXPAND_FRAMES);
 
 		InstrumentClassResult rv = new InstrumentClassResult();

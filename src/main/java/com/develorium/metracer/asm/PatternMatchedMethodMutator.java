@@ -26,15 +26,18 @@ class PatternMatchedMethodMutator extends AdviceAdapter {
 	private MethodNode method = null;
 	private String methodName = null;
 	private boolean isStatic = false;
+	private boolean isWithStackTraces = false;
 	private Label startFinally = new Label(); 
 	private Label endFinally = new Label(); 
 
-	public PatternMatchedMethodMutator(String theClassName, MethodNode theMethod, int theApiVersion, MethodVisitor theDelegatingMethodVisitor, int theAccess, String theMethodName, String theMethodDescription) {
+	public PatternMatchedMethodMutator(String theClassName, MethodNode theMethod, int theApiVersion, 
+		MethodVisitor theDelegatingMethodVisitor, int theAccess, String theMethodName, String theMethodDescription, boolean theIsWithStackTraces) {
 		super(theApiVersion, theDelegatingMethodVisitor, theAccess, theMethodName, theMethodDescription);
 		className = theClassName;
 		method = theMethod;
 		methodName = theMethodName;
 		isStatic = (theAccess & Opcodes.ACC_STATIC) != 0;
+		isWithStackTraces = theIsWithStackTraces;
 	}
 
 	@Override
@@ -64,8 +67,8 @@ class PatternMatchedMethodMutator extends AdviceAdapter {
 		int runtimeClassVariableIndex = newLocal(Type.getType("Ljava/lang/Class;"));
 		mv.visitVarInsn(ASTORE, runtimeClassVariableIndex);
 
-		// Class<?>[] traceEntryArgumentTypes = { Class.class, String.class, String[].class, Object[].class };
-		mv.visitInsn(ICONST_4);
+		// Class<?>[] traceEntryArgumentTypes = { Class.class, String.class, String[].class, Object[].class, boolean.class };
+		mv.visitInsn(ICONST_5);
 		mv.visitTypeInsn(ANEWARRAY, "java/lang/Class");
 		mv.visitInsn(DUP);
 		mv.visitInsn(ICONST_0);
@@ -82,6 +85,10 @@ class PatternMatchedMethodMutator extends AdviceAdapter {
 		mv.visitInsn(DUP);
 		mv.visitInsn(ICONST_3);
 		mv.visitLdcInsn(Type.getType("[Ljava/lang/Object;"));
+		mv.visitInsn(AASTORE);
+		mv.visitInsn(DUP);
+		mv.visitInsn(ICONST_4);
+		mv.visitFieldInsn(GETSTATIC, "java/lang/Boolean", "TYPE", "Ljava/lang/Class;");
 		mv.visitInsn(AASTORE);
 		int traceEntryArgumentTypesVariableIndex = newLocal(Type.getType("[Ljava/lang/Class;"));
 		mv.visitVarInsn(ASTORE, traceEntryArgumentTypesVariableIndex);
@@ -136,8 +143,8 @@ class PatternMatchedMethodMutator extends AdviceAdapter {
 			mv.visitVarInsn(ASTORE, argumentValuesVariableIndex);
 		}
 
-		// Object[] traceEntryArgumentValues = { ?.class, "testMethod", argumentNames, argumentValues };
-		mv.visitInsn(ICONST_4);
+		// Object[] traceEntryArgumentValues = { ?.class, "testMethod", argumentNames, argumentValues, isWithStackTraces };
+		mv.visitInsn(ICONST_5);
 		mv.visitTypeInsn(ANEWARRAY, "java/lang/Object");
 		mv.visitInsn(DUP);
 		mv.visitInsn(ICONST_0);
@@ -154,6 +161,11 @@ class PatternMatchedMethodMutator extends AdviceAdapter {
 		mv.visitInsn(DUP);
 		mv.visitInsn(ICONST_3);
 		mv.visitVarInsn(ALOAD, argumentValuesVariableIndex);
+		mv.visitInsn(AASTORE);
+		mv.visitInsn(DUP);
+		mv.visitInsn(ICONST_4);
+		mv.visitInsn(isWithStackTraces ? ICONST_1 : ICONST_0);
+		mv.visitMethodInsn(INVOKESTATIC, "java/lang/Boolean", "valueOf", "(Z)Ljava/lang/Boolean;", false);
 		mv.visitInsn(AASTORE);
 		int traceEntryArgumentValuesVariableIndex = newLocal(Type.getType("Ljava/lang/Object;"));
 		mv.visitVarInsn(ASTORE, traceEntryArgumentValuesVariableIndex);

@@ -27,12 +27,14 @@ public class MetracerClassVisitor extends ClassVisitor {
 	private String className = null;
 	private Pattern classMatchingPattern = null;
 	private Pattern methodMatchingPattern = null;
+	private boolean isWithStackTraces = false;
 	private ClassNode parsedClass = null;
 
-	public MetracerClassVisitor(ClassVisitor theClassVisitor, Pattern theClassMatchingPattern, Pattern theMethodMatchingPattern, ClassNode theParsedClass) {
+	public MetracerClassVisitor(ClassVisitor theClassVisitor, Pattern theClassMatchingPattern, Pattern theMethodMatchingPattern, boolean theIsWithStackTraces, ClassNode theParsedClass) {
 		super(Opcodes.ASM5, theClassVisitor);
 		classMatchingPattern = theClassMatchingPattern;
 		methodMatchingPattern = theMethodMatchingPattern;
+		isWithStackTraces = theIsWithStackTraces;
 		parsedClass = theParsedClass;
 	}
 
@@ -76,7 +78,7 @@ public class MetracerClassVisitor extends ClassVisitor {
 			}
 		}
 				
-		methodVisitor = new PatternMatchedMethodMutator(className, method, api, methodVisitor, theAccess, theName, theDescription);
+		methodVisitor = new PatternMatchedMethodMutator(className, method, api, methodVisitor, theAccess, theName, theDescription, isWithStackTraces);
 		isChanged = true;
 		return methodVisitor;
 	}
