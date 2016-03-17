@@ -13,22 +13,22 @@ Use **metracer** when:
 - super fast: does its work in seconds;
 - zero-deployment: no 3-rd party libraries are required - only single .sh script on Linux is needed (single .jar for all other OSes);
 - Java [StackMapFrames]-friendly: **metracer** copes well with stack map frames introduced in Java 1.7 and above;
-- class loaders isolation-friendly: **metracer** copes well with modern JaveEE server which impose strict isolation rules.
+- class loaders isolation-friendly: **metracer** copes well with modern JaveEE app servers which impose strict isolation rules.
 
 # Usage Examples
 1) Spy for invocations of all methods of classes from package *com.myprogram* (and all subpackages as well) in a Java program with PID 345
 
 `# sh metracer.sh 345 com.myprogram`
 
-2) Spy for invocations of all methods of classes which name starts from *com.myprogram.MyClass* (e.g. this could be *com.myprogram.MyClass1* and *com.myprogram.MyClas2*) in a Java program with PID 345
+2) Spy for invocations of all methods of classes which name starts from *com.myprogram.MyClass* (e.g. this could be *com.myprogram.MyClass1* and *com.myprogram.MyClass2*) in a Java program with PID 345
 
 `# sh metracer.sh 345 com.myprogram.MyClass`
 
-3) Spy for invocations of all methods which name contains *doSomething* of classes which name starts from *com.myprogram.MyClass* (e.g. this could be *com.myprogram.MyClass1* and *com.myprogram.MyClas2*) in a Java program with PID 345
+3) Spy for invocations of all methods which name contains *doSomething* of classes which name starts from *com.myprogram.MyClass* (e.g. this could be *com.myprogram.MyClass1* and *com.myprogram.MyClass2*) in a Java program with PID 345
 
 `# sh metracer.sh 345 com.myprogram.MyClass doSomething`
 
-4) Spy for invocations of all methods which name either contains *doThisThing* OR *doAnotherThing* of classes which name starts from *com.myprogram.MyClass* (e.g. this could be *com.myprogram.MyClass1* and *com.myprogram.MyClas2*) in a Java program with PID 345
+4) Spy for invocations of all methods which name either contains *doThisThing* OR *doAnotherThing* of classes which name starts from *com.myprogram.MyClass* (e.g. this could be *com.myprogram.MyClass1* and *com.myprogram.MyClass2*) in a Java program with PID 345
 
 `# sh metracer.sh 345 com.myprogram.MyClass "(doThisThing|doAnotherThing)"`
 
