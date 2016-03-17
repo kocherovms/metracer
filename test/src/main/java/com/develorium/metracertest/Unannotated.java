@@ -185,12 +185,20 @@ public class Unannotated extends UnannotatedBase {
 	private void doSomething() {
 		System.out.println("do something");
 	}
+	private void checkNpe() {
+		try {
+			throw new NullPointerException();
+		} catch(NullPointerException e) {
+			System.out.println("NPE catched");
+		}
+	}
 	private void startTestJob() {
-        testJob = new Thread(new Runnable() {
+		testJob = new Thread(new Runnable() {
 				public void run() {
 					while(true) {
 						testBundle();
 						doSomething();
+						checkNpe();
 						try {
 							Thread.sleep(3000);
 						} catch(InterruptedException e) {

@@ -41,12 +41,13 @@ public class Main {
 			if(Aux.executeAuxCommands(config.command, System.out))
 				return;
 
-			if(loadAgent())
-				configureAgent();
-
-			if(config.command == Config.COMMAND.INSTRUMENT) {
-				startListeningToAgentEvents();
-				waitForQuit();
+			switch(config.command) {
+			case INSTRUMENT: 
+				executeInstrument();
+				break;
+			case DEINSTRUMENT:
+				executeDeinstrument();
+				break;
 			}
 		} catch(Config.BadConfig e) {
 			System.err.println(e.getMessage());
@@ -59,7 +60,49 @@ public class Main {
 		}
 	}
 
-	private boolean loadAgent() {
+	private void executeInstrument() {
+		loadAgent(true);
+		agent.setIsVerbose(config.isVerbose);
+
+		if(config.classMatchingPattern == null) { 
+			say("Not setting any patterns, using ones from a previous session");
+		}
+		else {
+			int[] counters = agent.setPatterns(config.classMatchingPattern, config.methodMatchingPattern, config.isWithStackTrace);
+			say(String.format("Class matching pattern set to \"%s\"", config.classMatchingPattern));
+
+			if(config.methodMatchingPattern != null)
+				say(String.format("Method matching pattern set to \"%s\"", config.methodMatchingPattern));
+
+			if(config.isWithStackTrace)
+				say("Stack traces enabled");
+
+			if(counters != null && counters.length == 2)
+				say(String.format("%d classes instrumented ok, %d failed", counters[0], counters[1]));
+		}
+
+
+		say("Press 'q' to quit with removal of instrumentation, 'Q' - to quit with retention of instrumentation in target JVM");
+		startListeningToAgentEvents();
+
+		if(!Aux.waitForQuit()) {
+			say("Quitting with retention of instrumentation in target JVM");
+			return;
+		}
+
+		say("Quitting with removal of instrumentation in target JVM");
+		deinstrument();
+	}
+
+	private void executeDeinstrument() {
+		if(!loadAgent(false))
+			return;
+
+		agent.setIsVerbose(config.isVerbose);
+		deinstrument();
+	}
+
+	private boolean loadAgent(boolean theIsAgentRequired) {
 		String exceptionMessage = "";
 
 		try {
@@ -70,9 +113,9 @@ public class Main {
 				say(String.format("Attached to JVM (PID %d)", config.pid));
 
 				exceptionMessage = "Failed to ensure management agent is running";
-				String jmxLocalConnectAddress = ensureManagementAgentIsRunning(vm);
+				String jmxLocalConnectAddress = ensureManagementAgentIsRunning(vm, theIsAgentRequired);
 
-				if(jmxLocalConnectAddress == null && config.command == Config.COMMAND.DEINSTRUMENT) {
+				if(jmxLocalConnectAddress == null && !theIsAgentRequired) {
 					say("Management agent is not running but this is ok for removal, nothing to do");
 					return false;
 				}
@@ -84,9 +127,9 @@ public class Main {
 				say("Connected to MBean server");
 
 				exceptionMessage = "Failed to ensure metracer agent is running";
-				agent = ensureMetracerAgentIsRunning(vm);
+				agent = ensureMetracerAgentIsRunning(vm, theIsAgentRequired);
 
-				if(agent == null && config.command == Config.COMMAND.DEINSTRUMENT) {
+				if(agent == null && !theIsAgentRequired) {
 					say("metracer agent is not running but this is ok for removal, nothing to do");
 					return false;
 				}
@@ -99,32 +142,6 @@ public class Main {
 			}
 		} catch(Throwable e) {
 			throw new RuntimeException(String.format("%s: %s", exceptionMessage, e.getMessage()), e);
-		}
-	}
-
-	private void configureAgent() {
-		agent.setIsVerbose(config.isVerbose);
-
-		if(config.command == Config.COMMAND.DEINSTRUMENT) {
-			deinstrument();
-		}
-		else {
-			if(config.classMatchingPattern == null) { 
-				say("Not setting any patterns, using ones from a previous session");
-			}
-			else {
-				int[] counters = agent.setPatterns(config.classMatchingPattern, config.methodMatchingPattern, config.isWithStackTrace);
-				say(String.format("Class matching pattern set to \"%s\"", config.classMatchingPattern));
-
-				if(config.methodMatchingPattern != null)
-					say(String.format("Method matching pattern set to \"%s\"", config.methodMatchingPattern));
-
-				if(config.isWithStackTrace)
-					say("Stack traces enabled");
-
-				if(counters != null && counters.length == 2)
-					say(String.format("%d classes instrumented ok, %d failed", counters[0], counters[1]));
-			}
 		}
 	}
 
@@ -150,30 +167,10 @@ public class Main {
 		}
 	}
 
-	private void waitForQuit() throws IOException {
-		//Scanner scanner = new Scanner(System.in);
-		Console console = System.console();
-
-		while(true) {
-			//String input = scanner.next();			
-			System.out.println("kms@ a)");
-			int b = console.reader().read();
-			System.out.println("kms@ b) " + b);
-			
-			//if(input.equals("q")) {
-			//	deinstrument();
-			//	return;
-			//}
-			//else if(input.equals("Q")) {
-			//	return;
-			//}
-		}
-	}
-
-	private String ensureManagementAgentIsRunning(VirtualMachine theVm) throws Exception {
+	private String ensureManagementAgentIsRunning(VirtualMachine theVm, boolean theIsAgentRequired) throws Exception {
 		String address = getJmxLocalConnectAddress(theVm);
 
-		if(address == null && config.command == Config.COMMAND.DEINSTRUMENT)
+		if(address == null && !theIsAgentRequired)
 			return null;
 		else if(address != null)
 			return address;
@@ -222,10 +219,10 @@ public class Main {
 		return jmxConnector.getMBeanServerConnection();
 	}
 
-	private AgentMXBean ensureMetracerAgentIsRunning(VirtualMachine theVm) throws Exception {
+	private AgentMXBean ensureMetracerAgentIsRunning(VirtualMachine theVm, boolean theIsAgentRequired) throws Exception {
 		agent = getMetracerAgentMxBean();
 
-		if(agent == null && config.command == Config.COMMAND.DEINSTRUMENT)
+		if(agent == null && !theIsAgentRequired)
 			return null;
 		else if(agent != null) 
 			return agent;

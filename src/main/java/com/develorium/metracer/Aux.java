@@ -43,6 +43,15 @@ public class Aux {
 		return false;
 	}
 
+	public static boolean waitForQuit() {
+		Console console = System.console();
+
+		if(console != null)
+			return waitForQuitFromConsole(console);
+		else 
+			return waitForQuitFromStdin();
+	}
+
 	private static void printHelp(PrintStream theOutput) {
 		try {
 			String usage = loadInfoResource("usage.txt");
@@ -104,5 +113,32 @@ public class Aux {
 	private static String getSelfPid() {
 		String jvmName = ManagementFactory.getRuntimeMXBean().getName();
 		return jvmName.substring(0, jvmName.indexOf('@'));
+	}
+
+	private static boolean waitForQuitFromConsole(Console theConsole) {
+		while(true) {
+			try {
+				int symbol = theConsole.reader().read();
+			
+				if(symbol == 113) // 'q'
+					return true;
+				else if(symbol == 81) // 'Q'
+					return false;
+			} catch(IOException e) {
+			}
+		}
+	}
+
+	private static boolean waitForQuitFromStdin() {
+		Scanner scanner = new Scanner(System.in);
+
+		while(true) {
+			String input = scanner.next();			
+			
+			if(input.equals("q"))
+				return true;
+			else if(input.equals("Q"))
+				return false;
+		}
 	}
 }
