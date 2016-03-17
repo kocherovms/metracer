@@ -41,14 +41,7 @@ public class Main {
 			if(Aux.executeAuxCommands(config.command, System.out))
 				return;
 
-			switch(config.command) {
-			case INSTRUMENT: 
-				executeInstrument();
-				break;
-			case DEINSTRUMENT:
-				executeDeinstrument();
-				break;
-			}
+			executeCommands();
 		} catch(Config.BadConfig e) {
 			System.err.println(e.getMessage());
 			Aux.printUsage(System.err);
@@ -57,6 +50,17 @@ public class Main {
 			System.err.println(e.getMessage());
 			e.printStackTrace();
 			System.exit(1);
+		}
+	}
+
+	private void executeCommands() {
+		switch(config.command) {
+		case INSTRUMENT:
+			executeInstrument();
+			break;
+		case DEINSTRUMENT:
+			executeDeinstrument();
+			break;
 		}
 	}
 
