@@ -32,45 +32,6 @@ public class Agent extends NotificationBroadcasterSupport implements AgentMXBean
 	private Instrumentation instrumentation = null;
 	private com.develorium.metracer.Runtime runtime = null;
 	private AtomicInteger messageSerial = new AtomicInteger();
-	// Two patterns are used because a single methodMatchingPattern can't be used to qualify classes. This pattern
-	// may reference methods which we can't get during setPatterms method. This is because
-	// theClass.getDeclaredMethods may lead to an overwhelming class loading
-	// (e.g. of classes mentioned in return parameters and arguments). Beside huge I/O this could lead to
-	// numerous LinkageError / NoClassDefFoundErrors due to class loaders isolation, different versioning or
-	// multiple instances of the same class in different class loaders.
-	// An approach could be to get bytecode of the class via a ClasseNode of ASM
-	// but this again tends to be an overkill within some JavaEE application - too many classes, analysis would take significiant time
-	// Hence the solution is to use a classMatchingPattern for filtering classes which require instrumentation and
-	// an optional methodMatchingPattern for a fine-grained control of which methods must be instrumented
-	public static class Patterns {
-		public Pattern classMatchingPattern = null;
-		public Pattern methodMatchingPattern = null;
-		public boolean isWithStackTraces = false;
-
-		@Override
-		public boolean equals(Object theOther) {
-			if(theOther == null)
-				return false;
-			else if(this == theOther)
-				return true;
-			else if(theOther instanceof Patterns) {
-				Patterns other = (Patterns)theOther;
-				return 
-					arePatternsEqual(classMatchingPattern, other.classMatchingPattern) && 
-					arePatternsEqual(methodMatchingPattern, other.methodMatchingPattern) &&
-					isWithStackTraces == other.isWithStackTraces;
-			}
-
-			return false;
-		}
-
-		private static boolean arePatternsEqual(Pattern theLeft, Pattern theRight) {
-			if(theLeft != null && theRight != null)
-				return theLeft.toString().equals(theRight.toString());
-			else
-				return (theLeft != null) == (theRight != null);
-		}
-	};
 	private Patterns patterns = null;
 	private List<Patterns> historyPatterns = new LinkedList<Patterns>();
 	private SimpleDateFormat timestampFormat = new SimpleDateFormat("yyyy.MM.dd hh:mm:ss.SSS");
@@ -114,7 +75,7 @@ public class Agent extends NotificationBroadcasterSupport implements AgentMXBean
 		if(theClassMatchingPattern == null)
 			throw new NullPointerException("Class matching pattern is null");
 
-		Patterns newPatterns = createPatterns(theClassMatchingPattern, theMethodMatchingPattern, theIsWithStackTraces);
+		Patterns newPatterns = new Patterns(theClassMatchingPattern, theMethodMatchingPattern, theIsWithStackTraces);
 
 		if(patterns != null && patterns.equals(newPatterns)) {
 			runtime.say(String.format("Patterns already set to: class matching pattern = %s%s, stack traces = %s", 
@@ -216,25 +177,6 @@ public class Agent extends NotificationBroadcasterSupport implements AgentMXBean
 		} catch(Throwable e) {
 			runtime.say(String.format("Failed to unregister MX bean: %s", e.getMessage()));
 			e.printStackTrace();
-		}
-	}
-
-	static Patterns createPatterns(String theClassMatchingPattern, String theMethodMatchingPattern, boolean theIsWithStackTraces) {
-		Patterns rv = new Patterns();
-		rv.classMatchingPattern = createPattern(theClassMatchingPattern);
-		rv.methodMatchingPattern = createPattern(theMethodMatchingPattern);
-		rv.isWithStackTraces = theIsWithStackTraces;
-		return rv;
-	}
-
-	private static Pattern createPattern(String thePatternSource) {
-		if(thePatternSource == null) 
-			return null;
-
-		try {
-			return Pattern.compile(thePatternSource);
-		} catch(PatternSyntaxException e) {
-			throw new RuntimeException(String.format("Provided pattern \"%s\" is malformed: %s", thePatternSource, e.getMessage()), e);
 		}
 	}
 
