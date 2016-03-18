@@ -72,7 +72,8 @@
         <configuration>
           <archive>
             <manifestEntries>
-              <Built-By>${metracer.author}</Built-By>
+              <Built-By>${user.name}</Built-By>
+              <Build-Host>${env.HOSTNAME}</Build-Host>
               <Site>${metracer.homepage}</Site>
               <Premain-Class>com.develorium.metracer.statik.Agent</Premain-Class>
               <Agent-Class>com.develorium.metracer.dynamic.Agent</Agent-Class>
