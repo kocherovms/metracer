@@ -72,10 +72,10 @@ public class Unannotated extends UnannotatedBase {
 		new Unannotated("C").startTestJob();
 
 		try {
-            System.in.read();
-        } catch (Exception e) {
-            e.printStackTrace();
-        }
+			System.in.read();
+		} catch (Exception e) {
+			e.printStackTrace();
+		}
 	}
 	static void testBundle() {
 		testA();

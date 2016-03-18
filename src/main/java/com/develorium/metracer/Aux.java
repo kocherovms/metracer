@@ -66,14 +66,24 @@ public class Aux {
 	private static void printJvmList(PrintStream theOutput) {
 		String selfPid = getSelfPid();
 		List<VirtualMachineDescriptor> jvmList = VirtualMachine.list();
-		theOutput.println("PID\tNAME");
+		List<String> jvms = new ArrayList<String>();
 
 		for(VirtualMachineDescriptor jvm: jvmList) {
 			if(selfPid.equals(jvm.id()))
 				continue;
 
-			theOutput.println(String.format("%s\t%s", jvm.id(), jvm.displayName()));
+			jvms.add(String.format("%s\t%s", jvm.id(), jvm.displayName()));
 		}
+
+		if(jvms.isEmpty()) {
+			theOutput.println("<No JVM for connection found>");
+			return;
+		}
+
+		theOutput.println("PID\tNAME");
+
+		for(String jvm : jvms)
+			theOutput.println(jvm);
 	}
 
 	private static String loadInfoResource(String theResourceId) {
