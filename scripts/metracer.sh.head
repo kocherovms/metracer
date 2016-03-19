@@ -93,6 +93,7 @@ else
 	stty_save=$(stty -g)
 	stty -echo
 	stty cbreak
+	export METRACER_IS_CBREAK_DISABLED="1"
 
 	if [ -n "$user_name" ] && [ "$current_user_name" != "$user_name" ]; then
 		sudo -u $user_name "$java" -Xbootclasspath/a:"$tools_jar" -jar $MYSELF "$@"

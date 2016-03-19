@@ -134,6 +134,10 @@ public class Aux {
 					return true;
 				else if(symbol == 81) // 'Q'
 					return false;
+				else if(symbol == 10) { // return / enter
+					if(System.getenv().get("METRACER_IS_CBREAK_DISABLED") != null)
+						System.out.println("");
+				}
 			} catch(IOException e) {
 			}
 		}
