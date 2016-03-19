@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-package com.develorium.metracer.dynamic;
+package com.develorium.metracer;
 
 import java.util.*;
 import java.util.regex.*;
@@ -31,14 +31,88 @@ public class TestPatterns {
 	Patterns testNullTruePattern2 = new Patterns("test", null, true);
 	Patterns testTestTruePattern2 = new Patterns("test", "test", true);
 
-	Patterns nullNullTruePattern = new Patterns(null, null, true);
-	Patterns nullNullFalsePattern = new Patterns(null, null, false);
-	Patterns nullTestTruePattern = new Patterns(null, "test", true);
-	Patterns nullTestFalsePattern = new Patterns(null, "test", false);
-	Patterns nullNullTruePattern2 = new Patterns(null, null, true);
-	Patterns nullNullFalsePattern2 = new Patterns(null, null, false);
-	Patterns nullTestTruePattern2 = new Patterns(null, "test", true);
-	Patterns nullTestFalsePattern2 = new Patterns(null, "test", false);
+	@Test(expected = NullPointerException.class)
+	public void testNotNullClassMatchingPattern() {
+		new Patterns(null, "test", false);
+	}
+
+	@Test
+	public void testIsClassPatternMatched() {
+		String[] goodPatterns = {
+			"com.",
+			"com.develorium",
+			"com.develorium.metracertest",
+			"com.develorium.metracertest.Test",
+			"Test",
+			"develorium",
+			"rium.metr",
+			"T",
+			"com.*Test",
+			"com\\.develorium\\..*Test",
+			"com.[xyd].*Test",
+			".*",
+			"qwe.zxc|com.develorium"
+		};
+
+		String[] badPatterns = {
+			"tom&jerry",
+			"sherry",
+			"roastbeef"
+		};
+
+		for(String goodPattern : goodPatterns) {
+			Assert.assertTrue(new Patterns(goodPattern, null, false).isClassPatternMatched("com.develorium.metracertest.Test"));
+		}
+
+		for(String badPattern : badPatterns) {
+			Assert.assertFalse(new Patterns(badPattern, null, false).isClassPatternMatched("com.develorium.metracertest.Test"));
+		}
+	}
+
+	@Test
+	public void testIsPatternMatched() {
+		String[] goodPatterns = {
+			"com.", "doSomething",
+			"com.develorium", "doSomething",
+			"com.develorium.metracertest", "doSomething",
+			"com.develorium.metracertest.Test", "doSomething",
+			"Test", "doSomething",
+			"develorium", "doSomething",
+			"rium.metr", "doSomething",
+			"T", "doSomething",
+			"Test", "Test::doSomething",
+			"Test", null,
+			"Test", "t::d",
+			"Test", "Test",
+		};
+
+		String[] badPatterns = {
+			"Test", "doAnother",
+			"Test", "ther",
+			"Test", "Test:$",
+			"Test", "Test::beGood"
+		};
+
+		for(int i = 0; i < goodPatterns.length;) {
+			String classMatchingPattern = goodPatterns[i++];
+			String methodMatchingPattern = goodPatterns[i++];
+			Assert.assertTrue(new Patterns(classMatchingPattern, methodMatchingPattern, false).isPatternMatched("com.develorium.metracertest.Test", "doSomething"));
+		}
+
+		for(int i = 0; i < badPatterns.length;) {
+			String classMatchingPattern = badPatterns[i++];
+			String methodMatchingPattern = badPatterns[i++];
+			Assert.assertFalse(new Patterns(classMatchingPattern, methodMatchingPattern, false).isPatternMatched("com.develorium.metracertest.Test", "doSomething"));
+		}
+	}
+
+	@Test
+	public void testBlacklisting() {
+		for(String prefix : Patterns.BlacklistedClassNamePrefixes) {
+			Assert.assertFalse(new Patterns(".*", null, false).isClassPatternMatched(prefix));
+			Assert.assertFalse(new Patterns(".*", null, false).isPatternMatched(prefix, "doSomething"));
+		}
+	}
 
 	@Test
 	public void testEquality() {
@@ -46,11 +120,6 @@ public class TestPatterns {
 		Assert.assertEquals(testTestFalsePattern, testTestFalsePattern2);
 		Assert.assertEquals(testNullTruePattern, testNullTruePattern2);
 		Assert.assertEquals(testTestTruePattern, testTestTruePattern2);
-
-		Assert.assertEquals(nullNullTruePattern, nullNullTruePattern2);
-		Assert.assertEquals(nullNullFalsePattern, nullNullFalsePattern2);
-		Assert.assertEquals(nullTestTruePattern, nullTestTruePattern2);
-		Assert.assertEquals(nullTestFalsePattern, nullTestFalsePattern2);
 	}
 
 	@Test
@@ -61,10 +130,6 @@ public class TestPatterns {
 		Assert.assertFalse(testNullFalsePattern.equals(testTestFalsePattern2));
 		Assert.assertFalse(testNullFalsePattern.equals(testNullTruePattern2));
 		Assert.assertFalse(testNullFalsePattern.equals(testTestTruePattern2));
-
-		Assert.assertFalse(nullNullTruePattern.equals(nullNullFalsePattern));
-		Assert.assertFalse(nullNullTruePattern.equals(nullTestTruePattern));
-		Assert.assertFalse(nullNullTruePattern.equals(nullTestFalsePattern));
 	}
 
 	@Test
@@ -113,8 +178,8 @@ public class TestPatterns {
 	}
 
 	@Test
-	public void testCounters() {
-		Patterns p = new Patterns(null, null, false);
+	public void testGetCounters() {
+		Patterns p = new Patterns("test", null, false);
 		Patterns.Counters c = p.getCounters();
 		Assert.assertEquals(c.classesCount, 0);
 		Assert.assertEquals(c.methodsCount, 0);
@@ -161,5 +226,87 @@ public class TestPatterns {
 		c = p.getCounters();
 		Assert.assertEquals(c.classesCount, 3);
 		Assert.assertEquals(c.methodsCount, 7);
+
+		p.registerInstrumentedMethod(null, "TestPatterns2", "methodz(Ljava/lang/String;");
+		c = p.getCounters();
+		Assert.assertEquals(c.classesCount, 3);
+		Assert.assertEquals(c.methodsCount, 8);
+
+		p.registerInstrumentedMethod(null, "TestPatterns2", "methodz(Ljava/lang/String;Ljava/lang/Object");
+		c = p.getCounters();
+		Assert.assertEquals(c.classesCount, 3);
+		Assert.assertEquals(c.methodsCount, 9);
+	}
+
+	private static class MyClass {
+	}
+
+	private static class MyClass2 {
+	}
+
+	private static class MyClass3 {
+	}
+
+	@Test
+	public void testGetDeinstrumentedMethodsNullResistance() {
+		Assert.assertEquals(Patterns.getDeinstrumentedMethods(null, new ArrayList<Class<?>>()), 0);
+		Assert.assertEquals(Patterns.getDeinstrumentedMethods(new ArrayList<Patterns>(), null), 0);
+		Assert.assertEquals(Patterns.getDeinstrumentedMethods(null, null), 0);
+	}
+
+	@Test
+	public void testGetDeinstrumentedMethods() {
+		List<Patterns> historyPatterns = new ArrayList<Patterns>();
+		Patterns p = null;
+		List<Class<?>> classList = new ArrayList<Class<?>>();
+
+		p = new Patterns("class", "method", false);
+		p.registerInstrumentedMethod(MyClass.class.getClassLoader(), MyClass.class.getName(), "myMethod1");
+		p.registerInstrumentedMethod(MyClass.class.getClassLoader(), MyClass.class.getName(), "myMethod2");
+		historyPatterns.add(p);
+
+		classList.clear();
+		classList.add(MyClass.class);
+		Assert.assertEquals(Patterns.getDeinstrumentedMethods(historyPatterns, classList), 2);
+
+		p = new Patterns("class", "method", false);
+		p.registerInstrumentedMethod(TestPatterns.class.getClassLoader(), MyClass.class.getName(), "myMethod3");
+		p.registerInstrumentedMethod(TestPatterns.class.getClassLoader(), MyClass.class.getName(), "myMethod4");
+		historyPatterns.add(p);
+
+		classList.clear();
+		classList.add(MyClass.class);
+		Assert.assertEquals(Patterns.getDeinstrumentedMethods(historyPatterns, classList), 4);
+
+		p = new Patterns("class", "method", false);
+		p.registerInstrumentedMethod(TestPatterns.class.getClassLoader(), MyClass.class.getName(), "myMethod4");
+		p.registerInstrumentedMethod(TestPatterns.class.getClassLoader(), MyClass.class.getName(), "myMethod5");
+		historyPatterns.add(p);
+
+		classList.clear();
+		classList.add(MyClass.class);
+		Assert.assertEquals(Patterns.getDeinstrumentedMethods(historyPatterns, classList), 5);
+
+		p = new Patterns("class", "method", false);
+		p.registerInstrumentedMethod(TestPatterns.class.getClassLoader(), MyClass2.class.getName(), "myMethodA");
+		p.registerInstrumentedMethod(TestPatterns.class.getClassLoader(), MyClass2.class.getName(), "myMethodB");
+		historyPatterns.add(p);
+
+		classList.clear();
+		classList.add(MyClass.class);
+		Assert.assertEquals(Patterns.getDeinstrumentedMethods(historyPatterns, classList), 5);
+
+		classList.clear();
+		classList.add(MyClass2.class);
+		Assert.assertEquals(Patterns.getDeinstrumentedMethods(historyPatterns, classList), 2);
+
+		classList.clear();
+		classList.add(MyClass.class);
+		classList.add(MyClass2.class);
+		Assert.assertEquals(Patterns.getDeinstrumentedMethods(historyPatterns, classList), 7);
+
+		classList.clear();
+		classList.add(MyClass3.class);
+		Assert.assertEquals(Patterns.getDeinstrumentedMethods(historyPatterns, classList), 0);
 	}
 }

@@ -20,21 +20,20 @@ import java.util.*;
 import java.util.regex.*;
 import org.objectweb.asm.*;
 import org.objectweb.asm.tree.*;
+import com.develorium.metracer.*;
 
 public class MetracerClassVisitor extends ClassVisitor {
 	private boolean isChanged = false;
 	private boolean hasSlf4Logger = false;
 	private String className = null;
-	private Pattern classMatchingPattern = null;
-	private Pattern methodMatchingPattern = null;
-	private boolean isWithStackTraces = false;
+	private ClassLoader loader = null;
+	private Patterns patterns = null;
 	private ClassNode parsedClass = null;
 
-	public MetracerClassVisitor(ClassVisitor theClassVisitor, Pattern theClassMatchingPattern, Pattern theMethodMatchingPattern, boolean theIsWithStackTraces, ClassNode theParsedClass) {
+	public MetracerClassVisitor(ClassVisitor theClassVisitor, ClassLoader theLoader, Patterns thePatterns, ClassNode theParsedClass) {
 		super(Opcodes.ASM5, theClassVisitor);
-		classMatchingPattern = theClassMatchingPattern;
-		methodMatchingPattern = theMethodMatchingPattern;
-		isWithStackTraces = theIsWithStackTraces;
+		loader = theLoader;
+		patterns = thePatterns;
 		parsedClass = theParsedClass;
 	}
 
@@ -61,9 +60,7 @@ public class MetracerClassVisitor extends ClassVisitor {
 		MethodVisitor methodVisitor = cv.visitMethod(theAccess, theName, theDescription, theSignature, theExceptions);
 		String classNameWithDots = className.replace("/", ".");
 
-		if(classMatchingPattern == null || !com.develorium.metracer.Runtime.isClassPatternMatched(classNameWithDots, classMatchingPattern))
-			return methodVisitor;
-		else if(methodMatchingPattern != null && !com.develorium.metracer.Runtime.isMethodPatternMatched(classNameWithDots, theName, methodMatchingPattern)) 
+		if(!patterns.isPatternMatched(classNameWithDots, theName))
 			return methodVisitor;
 
 		List<MethodNode> methods = parsedClass.methods;
@@ -77,7 +74,8 @@ public class MetracerClassVisitor extends ClassVisitor {
 		}
 
 		sayAboutInstrumentation(classNameWithDots, theName, theDescription);
-		methodVisitor = new PatternMatchedMethodMutator(className, method, api, methodVisitor, theAccess, theName, theDescription, isWithStackTraces);
+		methodVisitor = new PatternMatchedMethodMutator(className, method, api, methodVisitor, theAccess, theName, theDescription, patterns.getIsWithStackTraces());
+		patterns.registerInstrumentedMethod(loader, classNameWithDots, theName + theDescription);
 		isChanged = true;
 		return methodVisitor;
 	}

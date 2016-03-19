@@ -25,6 +25,7 @@ import java.util.concurrent.atomic.*;
 import java.util.regex.*;
 import java.text.*;
 import javax.management.*;
+import com.develorium.metracer.*;
 
 public class Agent extends NotificationBroadcasterSupport implements AgentMXBean, com.develorium.metracer.Runtime.LoggerInterface {
 	public static final String MxBeanName = "com.develorium.metracer.dynamic:type=Agent";
@@ -53,11 +54,7 @@ public class Agent extends NotificationBroadcasterSupport implements AgentMXBean
 	public void printMessage(Class<?> theClass, String theMethodName, String theMessage) {
 		Patterns p = patterns;
 
-		if(p == null || p.classMatchingPattern == null) 
-			return;
-		else if(!p.classMatchingPattern.matcher(theClass.getName()).find())
-			return;
-		else if(p.methodMatchingPattern != null && !com.develorium.metracer.Runtime.isMethodPatternMatched(theClass.getName(), theMethodName, p.methodMatchingPattern)) 
+		if(p == null || !p.isPatternMatched(theClass.getName(), theMethodName)) 
 			return;
 
 		String messageWithTimestamp = timestampFormat.format(new Date()) + " " + theMessage;
@@ -71,7 +68,7 @@ public class Agent extends NotificationBroadcasterSupport implements AgentMXBean
 	}
 
 	@Override
-	synchronized public int[] setPatterns(String theClassMatchingPattern, String theMethodMatchingPattern, boolean theIsWithStackTraces) {
+	synchronized public byte[] setPatterns(String theClassMatchingPattern, String theMethodMatchingPattern, boolean theIsWithStackTraces) {
 		if(theClassMatchingPattern == null)
 			throw new NullPointerException("Class matching pattern is null");
 
@@ -96,16 +93,25 @@ public class Agent extends NotificationBroadcasterSupport implements AgentMXBean
 		patterns = newPatterns;
 
 		try {
-			int[] counters = instrumentLoadedClasses(Arrays.asList(patterns), "instrument");
-			runtime.say(String.format("Loaded classes instrumented: %d ok, %d failed", counters[0], counters[1]));
-			return counters;
+			RestransformLoadedClassesResult retransformResult = restransformLoadedClasses(Arrays.asList(patterns), "instrument");
+			Patterns.Counters patternsCounters = patterns.getCounters();
+			Counters counters = new Counters();
+			counters.classesCount = patternsCounters.classesCount;
+			counters.methodsCount = patternsCounters.methodsCount;
+			counters.failedClassesCount = retransformResult.notRetransformedClasses.size();
+			runtime.say(String.format("%d classes and %d methods instrumented. Instrumentation failed for %d classes", 
+									  counters.classesCount,
+									  counters.methodsCount,
+									  counters.failedClassesCount));
+			//return serializeCounters(counters);
+			return null;
 		} catch(Throwable e) {
 			throw new RuntimeException(String.format("Failed to instrument loaded classes: %s", e.getMessage()), e);
 		}
 	}
 
 	@Override
-	synchronized public int[] removePatterns() {
+	synchronized public byte[] removePatterns() {
 		runtime.say("Removing patterns");
 
 		if(patterns == null && historyPatterns.isEmpty()) {
@@ -119,9 +125,17 @@ public class Agent extends NotificationBroadcasterSupport implements AgentMXBean
 		
 		try {
 			try {
-				int[] counters = instrumentLoadedClasses(historyPatterns, "deinstrument");
-				runtime.say(String.format("Loaded classes deinstrumented: %d ok, %d failed", counters[0], counters[1]));
-				return counters;
+				RestransformLoadedClassesResult retransformResult = restransformLoadedClasses(historyPatterns, "deinstrument");
+				Counters counters = new Counters();
+				counters.classesCount = retransformResult.retransformedClasses.size();
+				counters.methodsCount = Patterns.getDeinstrumentedMethods(historyPatterns, retransformResult.retransformedClasses);
+				counters.failedClassesCount = retransformResult.notRetransformedClasses.size();
+				runtime.say(String.format("%d classes and %d methods deinstrumented. Deinstrumentation failed for %d classes", 
+										  counters.classesCount, 
+										  counters.methodsCount, 
+										  counters.failedClassesCount));
+				//return serializeCounters(counters);
+				return null;
 			} catch(Throwable e) {
 				throw new RuntimeException(String.format("Failed to deinstrument loaded classes: %s", e.getMessage()), e);
 			}
@@ -180,7 +194,12 @@ public class Agent extends NotificationBroadcasterSupport implements AgentMXBean
 		}
 	}
 
-	private int[] instrumentLoadedClasses(List<Patterns> thePatternsList, String theVerb) {
+	private static class RestransformLoadedClassesResult {
+		List<Class<?>> retransformedClasses = new ArrayList<Class<?>>();
+		List<Class<?>> notRetransformedClasses = new ArrayList<Class<?>>();
+	}
+
+	private RestransformLoadedClassesResult restransformLoadedClasses(List<Patterns> thePatternsList, String theVerb) {
 		List<Class<?>> classesForInstrumentation = new ArrayList<Class<?>>();
 
 		for(Class<?> c: instrumentation.getAllLoadedClasses()) {
@@ -189,11 +208,8 @@ public class Agent extends NotificationBroadcasterSupport implements AgentMXBean
 
 			String className = c.getName();
 
-			if(className.startsWith("com.develorium.metracer."))
-				continue;
-
 			for(Patterns p: thePatternsList) {
-				if(p.classMatchingPattern.matcher(className).find()) {
+				if(p.isClassPatternMatched(className)) {
 					runtime.say(String.format("Going to %s %s", theVerb, className));
 					classesForInstrumentation.add(c);
 					break;
@@ -201,48 +217,45 @@ public class Agent extends NotificationBroadcasterSupport implements AgentMXBean
 			}
 		}
 
-		int[] rv = new int[2];
+		if(classesForInstrumentation.isEmpty()) {
+			return new RestransformLoadedClassesResult();
+		}
 
-		if(classesForInstrumentation.isEmpty())
-			return rv;
-
-		if(!restransformLoadedClassesBatch(classesForInstrumentation, rv))
-			restransformLoadedClassesByOne(classesForInstrumentation, rv);
-
-		return rv;
-	}
-
-	private boolean restransformLoadedClassesBatch(List<Class<?>> theClassesForInstrumentation, int[] theCounters) {
 		try {
-			Class<?>[] classesArray = theClassesForInstrumentation.toArray(new Class<?>[theClassesForInstrumentation.size()]);
-			instrumentation.retransformClasses(classesArray);
-			theCounters[0] = theClassesForInstrumentation.size();
-			theCounters[1] = 0;
-			return true;
+			return restransformLoadedClassesInBatch(classesForInstrumentation);
 		} catch(Throwable e) {
 			StringWriter sw = new StringWriter();
 			e.printStackTrace(new PrintWriter(sw));
 			runtime.say(String.format("Failed to restransform classes in a batch mode: %s\n%s", e.toString(), sw.toString()));
 		}
 
-		theCounters[0] = 0;
-		theCounters[1] = theClassesForInstrumentation.size();
-		return false;
+		return restransformLoadedClassesByOne(classesForInstrumentation);
 	}
 
-	private void restransformLoadedClassesByOne(List<Class<?>> theClassesForInstrumentation, int[] theCounters) {
+	private RestransformLoadedClassesResult restransformLoadedClassesInBatch(List<Class<?>> theClassesForInstrumentation) throws UnmodifiableClassException {
+		RestransformLoadedClassesResult rv = new RestransformLoadedClassesResult();
+		Class<?>[] classesArray = theClassesForInstrumentation.toArray(new Class<?>[theClassesForInstrumentation.size()]);
+		instrumentation.retransformClasses(classesArray);
+		rv.retransformedClasses = theClassesForInstrumentation;
+		return rv;
+	}
+
+	private RestransformLoadedClassesResult restransformLoadedClassesByOne(List<Class<?>> theClassesForInstrumentation) {
+		RestransformLoadedClassesResult rv = new RestransformLoadedClassesResult();
+
 		for(Class<?> c : theClassesForInstrumentation) {
 			try {
 				Class<?>[] classesArray = new Class<?>[] { c };
 				instrumentation.retransformClasses(classesArray);
-				theCounters[0]++;
+				rv.retransformedClasses.add(c);
 			} catch(Throwable e) {
 				StringWriter sw = new StringWriter();
 				e.printStackTrace(new PrintWriter(sw));
-				runtime.say(String.format("Failed to retransform class \"%s\": %s %s\n%s", c.getName(), e.toString(), e.getMessage(), sw.toString()));
+				runtime.say(String.format("Failed to retransform class %s: %s %s\n%s", c.getName(), e.toString(), e.getMessage(), sw.toString()));
+				rv.notRetransformedClasses.add(c);
 			}
 		}
 
-		theCounters[1] = theClassesForInstrumentation.size() - theCounters[0];
+		return rv;
 	}
 }

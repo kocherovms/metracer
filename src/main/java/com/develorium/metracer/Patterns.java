@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-package com.develorium.metracer.dynamic;
+package com.develorium.metracer;
 
 import java.util.*;
 import java.util.regex.*;
@@ -30,15 +30,36 @@ import java.util.regex.*;
 // Hence the solution is to use a classMatchingPattern for filtering classes which require instrumentation and
 // an optional methodMatchingPattern for a fine-grained control of which methods must be instrumented
 public class Patterns {
-	public Pattern classMatchingPattern = null;
-	public Pattern methodMatchingPattern = null;
-	public boolean isWithStackTraces = false;
+	public static List<String> BlacklistedClassNamePrefixes = new ArrayList<String>();
+	private Pattern classMatchingPattern = null;
+	private Pattern methodMatchingPattern = null;
+	private boolean isWithStackTraces = false;
 	private Set<String> instrumentedMethods = Collections.synchronizedSet(new HashSet<String>(1000));
+
+	static {
+		BlacklistedClassNamePrefixes.add("com.develorium.metracer.");
+	}
 
 	public Patterns(String theClassMatchingPattern, String theMethodMatchingPattern, boolean theIsWithStackTraces) {
 		classMatchingPattern = createPattern(theClassMatchingPattern);
+
+		if(classMatchingPattern == null)
+			throw new NullPointerException("Class matching pattern is null");
+
 		methodMatchingPattern = createPattern(theMethodMatchingPattern);
 		isWithStackTraces = theIsWithStackTraces;
+	}
+
+	public Pattern getClassMatchingPattern() {
+		return classMatchingPattern;
+	}
+
+	public Pattern getMethodMatchingPattern() {
+		return methodMatchingPattern;
+	}
+
+	public boolean getIsWithStackTraces() {
+		return isWithStackTraces;
 	}
 
 	@Override
@@ -58,6 +79,31 @@ public class Patterns {
 		return false;
 	}
 
+	public boolean isClassPatternMatched(String theClassName) {
+		if(theClassName == null)
+			return false;
+
+		for(String blacklistedClassNamePrefix : BlacklistedClassNamePrefixes)
+			if(theClassName.startsWith(blacklistedClassNamePrefix))
+				return false;
+		
+		return classMatchingPattern.matcher(theClassName).find();
+	}
+
+	public boolean isPatternMatched(String theClassName, String theMethodName) {
+		if(theClassName == null || theMethodName == null)
+            return false;
+
+		if(!isClassPatternMatched(theClassName))
+			return false;
+		else if(methodMatchingPattern != null) {
+			String methodNameForPatternMatching = String.format("%s::%s", theClassName, theMethodName);
+			return methodMatchingPattern.matcher(methodNameForPatternMatching).find();
+		}
+
+		return true;
+	}
+
 	public void registerInstrumentedMethod(ClassLoader theLoader, String theClassName, String theMethodName) {
 		if(theClassName == null || theMethodName == null)
 			return;
@@ -65,7 +111,7 @@ public class Patterns {
 			return;
 
 		Key key = new Key();
-		key.setClassId(theClassName + (theLoader != null ? theLoader.toString() : "<bootstrap>"));
+		key.setClassId(formatClassId(theLoader, theClassName));
 		key.setMethodName(theMethodName);
 		instrumentedMethods.add(encodeKey(key));
 	}
@@ -98,6 +144,30 @@ public class Patterns {
 		return rv;
 	}
 
+	public static int getDeinstrumentedMethods(List<Patterns> theHistoryPatterns, List<Class<?>> theDeinstrumentedClasses) {
+		if(theHistoryPatterns == null || theDeinstrumentedClasses == null)
+			return 0;
+
+		int rv = 0;
+
+		for(Patterns p : theHistoryPatterns) {
+			for(String encodedKey : p.instrumentedMethods) {
+				Key key = decodeKey(encodedKey);
+
+				for(Class<?> c : theDeinstrumentedClasses) {
+					String classId = formatClassId(c.getClassLoader(), c.getName());
+
+					if(key.classId.equals(classId)) {
+						++rv; // method is removed along with its class
+						break;
+					}
+				}
+			}
+		}
+
+		return rv;
+	}
+
 	private static Pattern createPattern(String thePatternSource) {
 		if(thePatternSource == null) 
 			return null;
@@ -114,6 +184,10 @@ public class Patterns {
 			return theLeft.toString().equals(theRight.toString());
 		else
 			return (theLeft != null) == (theRight != null);
+	}
+
+	private static String formatClassId(ClassLoader theLoader, String theClassName) {
+		return theClassName + (theLoader != null ? theLoader.toString() : "<bootstrap>");
 	}
 
 	static class Key {

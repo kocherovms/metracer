@@ -16,10 +16,18 @@
 
 package com.develorium.metracer.dynamic;
 
+import java.io.*;
+
 public interface AgentMXBean {
+	public static class Counters implements Serializable {
+		public int classesCount = 0;
+		public int methodsCount = 0;
+		public int failedClassesCount = 0;
+	}
+
 	public void setIsVerbose(boolean theIsVerbose);
-	// return value is 2 elements array: 1 elem - number of instrument ok classes, number of instrument failed classes
-	public int[] setPatterns(String theClassMatchingPattern, String theMethodMatchingPattern, boolean theIsWithStackTraces);
-	// return value meaning is the same as for setPatterns
-	public int[] removePatterns();
+	// returns serialized Counters
+	public byte[] setPatterns(String theClassMatchingPattern, String theMethodMatchingPattern, boolean theIsWithStackTraces);
+	// returns serialized Counters
+	public byte[] removePatterns();
 }
