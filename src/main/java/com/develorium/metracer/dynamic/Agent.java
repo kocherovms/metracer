@@ -33,7 +33,7 @@ public class Agent extends NotificationBroadcasterSupport implements AgentMXBean
 	private Instrumentation instrumentation = null;
 	private com.develorium.metracer.Runtime runtime = null;
 	private AtomicInteger messageSerial = new AtomicInteger();
-	private Patterns patterns = null;
+	private volatile Patterns patterns = null;
 	private List<Patterns> historyPatterns = new LinkedList<Patterns>();
 	private SimpleDateFormat timestampFormat = new SimpleDateFormat("yyyy.MM.dd hh:mm:ss.SSS");
 
@@ -135,7 +135,7 @@ public class Agent extends NotificationBroadcasterSupport implements AgentMXBean
 		}
 	}
 
-	synchronized public Patterns getPatterns() {
+	public Patterns getPatterns() {
 		return patterns;
 	}
 
