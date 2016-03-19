@@ -68,20 +68,17 @@ public class Main {
 			say("Not setting any patterns, using ones from a previous session");
 		}
 		else {
-			agent.setPatterns(config.classMatchingPattern, config.methodMatchingPattern, config.isWithStackTrace);
-			//int[] counters = agent.setPatterns(config.classMatchingPattern, config.methodMatchingPattern, config.isWithStackTrace);
-			//say(String.format("Class matching pattern set to \"%s\"", config.classMatchingPattern));
-			//
-			//if(config.methodMatchingPattern != null)
-			//	say(String.format("Method matching pattern set to \"%s\"", config.methodMatchingPattern));
-			//
-			//if(config.isWithStackTrace)
-			//	say("Stack traces enabled");
-			//
-			//if(counters != null && counters.length == 2)
-			//	say(String.format("%d classes instrumented ok, %d failed", counters[0], counters[1]));
-		}
+			byte[] encodedCounters = agent.setPatterns(config.classMatchingPattern, config.methodMatchingPattern, config.isWithStackTrace);
+			say(String.format("Class matching pattern set to \"%s\"", config.classMatchingPattern));
+			
+			if(config.methodMatchingPattern != null)
+				say(String.format("Method matching pattern set to \"%s\"", config.methodMatchingPattern));
+			
+			if(config.isWithStackTrace)
+				say("Stack traces enabled");
 
+			sayCounters(encodedCounters, "instrument");
+		}
 
 		say("Press 'q' to quit with removal of instrumentation, 'Q' - to quit with retention of instrumentation in target JVM");
 		startListeningToAgentEvents();
@@ -147,12 +144,9 @@ public class Main {
 	}
 
 	private void deinstrument() {
-		agent.removePatterns();
-		//int[] counters = agent.removePatterns();
+		byte[] encodedCounters = agent.removePatterns();
 		say("Patterns removed");
-		
-		//if(counters != null && counters.length == 2)
-		//	say(String.format("%d classes deinstrumented ok, %d failed", counters[0], counters[1]));
+		sayCounters(encodedCounters, "deinstrument");
 	}
 
 	private void startListeningToAgentEvents() {
@@ -259,6 +253,30 @@ public class Main {
 	private String resolveMetracerAgentJar() throws UnsupportedEncodingException {
 		String sourcePath = Main.class.getProtectionDomain().getCodeSource().getLocation().getPath();
 		return java.net.URLDecoder.decode(sourcePath, "UTF-8");
+	}
+
+
+	private void sayCounters(byte[] theEncodedCounters, String theVerb) {
+		if(!config.isVerbose) 
+			return;
+
+		try {
+			if(theEncodedCounters == null) 
+				say(String.format("No methods were %sed", theVerb));
+			else {
+				AgentMXBean.Counters counters = AgentMXBean.Counters.deserialize(theEncodedCounters);
+				String failMessage = counters.failedClassesCount > 0 
+					? String.format(", %sation failed for %d classes", theVerb, counters.failedClassesCount) 
+					: "";
+				say(String.format("%d methods in %d classes %sed%s", 
+						counters.methodsCount, 
+						counters.classesCount, 
+						theVerb,
+						failMessage));
+			}
+		} catch(Throwable e) {
+			say(String.format("Failed to get counters: %s", e.getMessage()));
+		}
 	}
 
 	private void say(String theMessage) {

@@ -148,20 +148,24 @@ public class Patterns {
 		if(theHistoryPatterns == null || theDeinstrumentedClasses == null)
 			return 0;
 
+		Set<String> mergedInstrumentedMethods = new HashSet<String>();
+
+		for(Patterns p : theHistoryPatterns) 
+			mergedInstrumentedMethods.addAll(p.instrumentedMethods);
+
+		Set<String> deinstrumentedClassIds = new HashSet<String>(theDeinstrumentedClasses.size());
+
+		for(Class<?> c : theDeinstrumentedClasses)
+			deinstrumentedClassIds.add(formatClassId(c.getClassLoader(), c.getName()));
+
 		int rv = 0;
 
-		for(Patterns p : theHistoryPatterns) {
-			for(String encodedKey : p.instrumentedMethods) {
-				Key key = decodeKey(encodedKey);
+		for(String encodedKey : mergedInstrumentedMethods) {
+			Key key = decodeKey(encodedKey);
 
-				for(Class<?> c : theDeinstrumentedClasses) {
-					String classId = formatClassId(c.getClassLoader(), c.getName());
-
-					if(key.classId.equals(classId)) {
-						++rv; // method is removed along with its class
-						break;
-					}
-				}
+			if(deinstrumentedClassIds.contains(key.classId)) {
+				// method is removed along with its class
+				++rv; 
 			}
 		}
 

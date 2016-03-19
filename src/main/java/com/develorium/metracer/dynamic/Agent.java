@@ -96,15 +96,11 @@ public class Agent extends NotificationBroadcasterSupport implements AgentMXBean
 			RestransformLoadedClassesResult retransformResult = restransformLoadedClasses(Arrays.asList(patterns), "instrument");
 			Patterns.Counters patternsCounters = patterns.getCounters();
 			Counters counters = new Counters();
-			counters.classesCount = patternsCounters.classesCount;
 			counters.methodsCount = patternsCounters.methodsCount;
+			counters.classesCount = retransformResult.retransformedClasses.size();
 			counters.failedClassesCount = retransformResult.notRetransformedClasses.size();
-			runtime.say(String.format("%d classes and %d methods instrumented. Instrumentation failed for %d classes", 
-									  counters.classesCount,
-									  counters.methodsCount,
-									  counters.failedClassesCount));
-			//return serializeCounters(counters);
-			return null;
+			sayCounters(counters, "instrument");
+			return counters.serialize();
 		} catch(Throwable e) {
 			throw new RuntimeException(String.format("Failed to instrument loaded classes: %s", e.getMessage()), e);
 		}
@@ -127,15 +123,11 @@ public class Agent extends NotificationBroadcasterSupport implements AgentMXBean
 			try {
 				RestransformLoadedClassesResult retransformResult = restransformLoadedClasses(historyPatterns, "deinstrument");
 				Counters counters = new Counters();
-				counters.classesCount = retransformResult.retransformedClasses.size();
 				counters.methodsCount = Patterns.getDeinstrumentedMethods(historyPatterns, retransformResult.retransformedClasses);
+				counters.classesCount = retransformResult.retransformedClasses.size();
 				counters.failedClassesCount = retransformResult.notRetransformedClasses.size();
-				runtime.say(String.format("%d classes and %d methods deinstrumented. Deinstrumentation failed for %d classes", 
-										  counters.classesCount, 
-										  counters.methodsCount, 
-										  counters.failedClassesCount));
-				//return serializeCounters(counters);
-				return null;
+				sayCounters(counters, "deinstrument");
+				return counters.serialize();
 			} catch(Throwable e) {
 				throw new RuntimeException(String.format("Failed to deinstrument loaded classes: %s", e.getMessage()), e);
 			}
@@ -257,5 +249,16 @@ public class Agent extends NotificationBroadcasterSupport implements AgentMXBean
 		}
 
 		return rv;
+	}
+
+	private void sayCounters(Counters theCounters, String theVerb) {
+		String failMessage = theCounters.failedClassesCount > 0 
+			? String.format(", %sation failed for %d classes", theCounters.failedClassesCount, theVerb)
+			: "";
+		runtime.say(String.format("%d methods in %d classes %sed%s", 
+				theCounters.methodsCount,
+				theCounters.classesCount,
+				theVerb,
+				failMessage));
 	}
 }

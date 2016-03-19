@@ -20,9 +20,26 @@ import java.io.*;
 
 public interface AgentMXBean {
 	public static class Counters implements Serializable {
-		public int classesCount = 0;
+		private static final long serialVersionUID = 5304832712221989304L;
 		public int methodsCount = 0;
+		public int classesCount = 0;
 		public int failedClassesCount = 0;
+
+		public byte[] serialize() throws IOException {
+			ByteArrayOutputStream backend = new ByteArrayOutputStream();
+			ObjectOutputStream stream = new ObjectOutputStream(backend);
+			stream.writeObject(this);
+			stream.close();
+			return backend.toByteArray();
+		}
+
+		public static Counters deserialize(byte[] theData) throws IOException, ClassNotFoundException {
+			ByteArrayInputStream backend = new ByteArrayInputStream(theData);
+			ObjectInputStream stream = new ObjectInputStream(backend);
+			Counters counters = (Counters)stream.readObject();
+			stream.close();
+			return counters;
+		}
 	}
 
 	public void setIsVerbose(boolean theIsVerbose);
