@@ -96,7 +96,7 @@ else
 	export METRACER_IS_CBREAK_DISABLED="1"
 
 	if [ -n "$user_name" ] && [ "$current_user_name" != "$user_name" ]; then
-		sudo -u $user_name "$java" -Xbootclasspath/a:"$tools_jar" -jar $MYSELF "$@"
+		sudo -u $user_name METRACER_LAUNCH_STRING=$METRACER_LAUNCH_STRING METRACER_IS_CBREAK_DISABLED=$METRACER_IS_CBREAK_DISABLED "$java" -Xbootclasspath/a:"$tools_jar" -jar $MYSELF "$@"
 	else
 		"$java" -Xbootclasspath/a:"$tools_jar" -jar $MYSELF "$@"
 	fi
