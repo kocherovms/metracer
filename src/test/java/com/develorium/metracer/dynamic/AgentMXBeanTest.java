@@ -14,31 +14,23 @@
  * limitations under the License.
  */
 
-package com.develorium.metracer;
+package com.develorium.metracer.dynamic;
 
 import java.io.*;
 import junit.framework.Assert;
 import org.junit.Test;
 
-public class TestAux {
+public class AgentMXBeanTest {
 	@Test
-	public void testUsageIsWorking() {
-		ByteArrayOutputStream output = new ByteArrayOutputStream();
-		Aux.printUsage(new PrintStream(output));
-		Assert.assertTrue(output.size() > 0);
-	}
-
-	@Test
-	public void testHelpIsWorking() {
-		ByteArrayOutputStream output = new ByteArrayOutputStream();
-		Aux.executeAuxCommands(Config.COMMAND.HELP, new PrintStream(output));
-		Assert.assertTrue(output.size() > 0);
-	}
-
-	@Test
-	public void testJvmListIsWorking() {
-		ByteArrayOutputStream output = new ByteArrayOutputStream();
-		Aux.executeAuxCommands(Config.COMMAND.LIST, new PrintStream(output));
-		Assert.assertTrue(output.size() > 0);
+	public void testSerialization() throws IOException, ClassNotFoundException {
+		AgentMXBean.Counters counters = new AgentMXBean.Counters();
+		counters.classesCount = 1;
+		counters.methodsCount = 2;
+		counters.failedClassesCount = 3;
+		byte[] data = counters.serialize();
+		AgentMXBean.Counters restoredCounters = AgentMXBean.Counters.deserialize(data);
+		Assert.assertEquals(counters.classesCount, restoredCounters.classesCount);
+		Assert.assertEquals(counters.methodsCount, restoredCounters.methodsCount);
+		Assert.assertEquals(counters.failedClassesCount, restoredCounters.failedClassesCount);
 	}
 }

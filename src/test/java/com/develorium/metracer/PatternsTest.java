@@ -21,7 +21,7 @@ import java.util.regex.*;
 import junit.framework.Assert;
 import org.junit.Test;
 
-public class TestPatterns {
+public class PatternsTest {
 	Patterns testNullFalsePattern = new Patterns("test", null, false);
 	Patterns testTestFalsePattern = new Patterns("test", "test", false);
 	Patterns testNullTruePattern = new Patterns("test", null, true);
@@ -135,9 +135,9 @@ public class TestPatterns {
 	@Test
 	public void testKeyGoodEncodingDecoding() {
 		String[] data = {
-			"test1", TestPatterns.class.getName(),
-			"test3" , TestPatterns.class.getName() + TestPatterns.class.getClassLoader().toString(),
-			"", TestPatterns.class.getName(),
+			"test1", PatternsTest.class.getName(),
+			"test3" , PatternsTest.class.getName() + PatternsTest.class.getClassLoader().toString(),
+			"", PatternsTest.class.getName(),
 			"test4", "",
 			"t", "t",
 			"t", "x",
@@ -182,27 +182,27 @@ public class TestPatterns {
 		Patterns p = new Patterns("test", null, false);
 		Assert.assertEquals(0, p.getInstrumentedMethodsCount());
 
-		p.registerInstrumentedMethod(TestPatterns.class.getClassLoader(), "TestPatterns", "method1");
-		p.registerInstrumentedMethod(TestPatterns.class.getClassLoader(), "TestPatterns", "method2");
-		p.registerInstrumentedMethod(TestPatterns.class.getClassLoader(), "TestPatterns", "method3");
+		p.registerInstrumentedMethod(PatternsTest.class.getClassLoader(), "TestPatterns", "method1");
+		p.registerInstrumentedMethod(PatternsTest.class.getClassLoader(), "TestPatterns", "method2");
+		p.registerInstrumentedMethod(PatternsTest.class.getClassLoader(), "TestPatterns", "method3");
 		Assert.assertEquals(3, p.getInstrumentedMethodsCount());
 
-		p.registerInstrumentedMethod(TestPatterns.class.getClassLoader(), "TestPatterns1", "method1");
-		p.registerInstrumentedMethod(TestPatterns.class.getClassLoader(), "TestPatterns1", "method2");
-		p.registerInstrumentedMethod(TestPatterns.class.getClassLoader(), "TestPatterns1", "method3");
+		p.registerInstrumentedMethod(PatternsTest.class.getClassLoader(), "TestPatterns1", "method1");
+		p.registerInstrumentedMethod(PatternsTest.class.getClassLoader(), "TestPatterns1", "method2");
+		p.registerInstrumentedMethod(PatternsTest.class.getClassLoader(), "TestPatterns1", "method3");
 		Assert.assertEquals(6, p.getInstrumentedMethodsCount());
 
-		p.registerInstrumentedMethod(TestPatterns.class.getClassLoader(), "TestPatterns1", "method1");
-		p.registerInstrumentedMethod(TestPatterns.class.getClassLoader(), "TestPatterns1", "method2");
-		p.registerInstrumentedMethod(TestPatterns.class.getClassLoader(), "TestPatterns1", "method3");
+		p.registerInstrumentedMethod(PatternsTest.class.getClassLoader(), "TestPatterns1", "method1");
+		p.registerInstrumentedMethod(PatternsTest.class.getClassLoader(), "TestPatterns1", "method2");
+		p.registerInstrumentedMethod(PatternsTest.class.getClassLoader(), "TestPatterns1", "method3");
 		Assert.assertEquals(6, p.getInstrumentedMethodsCount());
 
-		p.registerInstrumentedMethod(TestPatterns.class.getClassLoader(), null, "method1");
-		p.registerInstrumentedMethod(TestPatterns.class.getClassLoader(), "TestPatterns1", null);
+		p.registerInstrumentedMethod(PatternsTest.class.getClassLoader(), null, "method1");
+		p.registerInstrumentedMethod(PatternsTest.class.getClassLoader(), "TestPatterns1", null);
 		Assert.assertEquals(6, p.getInstrumentedMethodsCount());
 
-		p.registerInstrumentedMethod(TestPatterns.class.getClassLoader(), "TestPatterns1", "");
-		p.registerInstrumentedMethod(TestPatterns.class.getClassLoader(), "", "method2");
+		p.registerInstrumentedMethod(PatternsTest.class.getClassLoader(), "TestPatterns1", "");
+		p.registerInstrumentedMethod(PatternsTest.class.getClassLoader(), "", "method2");
 		Assert.assertEquals(6, p.getInstrumentedMethodsCount());
 
 		p.registerInstrumentedMethod(null, "TestPatterns2", "method1");

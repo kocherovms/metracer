@@ -20,97 +20,97 @@ import java.util.*;
 import junit.framework.Assert;
 import org.junit.Test;
 
-public class TestArgumentValuePrinting {
+public class RuntimeTest {
 	Runtime r = new Runtime(null);
 
 	@Test
-	public void testNull() {
+	public void testFormatArgumentValueNull() {
 		Assert.assertEquals(r.formatArgumentValue(null), "null");
 	}
 
 	@Test
-	public void testInteger() {
+	public void testFormatArgumentValueInteger() {
 		Integer v = 10;
 		Assert.assertEquals(r.formatArgumentValue(v), v.toString());
 	}
 
 	@Test
-	public void testDouble() {
+	public void testFormatArgumentValueDouble() {
 		Double v = 42.0;
 		Assert.assertEquals(r.formatArgumentValue(v), v.toString());
 	}
 
 	@Test
-	public void testEmptyIntArray() {
+	public void testFormatArgumentValueEmptyIntArray() {
 		int[] v = {};
 		Assert.assertEquals(r.formatArgumentValue(v), "[]");
 	}
 
 	@Test
-	public void testBooleanArray() {
+	public void testFormatArgumentValueBooleanArray() {
 		boolean[] v = { true, false, true };
 		String expected = String.format("[%s, %s, %s]", "" + v[0], "" + v[1], "" + v[2]);
 		Assert.assertEquals(r.formatArgumentValue(v), expected);
 	}
 
 	@Test
-	public void testByteArray() {
+	public void testFormatArgumentValueByteArray() {
 		byte[] v = { 1, 2, 3 };
 		String expected = String.format("[%s, %s, %s]", "" + v[0], "" + v[1], "" + v[2]);
 		Assert.assertEquals(r.formatArgumentValue(v), expected);
 	}
 
 	@Test
-	public void testShortArray() {
+	public void testFormatArgumentValueShortArray() {
 		short[] v = { 1, 2, 3 };
 		String expected = String.format("[%s, %s, %s]", "" + v[0], "" + v[1], "" + v[2]);
 		Assert.assertEquals(r.formatArgumentValue(v), expected);
 	}
 
 	@Test
-	public void testIntArray() {
+	public void testFormatArgumentValueIntArray() {
 		int[] v = { 1, 2, 3 };
 		String expected = String.format("[%s, %s, %s]", "" + v[0], "" + v[1], "" + v[2]);
 		Assert.assertEquals(r.formatArgumentValue(v), expected);
 	}
 
 	@Test
-	public void testLongArray() {
+	public void testFormatArgumentValueLongArray() {
 		long[] v = { 1, 2, 3 };
 		String expected = String.format("[%s, %s, %s]", "" + v[0], "" + v[1], "" + v[2]);
 		Assert.assertEquals(r.formatArgumentValue(v), expected);
 	}
 
 	@Test
-	public void testFloatArray() {
+	public void testFormatArgumentValueFloatArray() {
 		float[] v = { 1.0f, 2.0f, 3.0f };
 		String expected = String.format("[%s, %s, %s]", "" + v[0], "" + v[1], "" + v[2]);
 		Assert.assertEquals(r.formatArgumentValue(v), expected);
 	}
 
 	@Test
-	public void testDoubleArray() {
+	public void testFormatArgumentValueDoubleArray() {
 		double[] v = { 1.0, 2.0, 3.0 };
 		String expected = String.format("[%s, %s, %s]", "" + v[0], "" + v[1], "" + v[2]);
 		Assert.assertEquals(r.formatArgumentValue(v), expected);
 	}
 
 	@Test
-	public void testStringArray() {
+	public void testFormatArgumentValueStringArray() {
 		String[] v = { "Hello", "world", "!" };
 		String expected = String.format("[%s, %s, %s]", v[0], v[1], v[2]);
 		Assert.assertEquals(r.formatArgumentValue(v), expected);
 	}
 
 	@Test
-	public void testStringArrayWithNulls() {
+	public void testFormatArgumentValueStringArrayWithNulls() {
 		String[] v = { "Hello", "world", "!", null };
 		String expected = String.format("[%s, %s, %s, null]", v[0], v[1], v[2]);
 		Assert.assertEquals(r.formatArgumentValue(v), expected);
 	}
 
 	@Test
-	public void testCollection() {
+	public void testFormatArgumentValueCollection() {
 		Integer[] a = { 1, 2, 3 };
 		List<Integer> v = Arrays.asList(a);
 		String expected = String.format("[%s, %s, %s]", a[0], a[1], a[2]);
@@ -118,7 +118,7 @@ public class TestArgumentValuePrinting {
 	}
 
 	@Test
-	public void testEmptyCollection() {
+	public void testFormatArgumentValueEmptyCollection() {
 		Integer[] a = {};
 		List<Integer> v = Arrays.asList(a);
 		String expected = "[]";
@@ -126,14 +126,14 @@ public class TestArgumentValuePrinting {
 	}
 
 	@Test
-	public void testSingleElementCollection() {
+	public void testFormatArgumentValueSingleElementCollection() {
 		List<Integer> v = Arrays.asList(1);
 		String expected = "[1]";
 		Assert.assertEquals(r.formatArgumentValue(v), expected);
 	}
 
 	@Test
-	public void testCollectionWithNulls() {
+	public void testFormatArgumentValueCollectionWithNulls() {
 		Integer[] a = { 1, 2, null };
 		List<Integer> v = Arrays.asList(a);
 		String expected = String.format("[%s, %s, %s]", a[0], a[1], a[2]);
@@ -141,7 +141,7 @@ public class TestArgumentValuePrinting {
 	}
 
 	@Test
-	public void testLongCollection() {
+	public void testFormatArgumentValueLongCollection() {
 		List<Integer> v = new ArrayList<Integer>();
 		StringBuilder b = new StringBuilder();
 
@@ -159,7 +159,7 @@ public class TestArgumentValuePrinting {
 	}
 
 	@Test
-	public void testVeryLongCollection() {
+	public void testFormatArgumentValueVeryLongCollection() {
 		List<Integer> v = new ArrayList<Integer>();
 		StringBuilder b = new StringBuilder();
 
@@ -179,7 +179,7 @@ public class TestArgumentValuePrinting {
 	}
 
 	@Test
-	public void testMap() {
+	public void testFormatArgumentValueMap() {
 		Map<String, String> v = new HashMap<String, String>();
 		v.put("Hello", "world");
 		v.put("Lorem", "ipsum");
@@ -200,17 +200,43 @@ public class TestArgumentValuePrinting {
 	}
 
 	@Test
-	public void testEmptyMap() {
+	public void testFormatArgumentValueEmptyMap() {
 		Assert.assertEquals(r.formatArgumentValue(new HashMap<String, String>()), "[]");
 	}
 
 	@Test
-	public void testCustomObject() {
+	public void testFormatArgumentValueCustomObject() {
 		Assert.assertEquals(r.formatArgumentValue(this), this.toString());
 	}
 
 	@Override
 	public String toString() {
 		return "TestArgumentValuePrinting.java";
+	}
+
+	@Test
+	public void testFormatReturnValueVoid() {
+		Assert.assertTrue(r.formatReturnValue(true, null).contains(" => void"));
+		Assert.assertTrue(r.formatReturnValue(true, new Integer(123)).contains(" => void"));
+	}
+
+	@Test
+	public void testFormatReturnValueNull() {
+		String v = r.formatReturnValue(false, null);
+		Assert.assertTrue(v.contains("=> return") && v.contains("null"));
+	}
+
+	@Test
+	public void testFormatReturnValueNotNull() {
+		Integer i = 123;
+		String v = r.formatReturnValue(false, i);
+		Assert.assertTrue(v.contains(" => return") && v.contains(i.toString()));
+	}
+
+	@Test
+	public void testFormatReturnValueException() {
+		NullPointerException e = new NullPointerException();
+		String v = r.formatReturnValue(false, e);
+		Assert.assertTrue(v.contains(" => exception") && v.contains(e.toString()));
 	}
 }

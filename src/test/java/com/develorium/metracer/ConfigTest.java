@@ -20,7 +20,7 @@ import java.util.*;
 import junit.framework.Assert;
 import org.junit.Test;
 
-public class TestConfig {
+public class ConfigTest {
 	@Test(expected = Config.BadConfig.class)
 	public void testNullIsNotTolerated() throws Config.BadConfig {
 		Config config = new Config(null);
