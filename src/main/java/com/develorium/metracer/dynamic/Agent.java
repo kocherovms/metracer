@@ -25,6 +25,7 @@ import java.util.concurrent.atomic.*;
 import java.util.regex.*;
 import java.text.*;
 import javax.management.*;
+import com.develorium.metracer.*;
 
 public class Agent extends NotificationBroadcasterSupport implements AgentMXBean, com.develorium.metracer.Runtime.LoggerInterface {
 	public static final String MxBeanName = "com.develorium.metracer.dynamic:type=Agent";
@@ -32,45 +33,6 @@ public class Agent extends NotificationBroadcasterSupport implements AgentMXBean
 	private Instrumentation instrumentation = null;
 	private com.develorium.metracer.Runtime runtime = null;
 	private AtomicInteger messageSerial = new AtomicInteger();
-	// Two patterns are used because a single methodMatchingPattern can't be used to qualify classes. This pattern
-	// may reference methods which we can't get during setPatterms method. This is because
-	// theClass.getDeclaredMethods may lead to an overwhelming class loading
-	// (e.g. of classes mentioned in return parameters and arguments). Beside huge I/O this could lead to
-	// numerous LinkageError / NoClassDefFoundErrors due to class loaders isolation, different versioning or
-	// multiple instances of the same class in different class loaders.
-	// An approach could be to get bytecode of the class via a ClasseNode of ASM
-	// but this again tends to be an overkill within some JavaEE application - too many classes, analysis would take significiant time
-	// Hence the solution is to use a classMatchingPattern for filtering classes which require instrumentation and
-	// an optional methodMatchingPattern for a fine-grained control of which methods must be instrumented
-	public static class Patterns {
-		public Pattern classMatchingPattern = null;
-		public Pattern methodMatchingPattern = null;
-		public boolean isWithStackTraces = false;
-
-		@Override
-		public boolean equals(Object theOther) {
-			if(theOther == null)
-				return false;
-			else if(this == theOther)
-				return true;
-			else if(theOther instanceof Patterns) {
-				Patterns other = (Patterns)theOther;
-				return 
-					arePatternsEqual(classMatchingPattern, other.classMatchingPattern) && 
-					arePatternsEqual(methodMatchingPattern, other.methodMatchingPattern) &&
-					isWithStackTraces == other.isWithStackTraces;
-			}
-
-			return false;
-		}
-
-		private static boolean arePatternsEqual(Pattern theLeft, Pattern theRight) {
-			if(theLeft != null && theRight != null)
-				return theLeft.toString().equals(theRight.toString());
-			else
-				return (theLeft != null) == (theRight != null);
-		}
-	};
 	private Patterns patterns = null;
 	private List<Patterns> historyPatterns = new LinkedList<Patterns>();
 	private SimpleDateFormat timestampFormat = new SimpleDateFormat("yyyy.MM.dd hh:mm:ss.SSS");
@@ -92,11 +54,7 @@ public class Agent extends NotificationBroadcasterSupport implements AgentMXBean
 	public void printMessage(Class<?> theClass, String theMethodName, String theMessage) {
 		Patterns p = patterns;
 
-		if(p == null || p.classMatchingPattern == null) 
-			return;
-		else if(!p.classMatchingPattern.matcher(theClass.getName()).find())
-			return;
-		else if(p.methodMatchingPattern != null && !com.develorium.metracer.Runtime.isMethodPatternMatched(theClass.getName(), theMethodName, p.methodMatchingPattern)) 
+		if(p == null || !p.isPatternMatched(theClass.getName(), theMethodName)) 
 			return;
 
 		String messageWithTimestamp = timestampFormat.format(new Date()) + " " + theMessage;
@@ -110,11 +68,11 @@ public class Agent extends NotificationBroadcasterSupport implements AgentMXBean
 	}
 
 	@Override
-	synchronized public int[] setPatterns(String theClassMatchingPattern, String theMethodMatchingPattern, boolean theIsWithStackTraces) {
+	synchronized public byte[] setPatterns(String theClassMatchingPattern, String theMethodMatchingPattern, boolean theIsWithStackTraces) {
 		if(theClassMatchingPattern == null)
 			throw new NullPointerException("Class matching pattern is null");
 
-		Patterns newPatterns = createPatterns(theClassMatchingPattern, theMethodMatchingPattern, theIsWithStackTraces);
+		Patterns newPatterns = new Patterns(theClassMatchingPattern, theMethodMatchingPattern, theIsWithStackTraces);
 
 		if(patterns != null && patterns.equals(newPatterns)) {
 			runtime.say(String.format("Patterns already set to: class matching pattern = %s%s, stack traces = %s", 
@@ -135,16 +93,20 @@ public class Agent extends NotificationBroadcasterSupport implements AgentMXBean
 		patterns = newPatterns;
 
 		try {
-			int[] counters = instrumentLoadedClasses(Arrays.asList(patterns), "instrument");
-			runtime.say(String.format("Loaded classes instrumented: %d ok, %d failed", counters[0], counters[1]));
-			return counters;
+			RestransformLoadedClassesResult retransformResult = restransformLoadedClasses(Arrays.asList(patterns), "instrument");
+			Counters counters = new Counters();
+			counters.methodsCount = patterns.getInstrumentedMethodsCount();
+			counters.classesCount = retransformResult.retransformedClasses.size();
+			counters.failedClassesCount = retransformResult.notRetransformedClasses.size();
+			sayCounters(counters, "instrument");
+			return counters.serialize();
 		} catch(Throwable e) {
 			throw new RuntimeException(String.format("Failed to instrument loaded classes: %s", e.getMessage()), e);
 		}
 	}
 
 	@Override
-	synchronized public int[] removePatterns() {
+	synchronized public byte[] removePatterns() {
 		runtime.say("Removing patterns");
 
 		if(patterns == null && historyPatterns.isEmpty()) {
@@ -158,9 +120,13 @@ public class Agent extends NotificationBroadcasterSupport implements AgentMXBean
 		
 		try {
 			try {
-				int[] counters = instrumentLoadedClasses(historyPatterns, "deinstrument");
-				runtime.say(String.format("Loaded classes deinstrumented: %d ok, %d failed", counters[0], counters[1]));
-				return counters;
+				RestransformLoadedClassesResult retransformResult = restransformLoadedClasses(historyPatterns, "deinstrument");
+				Counters counters = new Counters();
+				counters.methodsCount = Patterns.getDeinstrumentedMethodsCount(historyPatterns, retransformResult.retransformedClasses);
+				counters.classesCount = retransformResult.retransformedClasses.size();
+				counters.failedClassesCount = retransformResult.notRetransformedClasses.size();
+				sayCounters(counters, "deinstrument");
+				return counters.serialize();
 			} catch(Throwable e) {
 				throw new RuntimeException(String.format("Failed to deinstrument loaded classes: %s", e.getMessage()), e);
 			}
@@ -219,26 +185,12 @@ public class Agent extends NotificationBroadcasterSupport implements AgentMXBean
 		}
 	}
 
-	static Patterns createPatterns(String theClassMatchingPattern, String theMethodMatchingPattern, boolean theIsWithStackTraces) {
-		Patterns rv = new Patterns();
-		rv.classMatchingPattern = createPattern(theClassMatchingPattern);
-		rv.methodMatchingPattern = createPattern(theMethodMatchingPattern);
-		rv.isWithStackTraces = theIsWithStackTraces;
-		return rv;
+	private static class RestransformLoadedClassesResult {
+		List<Class<?>> retransformedClasses = new ArrayList<Class<?>>();
+		List<Class<?>> notRetransformedClasses = new ArrayList<Class<?>>();
 	}
 
-	private static Pattern createPattern(String thePatternSource) {
-		if(thePatternSource == null) 
-			return null;
-
-		try {
-			return Pattern.compile(thePatternSource);
-		} catch(PatternSyntaxException e) {
-			throw new RuntimeException(String.format("Provided pattern \"%s\" is malformed: %s", thePatternSource, e.getMessage()), e);
-		}
-	}
-
-	private int[] instrumentLoadedClasses(List<Patterns> thePatternsList, String theVerb) {
+	private RestransformLoadedClassesResult restransformLoadedClasses(List<Patterns> thePatternsList, String theVerb) {
 		List<Class<?>> classesForInstrumentation = new ArrayList<Class<?>>();
 
 		for(Class<?> c: instrumentation.getAllLoadedClasses()) {
@@ -247,11 +199,8 @@ public class Agent extends NotificationBroadcasterSupport implements AgentMXBean
 
 			String className = c.getName();
 
-			if(className.startsWith("com.develorium.metracer."))
-				continue;
-
 			for(Patterns p: thePatternsList) {
-				if(p.classMatchingPattern.matcher(className).find()) {
+				if(p.isClassPatternMatched(className)) {
 					runtime.say(String.format("Going to %s %s", theVerb, className));
 					classesForInstrumentation.add(c);
 					break;
@@ -259,48 +208,56 @@ public class Agent extends NotificationBroadcasterSupport implements AgentMXBean
 			}
 		}
 
-		int[] rv = new int[2];
+		if(classesForInstrumentation.isEmpty()) {
+			return new RestransformLoadedClassesResult();
+		}
 
-		if(classesForInstrumentation.isEmpty())
-			return rv;
-
-		if(!restransformLoadedClassesBatch(classesForInstrumentation, rv))
-			restransformLoadedClassesByOne(classesForInstrumentation, rv);
-
-		return rv;
-	}
-
-	private boolean restransformLoadedClassesBatch(List<Class<?>> theClassesForInstrumentation, int[] theCounters) {
 		try {
-			Class<?>[] classesArray = theClassesForInstrumentation.toArray(new Class<?>[theClassesForInstrumentation.size()]);
-			instrumentation.retransformClasses(classesArray);
-			theCounters[0] = theClassesForInstrumentation.size();
-			theCounters[1] = 0;
-			return true;
+			return restransformLoadedClassesInBatch(classesForInstrumentation);
 		} catch(Throwable e) {
 			StringWriter sw = new StringWriter();
 			e.printStackTrace(new PrintWriter(sw));
 			runtime.say(String.format("Failed to restransform classes in a batch mode: %s\n%s", e.toString(), sw.toString()));
 		}
 
-		theCounters[0] = 0;
-		theCounters[1] = theClassesForInstrumentation.size();
-		return false;
+		return restransformLoadedClassesByOne(classesForInstrumentation);
 	}
 
-	private void restransformLoadedClassesByOne(List<Class<?>> theClassesForInstrumentation, int[] theCounters) {
+	private RestransformLoadedClassesResult restransformLoadedClassesInBatch(List<Class<?>> theClassesForInstrumentation) throws UnmodifiableClassException {
+		RestransformLoadedClassesResult rv = new RestransformLoadedClassesResult();
+		Class<?>[] classesArray = theClassesForInstrumentation.toArray(new Class<?>[theClassesForInstrumentation.size()]);
+		instrumentation.retransformClasses(classesArray);
+		rv.retransformedClasses = theClassesForInstrumentation;
+		return rv;
+	}
+
+	private RestransformLoadedClassesResult restransformLoadedClassesByOne(List<Class<?>> theClassesForInstrumentation) {
+		RestransformLoadedClassesResult rv = new RestransformLoadedClassesResult();
+
 		for(Class<?> c : theClassesForInstrumentation) {
 			try {
 				Class<?>[] classesArray = new Class<?>[] { c };
 				instrumentation.retransformClasses(classesArray);
-				theCounters[0]++;
+				rv.retransformedClasses.add(c);
 			} catch(Throwable e) {
 				StringWriter sw = new StringWriter();
 				e.printStackTrace(new PrintWriter(sw));
-				runtime.say(String.format("Failed to retransform class \"%s\": %s %s\n%s", c.getName(), e.toString(), e.getMessage(), sw.toString()));
+				runtime.say(String.format("Failed to retransform class %s: %s %s\n%s", c.getName(), e.toString(), e.getMessage(), sw.toString()));
+				rv.notRetransformedClasses.add(c);
 			}
 		}
 
-		theCounters[1] = theClassesForInstrumentation.size() - theCounters[0];
+		return rv;
+	}
+
+	private void sayCounters(Counters theCounters, String theVerb) {
+		String failMessage = theCounters.failedClassesCount > 0 
+			? String.format(", %sation failed for %d classes", theVerb, theCounters.failedClassesCount)
+			: "";
+		runtime.say(String.format("%d methods in %d classes %sed%s", 
+				theCounters.methodsCount,
+				theCounters.classesCount,
+				theVerb,
+				failMessage));
 	}
 }

@@ -22,22 +22,19 @@ import java.util.*;
 import java.util.regex.*;
 import org.objectweb.asm.*;
 import org.objectweb.asm.tree.*;
+import com.develorium.metracer.*;
 import com.develorium.metracer.asm.*;
 
 public class MetracerClassFileTransformer implements ClassFileTransformer {
-	private Pattern pattern = null;
+	private Patterns patterns = null;
 	private RuntimeLogger runtimeLogger = new RuntimeLogger();
 	private com.develorium.metracer.Runtime runtime = new com.develorium.metracer.Runtime(runtimeLogger);
 
-	public MetracerClassFileTransformer(String theArguments) throws Exception {
+	public MetracerClassFileTransformer(String theArguments) {
 		if(theArguments == null)
-			throw new Exception("Arguments are missing");
+			throw new RuntimeException("Arguments are missing");
 
-		try {
-			pattern = Pattern.compile(theArguments);
-		} catch(PatternSyntaxException e) {
-			throw new Exception(String.format("Provided pattern \"%1$s\" is malformed: %2$s", theArguments, e.toString()));
-		}
+		patterns = new Patterns(theArguments, null, false);
 	}
 
 	@Override
@@ -71,7 +68,7 @@ public class MetracerClassFileTransformer implements ClassFileTransformer {
 		reader.accept(parsedClass, 0);
 		
 		MetracerClassWriter writer = new MetracerClassWriter(reader, theLoader);
-		MetracerClassVisitor visitor = new MetracerClassVisitor(writer, pattern, null, false, parsedClass);
+		MetracerClassVisitor visitor = new MetracerClassVisitor(writer, theLoader, patterns, parsedClass);
 		reader.accept(visitor, ClassReader.EXPAND_FRAMES);
 
 		InstrumentClassResult rv = new InstrumentClassResult();

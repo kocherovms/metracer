@@ -16,10 +16,35 @@
 
 package com.develorium.metracer.dynamic;
 
+import java.io.*;
+
 public interface AgentMXBean {
+	public static class Counters implements Serializable {
+		private static final long serialVersionUID = 5304832712221989304L;
+		public int methodsCount = 0;
+		public int classesCount = 0;
+		public int failedClassesCount = 0;
+
+		public byte[] serialize() throws IOException {
+			ByteArrayOutputStream backend = new ByteArrayOutputStream();
+			ObjectOutputStream stream = new ObjectOutputStream(backend);
+			stream.writeObject(this);
+			stream.close();
+			return backend.toByteArray();
+		}
+
+		public static Counters deserialize(byte[] theData) throws IOException, ClassNotFoundException {
+			ByteArrayInputStream backend = new ByteArrayInputStream(theData);
+			ObjectInputStream stream = new ObjectInputStream(backend);
+			Counters counters = (Counters)stream.readObject();
+			stream.close();
+			return counters;
+		}
+	}
+
 	public void setIsVerbose(boolean theIsVerbose);
-	// return value is 2 elements array: 1 elem - number of instrument ok classes, number of instrument failed classes
-	public int[] setPatterns(String theClassMatchingPattern, String theMethodMatchingPattern, boolean theIsWithStackTraces);
-	// return value meaning is the same as for setPatterns
-	public int[] removePatterns();
+	// returns serialized Counters
+	public byte[] setPatterns(String theClassMatchingPattern, String theMethodMatchingPattern, boolean theIsWithStackTraces);
+	// returns serialized Counters
+	public byte[] removePatterns();
 }
