@@ -180,62 +180,42 @@ public class TestPatterns {
 	@Test
 	public void testGetCounters() {
 		Patterns p = new Patterns("test", null, false);
-		Patterns.Counters c = p.getCounters();
-		Assert.assertEquals(c.classesCount, 0);
-		Assert.assertEquals(c.methodsCount, 0);
+		Assert.assertEquals(0, p.getInstrumentedMethodsCount());
 
 		p.registerInstrumentedMethod(TestPatterns.class.getClassLoader(), "TestPatterns", "method1");
 		p.registerInstrumentedMethod(TestPatterns.class.getClassLoader(), "TestPatterns", "method2");
 		p.registerInstrumentedMethod(TestPatterns.class.getClassLoader(), "TestPatterns", "method3");
-		c = p.getCounters();
-		Assert.assertEquals(c.classesCount, 1);
-		Assert.assertEquals(c.methodsCount, 3);
+		Assert.assertEquals(3, p.getInstrumentedMethodsCount());
 
 		p.registerInstrumentedMethod(TestPatterns.class.getClassLoader(), "TestPatterns1", "method1");
 		p.registerInstrumentedMethod(TestPatterns.class.getClassLoader(), "TestPatterns1", "method2");
 		p.registerInstrumentedMethod(TestPatterns.class.getClassLoader(), "TestPatterns1", "method3");
-		c = p.getCounters();
-		Assert.assertEquals(c.classesCount, 2);
-		Assert.assertEquals(c.methodsCount, 6);
+		Assert.assertEquals(6, p.getInstrumentedMethodsCount());
 
 		p.registerInstrumentedMethod(TestPatterns.class.getClassLoader(), "TestPatterns1", "method1");
 		p.registerInstrumentedMethod(TestPatterns.class.getClassLoader(), "TestPatterns1", "method2");
 		p.registerInstrumentedMethod(TestPatterns.class.getClassLoader(), "TestPatterns1", "method3");
-		c = p.getCounters();
-		Assert.assertEquals(c.classesCount, 2);
-		Assert.assertEquals(c.methodsCount, 6);
+		Assert.assertEquals(6, p.getInstrumentedMethodsCount());
 
 		p.registerInstrumentedMethod(TestPatterns.class.getClassLoader(), null, "method1");
 		p.registerInstrumentedMethod(TestPatterns.class.getClassLoader(), "TestPatterns1", null);
-		c = p.getCounters();
-		Assert.assertEquals(c.classesCount, 2);
-		Assert.assertEquals(c.methodsCount, 6);
+		Assert.assertEquals(6, p.getInstrumentedMethodsCount());
 
 		p.registerInstrumentedMethod(TestPatterns.class.getClassLoader(), "TestPatterns1", "");
 		p.registerInstrumentedMethod(TestPatterns.class.getClassLoader(), "", "method2");
-		c = p.getCounters();
-		Assert.assertEquals(c.classesCount, 2);
-		Assert.assertEquals(c.methodsCount, 6);
+		Assert.assertEquals(6, p.getInstrumentedMethodsCount());
 
 		p.registerInstrumentedMethod(null, "TestPatterns2", "method1");
-		c = p.getCounters();
-		Assert.assertEquals(c.classesCount, 3);
-		Assert.assertEquals(c.methodsCount, 7);
+		Assert.assertEquals(7, p.getInstrumentedMethodsCount());
 
 		p.registerInstrumentedMethod(null, "TestPatterns2", "method1");
-		c = p.getCounters();
-		Assert.assertEquals(c.classesCount, 3);
-		Assert.assertEquals(c.methodsCount, 7);
+		Assert.assertEquals(7, p.getInstrumentedMethodsCount());
 
 		p.registerInstrumentedMethod(null, "TestPatterns2", "methodz(Ljava/lang/String;");
-		c = p.getCounters();
-		Assert.assertEquals(c.classesCount, 3);
-		Assert.assertEquals(c.methodsCount, 8);
+		Assert.assertEquals(8, p.getInstrumentedMethodsCount());
 
 		p.registerInstrumentedMethod(null, "TestPatterns2", "methodz(Ljava/lang/String;Ljava/lang/Object");
-		c = p.getCounters();
-		Assert.assertEquals(c.classesCount, 3);
-		Assert.assertEquals(c.methodsCount, 9);
+		Assert.assertEquals(9, p.getInstrumentedMethodsCount());
 	}
 
 	private static class MyClass {
@@ -249,9 +229,9 @@ public class TestPatterns {
 
 	@Test
 	public void testGetDeinstrumentedMethodsNullResistance() {
-		Assert.assertEquals(0, Patterns.getDeinstrumentedMethods(null, new ArrayList<Class<?>>()));
-		Assert.assertEquals(0, Patterns.getDeinstrumentedMethods(new ArrayList<Patterns>(), null));
-		Assert.assertEquals(0, Patterns.getDeinstrumentedMethods(null, null));
+		Assert.assertEquals(0, Patterns.getDeinstrumentedMethodsCount(null, new ArrayList<Class<?>>()));
+		Assert.assertEquals(0, Patterns.getDeinstrumentedMethodsCount(new ArrayList<Patterns>(), null));
+		Assert.assertEquals(0, Patterns.getDeinstrumentedMethodsCount(null, null));
 	}
 
 	@Test
@@ -267,7 +247,7 @@ public class TestPatterns {
 
 		classList.clear();
 		classList.add(MyClass.class);
-		Assert.assertEquals(2, Patterns.getDeinstrumentedMethods(historyPatterns, classList));
+		Assert.assertEquals(2, Patterns.getDeinstrumentedMethodsCount(historyPatterns, classList));
 
 		p = new Patterns("class", "method", false);
 		p.registerInstrumentedMethod(MyClass.class.getClassLoader(), MyClass.class.getName(), "myMethod3");
@@ -276,7 +256,7 @@ public class TestPatterns {
 
 		classList.clear();
 		classList.add(MyClass.class);
-		Assert.assertEquals(4, Patterns.getDeinstrumentedMethods(historyPatterns, classList));
+		Assert.assertEquals(4, Patterns.getDeinstrumentedMethodsCount(historyPatterns, classList));
 
 		p = new Patterns("class", "method", false);
 		p.registerInstrumentedMethod(MyClass.class.getClassLoader(), MyClass.class.getName(), "myMethod4");
@@ -285,7 +265,7 @@ public class TestPatterns {
 
 		classList.clear();
 		classList.add(MyClass.class);
-		Assert.assertEquals(5, Patterns.getDeinstrumentedMethods(historyPatterns, classList));
+		Assert.assertEquals(5, Patterns.getDeinstrumentedMethodsCount(historyPatterns, classList));
 
 		p = new Patterns("class", "method", false);
 		p.registerInstrumentedMethod(MyClass2.class.getClassLoader(), MyClass2.class.getName(), "myMethodA");
@@ -294,20 +274,20 @@ public class TestPatterns {
 
 		classList.clear();
 		classList.add(MyClass.class);
-		Assert.assertEquals(5, Patterns.getDeinstrumentedMethods(historyPatterns, classList));
+		Assert.assertEquals(5, Patterns.getDeinstrumentedMethodsCount(historyPatterns, classList));
 
 		classList.clear();
 		classList.add(MyClass2.class);
-		Assert.assertEquals(2, Patterns.getDeinstrumentedMethods(historyPatterns, classList));
+		Assert.assertEquals(2, Patterns.getDeinstrumentedMethodsCount(historyPatterns, classList));
 
 		classList.clear();
 		classList.add(MyClass.class);
 		classList.add(MyClass2.class);
-		Assert.assertEquals(7, Patterns.getDeinstrumentedMethods(historyPatterns, classList));
+		Assert.assertEquals(7, Patterns.getDeinstrumentedMethodsCount(historyPatterns, classList));
 
 		classList.clear();
 		classList.add(MyClass3.class);
-		Assert.assertEquals(0, Patterns.getDeinstrumentedMethods(historyPatterns, classList));
+		Assert.assertEquals(0, Patterns.getDeinstrumentedMethodsCount(historyPatterns, classList));
 
 		// different class loader test
 		p = new Patterns("class", "method", false);
@@ -316,6 +296,6 @@ public class TestPatterns {
 		historyPatterns.add(p);
 		classList.clear();
 		classList.add(MyClass2.class);
-		Assert.assertEquals(2, Patterns.getDeinstrumentedMethods(historyPatterns, classList));
+		Assert.assertEquals(2, Patterns.getDeinstrumentedMethodsCount(historyPatterns, classList));
 	}
 }

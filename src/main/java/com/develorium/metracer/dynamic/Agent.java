@@ -94,9 +94,8 @@ public class Agent extends NotificationBroadcasterSupport implements AgentMXBean
 
 		try {
 			RestransformLoadedClassesResult retransformResult = restransformLoadedClasses(Arrays.asList(patterns), "instrument");
-			Patterns.Counters patternsCounters = patterns.getCounters();
 			Counters counters = new Counters();
-			counters.methodsCount = patternsCounters.methodsCount;
+			counters.methodsCount = patterns.getInstrumentedMethodsCount();
 			counters.classesCount = retransformResult.retransformedClasses.size();
 			counters.failedClassesCount = retransformResult.notRetransformedClasses.size();
 			sayCounters(counters, "instrument");
@@ -123,7 +122,7 @@ public class Agent extends NotificationBroadcasterSupport implements AgentMXBean
 			try {
 				RestransformLoadedClassesResult retransformResult = restransformLoadedClasses(historyPatterns, "deinstrument");
 				Counters counters = new Counters();
-				counters.methodsCount = Patterns.getDeinstrumentedMethods(historyPatterns, retransformResult.retransformedClasses);
+				counters.methodsCount = Patterns.getDeinstrumentedMethodsCount(historyPatterns, retransformResult.retransformedClasses);
 				counters.classesCount = retransformResult.retransformedClasses.size();
 				counters.failedClassesCount = retransformResult.notRetransformedClasses.size();
 				sayCounters(counters, "deinstrument");
@@ -253,7 +252,7 @@ public class Agent extends NotificationBroadcasterSupport implements AgentMXBean
 
 	private void sayCounters(Counters theCounters, String theVerb) {
 		String failMessage = theCounters.failedClassesCount > 0 
-			? String.format(", %sation failed for %d classes", theCounters.failedClassesCount, theVerb)
+			? String.format(", %sation failed for %d classes", theVerb, theCounters.failedClassesCount)
 			: "";
 		runtime.say(String.format("%d methods in %d classes %sed%s", 
 				theCounters.methodsCount,

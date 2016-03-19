@@ -116,35 +116,11 @@ public class Patterns {
 		instrumentedMethods.add(encodeKey(key));
 	}
 	
-	public static class Counters {
-		public int classesCount = 0;
-		public int methodsCount = 0;
+	public int getInstrumentedMethodsCount() {
+		return instrumentedMethods.size();
 	}
 
-	public Counters getCounters() {
-		Counters rv = new Counters();
-		Set<String> classNames = new HashSet<String>();
-
-		synchronized(instrumentedMethods) {
-			Iterator<String> i = instrumentedMethods.iterator();
-
-			while(i.hasNext()) {
-				String encodedKey = i.next();
-				Key key = encodedKey != null ? decodeKey(encodedKey) : null;
-
-				if(key == null)
-					continue;
-
-				classNames.add(key.getClassId());
-				++rv.methodsCount;
-			}
-		}
-
-		rv.classesCount = classNames.size();
-		return rv;
-	}
-
-	public static int getDeinstrumentedMethods(List<Patterns> theHistoryPatterns, List<Class<?>> theDeinstrumentedClasses) {
+	public static int getDeinstrumentedMethodsCount(List<Patterns> theHistoryPatterns, List<Class<?>> theDeinstrumentedClasses) {
 		if(theHistoryPatterns == null || theDeinstrumentedClasses == null)
 			return 0;
 
