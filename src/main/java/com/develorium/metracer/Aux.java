@@ -42,14 +42,25 @@ public class Aux {
 
 		return false;
 	}
-
+	
 	public static boolean waitForQuit() {
-		Console console = System.console();
+		InputStreamReader reader = new InputStreamReader(System.in);
 
-		if(console != null)
-			return waitForQuitFromConsole(console);
-		else 
-			return waitForQuitFromStdin();
+		while(true) {
+			try {
+				int symbol = reader.read();
+
+				if(symbol == 113) // 'q'
+					return true;
+				else if(symbol == 81) // 'Q'
+					return false;
+				else if(symbol == 10) { // return / enter
+					if(System.getenv().get("METRACER_IS_CBREAK_DISABLED") != null)
+						System.out.println("");
+				}
+			} catch(IOException e) {
+			}
+		}
 	}
 
 	private static void printHelp(PrintStream theOutput) {
@@ -123,36 +134,5 @@ public class Aux {
 	private static String getSelfPid() {
 		String jvmName = ManagementFactory.getRuntimeMXBean().getName();
 		return jvmName.substring(0, jvmName.indexOf('@'));
-	}
-
-	private static boolean waitForQuitFromConsole(Console theConsole) {
-		while(true) {
-			try {
-				int symbol = theConsole.reader().read();
-			
-				if(symbol == 113) // 'q'
-					return true;
-				else if(symbol == 81) // 'Q'
-					return false;
-				else if(symbol == 10) { // return / enter
-					if(System.getenv().get("METRACER_IS_CBREAK_DISABLED") != null)
-						System.out.println("");
-				}
-			} catch(IOException e) {
-			}
-		}
-	}
-
-	private static boolean waitForQuitFromStdin() {
-		Scanner scanner = new Scanner(System.in);
-
-		while(true) {
-			String input = scanner.next();			
-			
-			if(input.equals("q"))
-				return true;
-			else if(input.equals("Q"))
-				return false;
-		}
 	}
 }
