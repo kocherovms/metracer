@@ -17,29 +17,82 @@
 package com.develorium.metracer;
 
 import java.lang.*;
+import java.util.*;
 import java.io.*;
 import org.junit.Test;
 import junit.framework.Assert;
 
 public class MainIT {
 	private static final String SampleProgramMainClassName = "com.develorium.metracer.sample.Main";
+
+	private abstract class Scenario extends InputStream {
+		public abstract String[] getLaunchArguments();
+		public ByteArrayOutputStream capturingStream = null;
+
+		public int process() {
+			return 0;
+		}
+
+		public int read() {
+			try {
+				Thread.currentThread().sleep(1000);
+			} catch(InterruptedException e) {
+			}
+			
+			return process();
+		}
+	}
+
 	@Test
-	public void testJvmListing() {
+	public void testClassMatchingPattern() {
 		Process p = null;
 		try {
 			p = launchSample();
+			String capturedOutput = runMetracerScenario(new Scenario() {
+				@Override	
+				public String[] getLaunchArguments() {
+					return new String[] { "-l" };
+				}
+			});
 
-			PrintStream stdout = System.out;
-			ByteArrayOutputStream capturedOutput = new ByteArrayOutputStream();
-			try {
-				System.setOut(new PrintStream(capturedOutput));
-				new Main().main(new String[] { "-l" } );
-			} finally {
-				System.setOut(stdout);
+			System.out.format("Captured output is:\n%s\n", capturedOutput);
+			String pid = null;
+
+			for (String line: capturedOutput.split("\n", 1000)){
+				if(line.contains(SampleProgramMainClassName)) {
+					Scanner scanner = new Scanner(line);
+					System.out.format("Searching for PID within \"%s\"\n", line);
+					Assert.assertTrue(scanner.hasNextInt());
+					pid = "" + scanner.nextInt();
+					break;
+				}
 			}
 
-			System.out.format("Captured output is:\n%s\n", capturedOutput.toString());
-			Assert.assertTrue(capturedOutput.toString().contains(SampleProgramMainClassName));
+			Assert.assertTrue(pid != null && !pid.isEmpty());
+			System.out.format("Resolved PID is %s\n", pid);
+			final String finalizedPid = pid;
+
+			capturedOutput = runMetracerScenario(new Scenario() {
+				@Override	
+				public String[] getLaunchArguments() {
+					return new String[] { "-v",  finalizedPid, "com.develorium.metracer.sample.Main" };
+				}
+
+				@Override	
+				public int process() {
+					if(capturingStream == null) 
+						return 0;
+
+					String capturedOutput = capturingStream.toString();
+					System.err.println("kms@ capturedOutput = " + capturedOutput);
+
+					if(capturedOutput.contains("classes instrumented")) {
+						return 'q';
+					}
+
+					return 0;
+				}
+			});
 			p.destroy();
 		} catch(Exception e) {
 			if(p != null)
@@ -71,5 +124,30 @@ public class MainIT {
 		}
 
 		throw new RuntimeException("Failed to wait for a magic message is printed: process failed to start?");
+	}
+
+	private String runMetracerScenario(Scenario theScenario) {
+		PrintStream stdout = System.out;
+		InputStream stdin = System.in;
+		ByteArrayOutputStream capturedOutput = new ByteArrayOutputStream();
+
+		try {
+			System.setIn(theScenario);
+			String[] launchArguments = theScenario.getLaunchArguments();
+			StringBuilder launchArgumentsStringified = new StringBuilder();
+
+			for(String launchArgument: launchArguments)
+				launchArgumentsStringified.append(launchArgument + " ");
+
+			System.out.format("Launching scenario with arguments: %s\n", launchArgumentsStringified.toString());
+
+			System.setOut(new PrintStream(capturedOutput));
+			theScenario.capturingStream = capturedOutput;
+			new Main().main(launchArguments);
+			return capturedOutput.toString();
+		} finally {
+			System.setIn(stdin);
+			System.setOut(stdout);
+		}
 	}
 }
