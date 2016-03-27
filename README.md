@@ -9,8 +9,9 @@ Use **metracer** when:
  - you want to troubleshoot errors in Java program but debugger is not available - **metracer** will supply you with return values or exceptions thrown in a program.
 
 **metracer** is:
+- easy to use: simple and straightforward CLI;
 - lightweight: distro size is less that 300K;
-- super fast: does its work in seconds;
+- super fast: does instrumentation work in seconds;
 - zero-deployment: no 3-rd party libraries are required - only single .sh script on Linux is needed (single .jar for all other OSes);
 - Java [StackMapFrames]-friendly: **metracer** copes well with stack map frames introduced in Java 1.7 and above;
 - class loaders isolation-friendly: **metracer** copes well with modern JaveEE app servers which impose strict isolation rules.
