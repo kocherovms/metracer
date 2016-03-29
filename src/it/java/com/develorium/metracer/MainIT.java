@@ -23,23 +23,41 @@ import org.junit.Test;
 import junit.framework.Assert;
 
 public class MainIT {
-	private static final String SampleProgramMainClassName = "com.develorium.metracer.sample.Main";
+	public static class DefaultStdinAdapter implements StdinAdapter {
+		private InputStreamReader reader = new InputStreamReader(System.in);
+		@Override
+		public int read() {
+			try {
+				return reader.read();
+			} catch(IOException e) {
+				return -1;
+			}
+		}
+	}
+
+	public static StdinAdapter stdinAdapter = new DefaultStdinAdapter();
+
+	private static final String TestProgramMainClassName = "com.develorium.metracertest.Main";
 
 	private abstract class Scenario extends InputStream {
-		public abstract String[] getLaunchArguments();
 		public ByteArrayOutputStream capturingStream = null;
+
+		public abstract String[] getLaunchArguments();
 
 		public int process() {
 			return 0;
 		}
 
+		@Override
 		public int read() {
 			try {
 				Thread.currentThread().sleep(1000);
 			} catch(InterruptedException e) {
 			}
-			
-			return process();
+
+			int rv = process();
+			System.err.println("kms@ returning " + rv);
+			return rv;
 		}
 	}
 
@@ -47,7 +65,7 @@ public class MainIT {
 	public void testClassMatchingPattern() {
 		Process p = null;
 		try {
-			p = launchSample();
+			p = launchTestProgram();
 			String capturedOutput = runMetracerScenario(new Scenario() {
 				@Override	
 				public String[] getLaunchArguments() {
@@ -59,7 +77,7 @@ public class MainIT {
 			String pid = null;
 
 			for (String line: capturedOutput.split("\n", 1000)){
-				if(line.contains(SampleProgramMainClassName)) {
+				if(line.contains(TestProgramMainClassName)) {
 					Scanner scanner = new Scanner(line);
 					System.out.format("Searching for PID within \"%s\"\n", line);
 					Assert.assertTrue(scanner.hasNextInt());
@@ -75,7 +93,7 @@ public class MainIT {
 			capturedOutput = runMetracerScenario(new Scenario() {
 				@Override	
 				public String[] getLaunchArguments() {
-					return new String[] { "-v",  finalizedPid, "com.develorium.metracer.sample.Main" };
+					return new String[] { "-v",  finalizedPid, "com.develorium.metracertest.Main" };
 				}
 
 				@Override	
@@ -84,10 +102,11 @@ public class MainIT {
 						return 0;
 
 					String capturedOutput = capturingStream.toString();
-					System.err.println("kms@ capturedOutput = " + capturedOutput);
 
-					if(capturedOutput.contains("classes instrumented")) {
-						return 'q';
+					if(capturedOutput.contains("com.develorium.metracertest.Main") && capturedOutput.contains("doSomething")) {
+						//System.err.println("kms@ capturedOutput = " + capturedOutput);
+						System.err.println("kms@ zzz");
+						return 113; // 'q'
 					}
 
 					return 0;
@@ -102,12 +121,12 @@ public class MainIT {
 		}
 	}
 
-	private static Process launchSample() throws IOException {
+	private static Process launchTestProgram() throws IOException {
 		String[] args = {
 			"java",
 			"-cp",
 			String.format("%s/target/test-classes", System.getProperty("basedir")),
-			SampleProgramMainClassName
+			TestProgramMainClassName
 		};
 		Process p =java.lang.Runtime.getRuntime().exec(args);
 		// wait for program to start
@@ -140,7 +159,7 @@ public class MainIT {
 				launchArgumentsStringified.append(launchArgument + " ");
 
 			System.out.format("Launching scenario with arguments: %s\n", launchArgumentsStringified.toString());
-
+			
 			System.setOut(new PrintStream(capturedOutput));
 			theScenario.capturingStream = capturedOutput;
 			new Main().main(launchArguments);

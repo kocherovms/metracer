@@ -25,6 +25,9 @@ import javax.management.remote.*;
 import com.develorium.metracer.dynamic.*;
 
 public class Main {
+	InputStream stdin = System.in;
+	PrintStream stdout = System.out;
+	PrintStream stderr = System.err;
 	Config config = null;
 	MBeanServerConnection connection = null;
 	ObjectName agentMxBeanName = null;
@@ -34,20 +37,29 @@ public class Main {
 		new Main().execute(theArguments);
 	}
 
+	public Main() {
+	}
+
+	public Main(InputStream theStdin, PrintStream theStdout, PrintStream theStderr) {
+		stdin = theStdin;
+		stdout = theStdout;
+		stderr = theStderr;
+	}
+
 	private void execute(String[] theArguments) {
 		try {
 			config = new Config(theArguments);
 			
-			if(Aux.executeAuxCommands(config.command, System.out))
+			if(Aux.executeAuxCommands(config.command, stdout))
 				return;
 
 			executeCommands();
 		} catch(Config.BadConfig e) {
-			System.err.println(e.getMessage());
-			Aux.printUsage(System.err);
+			stderr.println(e.getMessage());
+			Aux.printUsage(stderr);
 			System.exit(1);
 		} catch(Throwable e) {
-			System.err.println(e.getMessage());
+			stderr.println(e.getMessage());
 			e.printStackTrace();
 			System.exit(1);
 		}
@@ -87,7 +99,7 @@ public class Main {
 		say("Press 'q' to quit with removal of instrumentation, 'Q' - to quit with retention of instrumentation in target JVM");
 		startListeningToAgentEvents();
 
-		if(!Aux.waitForQuit()) {
+		if(!Aux.waitForQuit(stdin, stderr)) {
 			say("Quitting with retention of instrumentation in target JVM");
 			return;
 		}
@@ -158,7 +170,7 @@ public class Main {
 			connection.addNotificationListener(agentMxBeanName, new NotificationListener() {
 					@Override
 					public void handleNotification(Notification theNotification, Object theHandback) {
-						System.out.println(theNotification.getMessage());
+						stdout.println(theNotification.getMessage());
 					}
 				}, 
 				null, null);
@@ -287,6 +299,6 @@ public class Main {
 		if(!config.isVerbose)
 			return;
 
-		System.err.println(theMessage);
+		stderr.println(theMessage);
 	}
 }

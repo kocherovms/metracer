@@ -112,6 +112,7 @@
             <configuration>
               <sources>
                 <source>src/it/java/com/develorium/metracer</source>
+                <source>src/it/java/com/develorium/metracertest</source>
               </sources>
             </configuration>
           </execution>

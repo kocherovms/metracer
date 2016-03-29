@@ -43,20 +43,18 @@ public class Aux {
 		return false;
 	}
 	
-	public static boolean waitForQuit() {
-		InputStreamReader reader = new InputStreamReader(System.in);
-
+	public static boolean waitForQuit(InputStream theStdin, PrintStream theStdout) {
 		while(true) {
 			try {
-				int symbol = reader.read();
+				int symbol = theStdin.read();
 
-				if(symbol == 113) // 'q'
+				if(symbol == 'q')
 					return true;
-				else if(symbol == 81) // 'Q'
+				else if(symbol == 'Q')
 					return false;
 				else if(symbol == 10) { // return / enter
 					if(System.getenv().get("METRACER_IS_CBREAK_DISABLED") != null)
-						System.out.println("");
+						theStdout.println("");
 				}
 			} catch(IOException e) {
 			}
