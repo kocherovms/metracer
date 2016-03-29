@@ -23,24 +23,11 @@ import org.junit.Test;
 import junit.framework.Assert;
 
 public class MainIT {
-	public static class DefaultStdinAdapter implements StdinAdapter {
-		private InputStreamReader reader = new InputStreamReader(System.in);
-		@Override
-		public int read() {
-			try {
-				return reader.read();
-			} catch(IOException e) {
-				return -1;
-			}
-		}
-	}
-
-	public static StdinAdapter stdinAdapter = new DefaultStdinAdapter();
-
 	private static final String TestProgramMainClassName = "com.develorium.metracertest.Main";
 
 	private abstract class Scenario extends InputStream {
-		public ByteArrayOutputStream capturingStream = null;
+		public ByteArrayOutputStream stdout = new ByteArrayOutputStream();
+		public ByteArrayOutputStream stderr = new ByteArrayOutputStream();
 
 		public abstract String[] getLaunchArguments();
 
@@ -55,9 +42,7 @@ public class MainIT {
 			} catch(InterruptedException e) {
 			}
 
-			int rv = process();
-			System.err.println("kms@ returning " + rv);
-			return rv;
+			return process();
 		}
 	}
 
@@ -66,13 +51,14 @@ public class MainIT {
 		Process p = null;
 		try {
 			p = launchTestProgram();
-			String capturedOutput = runMetracerScenario(new Scenario() {
-				@Override	
+			Scenario jvmListingScenario = new Scenario() {
+				@Override
 				public String[] getLaunchArguments() {
 					return new String[] { "-l" };
 				}
-			});
-
+			};
+			runMetracerScenario(jvmListingScenario);
+			String capturedOutput = jvmListingScenario.stdout.toString();
 			System.out.format("Captured output is:\n%s\n", capturedOutput);
 			String pid = null;
 
@@ -89,8 +75,7 @@ public class MainIT {
 			Assert.assertTrue(pid != null && !pid.isEmpty());
 			System.out.format("Resolved PID is %s\n", pid);
 			final String finalizedPid = pid;
-
-			capturedOutput = runMetracerScenario(new Scenario() {
+			Scenario instrumentScenario = new Scenario() {
 				@Override	
 				public String[] getLaunchArguments() {
 					return new String[] { "-v",  finalizedPid, "com.develorium.metracertest.Main" };
@@ -98,20 +83,22 @@ public class MainIT {
 
 				@Override	
 				public int process() {
-					if(capturingStream == null) 
-						return 0;
+					String capturedStderr = stderr.toString();
+					String[] lines = capturedStderr.split("\n");
 
-					String capturedOutput = capturingStream.toString();
-
-					if(capturedOutput.contains("com.develorium.metracertest.Main") && capturedOutput.contains("doSomething")) {
-						//System.err.println("kms@ capturedOutput = " + capturedOutput);
-						System.err.println("kms@ zzz");
-						return 113; // 'q'
+					for(String line : lines) {
+						if(line.contains("classes instrumented")) {
+							System.out.format("Captured instrumentation results: %s\n", line);
+							Assert.assertFalse(line.startsWith("0 classes"));
+							return 'q';
+						}
 					}
 
 					return 0;
 				}
-			});
+			};
+
+			runMetracerScenario(instrumentScenario);
 			p.destroy();
 		} catch(Exception e) {
 			if(p != null)
@@ -145,28 +132,14 @@ public class MainIT {
 		throw new RuntimeException("Failed to wait for a magic message is printed: process failed to start?");
 	}
 
-	private String runMetracerScenario(Scenario theScenario) {
-		PrintStream stdout = System.out;
-		InputStream stdin = System.in;
-		ByteArrayOutputStream capturedOutput = new ByteArrayOutputStream();
+	private void runMetracerScenario(Scenario theScenario) {
+		String[] launchArguments = theScenario.getLaunchArguments();
+		StringBuilder launchArgumentsStringified = new StringBuilder();
 
-		try {
-			System.setIn(theScenario);
-			String[] launchArguments = theScenario.getLaunchArguments();
-			StringBuilder launchArgumentsStringified = new StringBuilder();
+		for(String launchArgument: launchArguments)
+			launchArgumentsStringified.append(launchArgument + " ");
 
-			for(String launchArgument: launchArguments)
-				launchArgumentsStringified.append(launchArgument + " ");
-
-			System.out.format("Launching scenario with arguments: %s\n", launchArgumentsStringified.toString());
-			
-			System.setOut(new PrintStream(capturedOutput));
-			theScenario.capturingStream = capturedOutput;
-			new Main().main(launchArguments);
-			return capturedOutput.toString();
-		} finally {
-			System.setIn(stdin);
-			System.setOut(stdout);
-		}
+		System.out.format("Launching scenario with arguments: %s\n", launchArgumentsStringified.toString());
+		Main.main(launchArguments, theScenario, new PrintStream(theScenario.stdout), new PrintStream(theScenario.stderr));
 	}
 }

@@ -37,6 +37,10 @@ public class Main {
 		new Main().execute(theArguments);
 	}
 
+	public static void main(String[] theArguments, InputStream theStdin, PrintStream theStdout, PrintStream theStderr) {
+		new Main(theStdin, theStdout, theStderr).execute(theArguments);
+	}
+
 	public Main() {
 	}
 
@@ -49,7 +53,7 @@ public class Main {
 	private void execute(String[] theArguments) {
 		try {
 			config = new Config(theArguments);
-			
+
 			if(Aux.executeAuxCommands(config.command, stdout))
 				return;
 
