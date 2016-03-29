@@ -25,18 +25,31 @@ import junit.framework.Assert;
 public class MainIT {
 	private static final String TestProgramMainClassName = "com.develorium.metracertest.Main";
 
-	private abstract class Scenario extends InputStream {
+	private abstract static class Scenario extends InputStream {
 		public ByteArrayOutputStream stdout = new ByteArrayOutputStream();
 		public ByteArrayOutputStream stderr = new ByteArrayOutputStream();
+		public Date startTime = new Date();
 
 		public abstract String[] getLaunchArguments();
+
+		public int getTimeout() {
+			return 10000;
+		}
 
 		public int process() {
 			return 0;
 		}
 
+		public long getDuration() {
+			Date currentTime = new Date();
+			return currentTime.getTime() - startTime.getTime();
+		}
+
 		@Override
 		public int read() {
+			if(getDuration() > getTimeout())
+				throw new RuntimeException("Scenario timed out");
+
 			try {
 				Thread.currentThread().sleep(1000);
 			} catch(InterruptedException e) {
@@ -44,62 +57,35 @@ public class MainIT {
 
 			return process();
 		}
+
+		public void dump() {
+			System.out.format("Captured stdout output:\n%s\n", stdout.toString());
+			System.out.format("Captured stderr output:\n%s\n", stderr.toString());
+		}
 	}
 
 	@Test
-	public void testClassMatchingPattern() {
+	public void test() throws Throwable {
 		Process p = null;
 		try {
 			p = launchTestProgram();
-			Scenario jvmListingScenario = new Scenario() {
-				@Override
-				public String[] getLaunchArguments() {
-					return new String[] { "-l" };
-				}
-			};
-			runMetracerScenario(jvmListingScenario);
-			String capturedOutput = jvmListingScenario.stdout.toString();
-			System.out.format("Captured output is:\n%s\n", capturedOutput);
-			String pid = null;
+			final String pid = testJvmListing();
+			System.out.println("");
 
-			for (String line: capturedOutput.split("\n", 1000)){
-				if(line.contains(TestProgramMainClassName)) {
-					Scanner scanner = new Scanner(line);
-					System.out.format("Searching for PID within \"%s\"\n", line);
-					Assert.assertTrue(scanner.hasNextInt());
-					pid = "" + scanner.nextInt();
-					break;
-				}
-			}
+			testInstrumentAndQuitWithRemoval(pid);
+			System.out.println("");
 
-			Assert.assertTrue(pid != null && !pid.isEmpty());
-			System.out.format("Resolved PID is %s\n", pid);
-			final String finalizedPid = pid;
-			Scenario instrumentScenario = new Scenario() {
-				@Override	
-				public String[] getLaunchArguments() {
-					return new String[] { "-v",  finalizedPid, "com.develorium.metracertest.Main" };
-				}
+			testInstrumentAndQuitWithoutRemoval(pid);
+			System.out.println("");
 
-				@Override	
-				public int process() {
-					String capturedStderr = stderr.toString();
-					String[] lines = capturedStderr.split("\n");
+			testInstrumentAndQuitWithoutRemovalWithConsequentRemoval(pid);
+			System.out.println("");
 
-					for(String line : lines) {
-						if(line.contains("classes instrumented")) {
-							System.out.format("Captured instrumentation results: %s\n", line);
-							Assert.assertFalse(line.startsWith("0 classes"));
-							return 'q';
-						}
-					}
+			testInstrumentationOutput(pid);
+			System.out.println("");
 
-					return 0;
-				}
-			};
-
-			runMetracerScenario(instrumentScenario);
 			p.destroy();
+			System.out.println("Sample program destroyed");
 		} catch(Exception e) {
 			if(p != null)
 				p.destroy();
@@ -132,6 +118,196 @@ public class MainIT {
 		throw new RuntimeException("Failed to wait for a magic message is printed: process failed to start?");
 	}
 
+	private static class JvmListingScenario extends Scenario {
+		@Override
+		public String[] getLaunchArguments() {
+			return new String[] { "-l" };
+		}
+	}
+
+	private String testJvmListing() {
+		Scenario scenario = new JvmListingScenario(); 
+		runMetracerScenario(scenario);
+		String capturedOutput = scenario.stdout.toString();
+		System.out.format("Captured output is:\n%s\n", capturedOutput);
+		String pid = null;
+
+		for (String line: capturedOutput.split("\n", 1000)){
+			if(line.contains(TestProgramMainClassName)) {
+				Scanner scanner = new Scanner(line);
+				System.out.format("Searching for PID within \"%s\"\n", line);
+				Assert.assertTrue(scanner.hasNextInt());
+				pid = "" + scanner.nextInt();
+				break;
+			}
+		}
+
+		Assert.assertTrue(pid != null && !pid.isEmpty());
+		System.out.format("Resolved PID is %s\n", pid);
+		return pid;
+	}
+	
+	private static class InstrumentAndQuitWithRemovalScenario extends Scenario {
+		private String pid = null;
+
+		public InstrumentAndQuitWithRemovalScenario(String thePid) {
+			pid = thePid;
+		}
+
+		@Override
+		public String[] getLaunchArguments() {
+			return new String[] { "-v",  pid, "com.develorium.metracertest.Main" };
+		}
+
+		@Override	
+		public int process() {
+			String capturedStderr = stderr.toString();
+
+			for(String line : capturedStderr.split("\n")) {
+				if(line.contains("classes instrumented")) {
+					System.out.format("Captured instrumentation results: %s\n", line);
+					Assert.assertFalse(line.startsWith("0 methods"));
+					return 'q';
+				}
+			}
+
+			return 0;
+		}
+	}
+
+	private void testInstrumentAndQuitWithRemoval(String thePid) {
+		Scenario scenario = new InstrumentAndQuitWithRemovalScenario(thePid);
+		runMetracerScenario(scenario);
+		String capturedStderr = scenario.stderr.toString();
+		Assert.assertTrue(capturedStderr.contains("Quitting with removal of instrumentation"));
+
+		for(String line : capturedStderr.split("\n")) {
+			if(line.contains("classes deinstrumented")) {
+				System.out.format("Captured deinstrumentation results: %s\n", line);
+				Assert.assertFalse(line.startsWith("0 methods"));
+				return;
+			}
+		}
+
+		Assert.assertTrue(false); // deinstrumentation must succeed
+	}
+	
+	public static class InstrumentAndQuitWithoutRemovalScenario extends Scenario {
+		private String pid = null;
+
+		public InstrumentAndQuitWithoutRemovalScenario(String thePid) {
+			pid = thePid;
+		}
+
+		@Override	
+		public String[] getLaunchArguments() {
+			return new String[] { "-v",  pid, "com.develorium.metracertest.Main" };
+		}
+
+		@Override	
+		public int process() {
+			String capturedStderr = stderr.toString();
+
+			for(String line : capturedStderr.split("\n")) {
+				if(line.contains("classes instrumented")) {
+					System.out.format("Captured instrumentation results: %s\n", line);
+					return 'Q';
+				}
+			}
+
+			return 0;
+		}
+	}
+
+	private void testInstrumentAndQuitWithoutRemoval(String thePid) {
+		Scenario scenario = new InstrumentAndQuitWithoutRemovalScenario(thePid);
+		runMetracerScenario(scenario);
+		String capturedStderr = scenario.stderr.toString();
+		Assert.assertTrue(capturedStderr.contains("Quitting with retention of instrumentation"));
+		Assert.assertFalse(capturedStderr.contains("classes deinstrumented"));
+	}
+
+	public static class RemoveInstrumentationScenario extends Scenario {
+		private String pid = null;
+
+		public RemoveInstrumentationScenario(String thePid) {
+			pid = thePid;
+		}
+
+		@Override	
+		public String[] getLaunchArguments() {
+			return new String[] { "-r",  "-v", pid };
+		}
+	}
+
+	private void testInstrumentAndQuitWithoutRemovalWithConsequentRemoval(String thePid) throws Throwable {
+		Scenario cleanerScenario = new RemoveInstrumentationScenario(thePid);
+		Scenario instrumentationWithRetentionScenario = new InstrumentAndQuitWithoutRemovalScenario(thePid);
+		runMetracerScenario(cleanerScenario); // to get rid of possible leftovers from previous scenarios
+		runMetracerScenario(instrumentationWithRetentionScenario);
+		cleanerScenario = new RemoveInstrumentationScenario(thePid); // recreated to have a clean stdout / stderr
+		runMetracerScenario(cleanerScenario);
+
+		try {
+			String capturedStderr = cleanerScenario.stderr.toString();
+
+			for(String line : capturedStderr.split("\n")) {
+				if(line.contains("classes deinstrumented")) {
+					System.out.format("Captured deinstrumentation results: %s\n", line);
+					Assert.assertFalse(line.startsWith("0 methods"));
+					return;
+				}
+			}
+
+			Assert.assertTrue(false); // deinstrumentation must succeed
+		} catch(Throwable e) {
+			cleanerScenario.dump();
+			throw e;
+		}
+	}
+
+	public static class InstrumentationOutputScenario extends Scenario {
+		private String pid = null;
+		private boolean isEntryTag = false;	
+
+		public InstrumentationOutputScenario(String thePid) {
+			pid = thePid;
+		}
+
+		@Override	
+		public String[] getLaunchArguments() {
+			return new String[] { "-v",  pid, "com.develorium.metracertest.Main", "doSomething" };
+		}
+
+		@Override	
+		public int process() {
+			String capturedStdout = stdout.toString();
+
+			for(String line : capturedStdout.split("\n")) {
+				if(!isEntryTag) {
+					if(line.contains("+++ [0] com.develorium.metracertest.Main.doSomething")) {
+						System.out.println("Entry tag met: " + line);
+						isEntryTag = true;
+					}
+				}
+				else {
+					if(line.contains("--- [0] com.develorium.metracertest.Main.doSomething")) {
+						System.out.println("Exit tag met: " + line);
+						return 'q';
+					}
+				}
+			}
+
+			return 0;
+		}
+	}
+
+
+	private void testInstrumentationOutput(final String thePid) {
+		Scenario scenario = new InstrumentationOutputScenario(thePid);
+		runMetracerScenario(scenario);
+	}
+
 	private void runMetracerScenario(Scenario theScenario) {
 		String[] launchArguments = theScenario.getLaunchArguments();
 		StringBuilder launchArgumentsStringified = new StringBuilder();
@@ -139,7 +315,16 @@ public class MainIT {
 		for(String launchArgument: launchArguments)
 			launchArgumentsStringified.append(launchArgument + " ");
 
-		System.out.format("Launching scenario with arguments: %s\n", launchArgumentsStringified.toString());
-		Main.main(launchArguments, theScenario, new PrintStream(theScenario.stdout), new PrintStream(theScenario.stderr));
+		System.out.format(">>> Launching scenario %s with arguments: %s\n", theScenario.getClass().getSimpleName(), launchArgumentsStringified.toString());
+		try {
+			try {
+				Main.main(launchArguments, theScenario, new PrintStream(theScenario.stdout), new PrintStream(theScenario.stderr));
+			} catch(Throwable e) {
+				theScenario.dump();
+				throw new RuntimeException(e);
+			}
+		} finally {
+			System.out.format("<<< Scenario %s finished in %d ms\n", theScenario.getClass().getSimpleName(), theScenario.getDuration());
+		}
 	}
 }

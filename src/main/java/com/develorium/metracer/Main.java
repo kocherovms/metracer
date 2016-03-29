@@ -34,10 +34,14 @@ public class Main {
 	AgentMXBean agent = null;
 
 	public static void main(String[] theArguments) {
-		new Main().execute(theArguments);
+		try {
+			new Main().execute(theArguments);
+		} catch(Throwable e) {
+			System.exit(1);
+		}
 	}
 
-	public static void main(String[] theArguments, InputStream theStdin, PrintStream theStdout, PrintStream theStderr) {
+	public static void main(String[] theArguments, InputStream theStdin, PrintStream theStdout, PrintStream theStderr) throws Config.BadConfig, Throwable {
 		new Main(theStdin, theStdout, theStderr).execute(theArguments);
 	}
 
@@ -50,7 +54,7 @@ public class Main {
 		stderr = theStderr;
 	}
 
-	private void execute(String[] theArguments) {
+	private void execute(String[] theArguments) throws Config.BadConfig, Throwable {
 		try {
 			config = new Config(theArguments);
 
@@ -61,11 +65,11 @@ public class Main {
 		} catch(Config.BadConfig e) {
 			stderr.println(e.getMessage());
 			Aux.printUsage(stderr);
-			System.exit(1);
+			throw e;
 		} catch(Throwable e) {
 			stderr.println(e.getMessage());
 			e.printStackTrace();
-			System.exit(1);
+			throw e;
 		}
 	}
 
