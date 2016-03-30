@@ -19,82 +19,17 @@ package com.develorium.metracer;
 import java.lang.*;
 import java.util.*;
 import java.io.*;
+import org.junit.*;
 import org.junit.Test;
 import junit.framework.Assert;
 
 public class MainIT {
 	private static final String TestProgramMainClassName = "com.develorium.metracertest.Main";
+	private static Process testProgramProcess = null;
+	private String pid = null;
 
-	private abstract static class Scenario extends InputStream {
-		public ByteArrayOutputStream stdout = new ByteArrayOutputStream();
-		public ByteArrayOutputStream stderr = new ByteArrayOutputStream();
-		public Date startTime = new Date();
-
-		public abstract String[] getLaunchArguments();
-
-		public int getTimeout() {
-			return 10000;
-		}
-
-		public int process() {
-			return 0;
-		}
-
-		public long getDuration() {
-			Date currentTime = new Date();
-			return currentTime.getTime() - startTime.getTime();
-		}
-
-		@Override
-		public int read() {
-			if(getDuration() > getTimeout())
-				throw new RuntimeException("Scenario timed out");
-
-			try {
-				Thread.currentThread().sleep(1000);
-			} catch(InterruptedException e) {
-			}
-
-			return process();
-		}
-
-		public void dump() {
-			System.out.format("Captured stdout output:\n%s\n", stdout.toString());
-			System.out.format("Captured stderr output:\n%s\n", stderr.toString());
-		}
-	}
-
-	@Test
-	public void test() throws Throwable {
-		Process p = null;
-		try {
-			p = launchTestProgram();
-			final String pid = testJvmListing();
-			System.out.println("");
-
-			testInstrumentAndQuitWithRemoval(pid);
-			System.out.println("");
-
-			testInstrumentAndQuitWithoutRemoval(pid);
-			System.out.println("");
-
-			testInstrumentAndQuitWithoutRemovalWithConsequentRemoval(pid);
-			System.out.println("");
-
-			testInstrumentationOutput(pid);
-			System.out.println("");
-
-			p.destroy();
-			System.out.println("Sample program destroyed");
-		} catch(Exception e) {
-			if(p != null)
-				p.destroy();
-
-			throw new RuntimeException(e);
-		}
-	}
-
-	private static Process launchTestProgram() throws IOException {
+	@BeforeClass 
+	public static void launchTestProgram() throws IOException {
 		String[] args = {
 			"java",
 			"-cp",
@@ -110,12 +45,22 @@ public class MainIT {
 
 		while((line = reader.readLine ()) != null) {
 			if(line.startsWith(magicMessage)) {
-				System.out.println("Sample program started");
-				return p;
+				System.out.println("Test program started");
+				testProgramProcess = p;
+				return;
 			}
 		}
 
 		throw new RuntimeException("Failed to wait for a magic message is printed: process failed to start?");
+	}
+
+	@AfterClass
+	public static void shutdownTestProgram() throws IOException {
+		if(testProgramProcess != null) {
+			testProgramProcess.destroy();
+			testProgramProcess = null;
+			System.out.println("Test program destroyed");
+		}
 	}
 
 	private static class JvmListingScenario extends Scenario {
@@ -125,12 +70,12 @@ public class MainIT {
 		}
 	}
 
-	private String testJvmListing() {
+	@Before
+	public void resolvePid() {
 		Scenario scenario = new JvmListingScenario(); 
 		runMetracerScenario(scenario);
 		String capturedOutput = scenario.stdout.toString();
 		System.out.format("Captured output is:\n%s\n", capturedOutput);
-		String pid = null;
 
 		for (String line: capturedOutput.split("\n", 1000)){
 			if(line.contains(TestProgramMainClassName)) {
@@ -144,9 +89,40 @@ public class MainIT {
 
 		Assert.assertTrue(pid != null && !pid.isEmpty());
 		System.out.format("Resolved PID is %s\n", pid);
-		return pid;
 	}
-	
+
+	private abstract static class Scenario extends InputStream {
+		public ByteArrayOutputStream stdout = new ByteArrayOutputStream();
+		public ByteArrayOutputStream stderr = new ByteArrayOutputStream();
+		public Date startTime = new Date();
+
+		public abstract String[] getLaunchArguments();
+
+		public int process() {
+			return 0;
+		}
+
+		public long getDuration() {
+			Date currentTime = new Date();
+			return currentTime.getTime() - startTime.getTime();
+		}
+
+		@Override
+		public int read() {
+			try {
+				Thread.currentThread().sleep(50);
+			} catch(InterruptedException e) {
+			}
+
+			return process();
+		}
+
+		public void dump() {
+			System.out.format("Captured stdout output:\n%s\n", stdout.toString());
+			System.out.format("Captured stderr output:\n%s\n", stderr.toString());
+		}
+	}
+
 	private static class InstrumentAndQuitWithRemovalScenario extends Scenario {
 		private String pid = null;
 
@@ -175,8 +151,9 @@ public class MainIT {
 		}
 	}
 
-	private void testInstrumentAndQuitWithRemoval(String thePid) {
-		Scenario scenario = new InstrumentAndQuitWithRemovalScenario(thePid);
+	@Test(timeout = 10000)
+	public void testInstrumentAndQuitWithRemoval() {
+		Scenario scenario = new InstrumentAndQuitWithRemovalScenario(pid);
 		runMetracerScenario(scenario);
 		String capturedStderr = scenario.stderr.toString();
 		Assert.assertTrue(capturedStderr.contains("Quitting with removal of instrumentation"));
@@ -219,8 +196,9 @@ public class MainIT {
 		}
 	}
 
-	private void testInstrumentAndQuitWithoutRemoval(String thePid) {
-		Scenario scenario = new InstrumentAndQuitWithoutRemovalScenario(thePid);
+	@Test(timeout = 10000)
+	public void testInstrumentAndQuitWithoutRemoval() {
+		Scenario scenario = new InstrumentAndQuitWithoutRemovalScenario(pid);
 		runMetracerScenario(scenario);
 		String capturedStderr = scenario.stderr.toString();
 		Assert.assertTrue(capturedStderr.contains("Quitting with retention of instrumentation"));
@@ -240,12 +218,13 @@ public class MainIT {
 		}
 	}
 
-	private void testInstrumentAndQuitWithoutRemovalWithConsequentRemoval(String thePid) throws Throwable {
-		Scenario cleanerScenario = new RemoveInstrumentationScenario(thePid);
-		Scenario instrumentationWithRetentionScenario = new InstrumentAndQuitWithoutRemovalScenario(thePid);
+	@Test(timeout = 10000)
+	public void testInstrumentAndQuitWithoutRemovalWithConsequentRemoval() throws Throwable {
+		Scenario cleanerScenario = new RemoveInstrumentationScenario(pid);
+		Scenario instrumentationWithRetentionScenario = new InstrumentAndQuitWithoutRemovalScenario(pid);
 		runMetracerScenario(cleanerScenario); // to get rid of possible leftovers from previous scenarios
 		runMetracerScenario(instrumentationWithRetentionScenario);
-		cleanerScenario = new RemoveInstrumentationScenario(thePid); // recreated to have a clean stdout / stderr
+		cleanerScenario = new RemoveInstrumentationScenario(pid); // recreated to have a clean stdout / stderr
 		runMetracerScenario(cleanerScenario);
 
 		try {
@@ -302,9 +281,9 @@ public class MainIT {
 		}
 	}
 
-
-	private void testInstrumentationOutput(final String thePid) {
-		Scenario scenario = new InstrumentationOutputScenario(thePid);
+	@Test(timeout = 10000)
+	public void testInstrumentationOutput() {
+		Scenario scenario = new InstrumentationOutputScenario(pid);
 		runMetracerScenario(scenario);
 	}
 
