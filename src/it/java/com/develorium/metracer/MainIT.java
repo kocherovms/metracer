@@ -19,6 +19,7 @@ package com.develorium.metracer;
 import java.lang.*;
 import java.util.*;
 import java.io.*;
+import java.util.regex.*;
 import org.junit.*;
 import org.junit.Test;
 import junit.framework.Assert;
@@ -151,7 +152,7 @@ public class MainIT {
 		}
 	}
 
-	@Test(timeout = 10000)
+	@Test(timeout = 5000)
 	public void testInstrumentAndQuitWithRemoval() {
 		Scenario scenario = new InstrumentAndQuitWithRemovalScenario(pid);
 		runMetracerScenario(scenario);
@@ -196,7 +197,7 @@ public class MainIT {
 		}
 	}
 
-	@Test(timeout = 10000)
+	@Test(timeout = 5000)
 	public void testInstrumentAndQuitWithoutRemoval() {
 		Scenario scenario = new InstrumentAndQuitWithoutRemovalScenario(pid);
 		runMetracerScenario(scenario);
@@ -218,7 +219,7 @@ public class MainIT {
 		}
 	}
 
-	@Test(timeout = 10000)
+	@Test(timeout = 5000)
 	public void testInstrumentAndQuitWithoutRemovalWithConsequentRemoval() throws Throwable {
 		Scenario cleanerScenario = new RemoveInstrumentationScenario(pid);
 		Scenario instrumentationWithRetentionScenario = new InstrumentAndQuitWithoutRemovalScenario(pid);
@@ -247,7 +248,10 @@ public class MainIT {
 
 	public static class InstrumentationOutputScenario extends Scenario {
 		private String pid = null;
-		private boolean isEntryTag = false;	
+		Pattern pattern = Pattern.compile("\\+\\+\\+ \\[0\\] com.develorium.metracertest.Main.testBundle.*" +
+						  "\\+\\+\\+ \\[1\\] com.develorium.metracertest.Main.testIntRetVal.*" + 
+						  "\\-\\-\\- \\[1\\] com.develorium.metracertest.Main.testIntRetVal.*" +
+						  "\\-\\-\\- \\[0\\] com.develorium.metracertest.Main.testBundle.*", Pattern.DOTALL);
 
 		public InstrumentationOutputScenario(String thePid) {
 			pid = thePid;
@@ -255,33 +259,21 @@ public class MainIT {
 
 		@Override	
 		public String[] getLaunchArguments() {
-			return new String[] { "-v",  pid, "com.develorium.metracertest.Main", "doSomething" };
+			return new String[] { "-v",  pid, "com.develorium.metracertest.Main", "testBundle|testIntRetVal" };
 		}
 
 		@Override	
 		public int process() {
 			String capturedStdout = stdout.toString();
 
-			for(String line : capturedStdout.split("\n")) {
-				if(!isEntryTag) {
-					if(line.contains("+++ [0] com.develorium.metracertest.Main.doSomething")) {
-						System.out.println("Entry tag met: " + line);
-						isEntryTag = true;
-					}
-				}
-				else {
-					if(line.contains("--- [0] com.develorium.metracertest.Main.doSomething")) {
-						System.out.println("Exit tag met: " + line);
-						return 'q';
-					}
-				}
-			}
+			if(pattern.matcher(capturedStdout).find()) 
+				return 'q';
 
 			return 0;
 		}
 	}
 
-	@Test(timeout = 10000)
+	@Test(timeout = 5000)
 	public void testInstrumentationOutput() {
 		Scenario scenario = new InstrumentationOutputScenario(pid);
 		runMetracerScenario(scenario);
