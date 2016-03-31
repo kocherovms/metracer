@@ -193,6 +193,21 @@ public class Main extends MainBase {
 			System.out.println("NPE catched");
 		}
 	}
+	private void testStackTrace0() {
+		testStackTrace1();
+	}
+	private void testStackTrace1() {
+		testStackTrace2();
+	}
+	private void testStackTrace2() {
+		testStackTrace3();
+	}
+	private void testStackTrace3() {
+		testStackTrace4();
+	}
+	private void testStackTrace4() {
+	}
+
 	private void startTestJob() {
 		testJob = new Thread(new Runnable() {
 				public void run() {
@@ -200,8 +215,9 @@ public class Main extends MainBase {
 						testBundle();
 						doSomething();
 						checkNpe();
+						testStackTrace0();
 						try {
-							Thread.sleep(1000);
+							Thread.sleep(500);
 						} catch(InterruptedException e) {
 						}
 					}
