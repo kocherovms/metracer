@@ -74,13 +74,10 @@ public class Runtime {
 			logger.printMessage(theClass, theMethodName, message);
 
 			if(theIsWithStackTraces) {
-				StringWriter sw = new StringWriter();
-				new Throwable().printStackTrace(new PrintWriter(sw));
-				String lines[] = sw.toString().split("\\r?\\n");
-
+				StackTraceElement[] stackTraceElements = Thread.currentThread().getStackTrace();
 				// skip first and last lines
-				for(int i = 1; i < lines.length - 1; ++i) {
-					logger.printMessage(theClass, theMethodName, messagePrefix + lines[i]);
+				for(int i = 1; i < stackTraceElements.length - 1; ++i) {
+					logger.printMessage(theClass, theMethodName, String.format("%s    at %s", messagePrefix, stackTraceElements[i].toString()));
 				}
 			}
 		}

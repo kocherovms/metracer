@@ -33,6 +33,7 @@ public class Config {
 	public COMMAND command = null;
 	public boolean isVerbose = false;
 	public boolean isWithStackTrace = false;
+	public String stackTraceFileName = null;
 	public int pid = 0;
 	public String classMatchingPattern = null;
 	public String methodMatchingPattern = null;
@@ -52,7 +53,7 @@ public class Config {
 			checkThereAreNoMoreArguments(command.toString());
 			return;
 		case INSTRUMENT:
-			isWithStackTrace = argumentList.remove("-s");
+			parseStackTraceOption();
 		case DEINSTRUMENT:
 			parsePositionalArguments();
 			checkThereAreNoMoreArguments(command.toString());
@@ -85,6 +86,28 @@ public class Config {
 				b.append(arg + " ");
 
 			throw new BadConfig(String.format("Unexpected arguments for command %s: %s", theCommand, b.toString()));
+		}
+	}
+
+	private void parseStackTraceOption() throws BadConfig {
+		ListIterator<String> it = argumentList.listIterator();
+
+		while(it.hasNext()) {
+			String option = it.next();
+
+			if(option.equals("-s") || option.equals("-S")) {
+				isWithStackTrace = true;
+				it.remove();
+
+				if(option.equals("-S")) {
+					if(!it.hasNext()) 
+						throw new BadConfig("-S requires an accompanying file name (for stack traces)");
+
+					stackTraceFileName = it.next();
+					it.remove();
+					break;
+				}
+			}
 		}
 	}
 

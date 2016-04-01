@@ -29,14 +29,14 @@ public class ConfigTest {
 	@Test
 	public void testHelpCommand() throws Config.BadConfig {
 		Config config = new Config(new String[]{ "-h" });
-		Assert.assertEquals(config.command, Config.COMMAND.HELP);
+		Assert.assertTrue(config.command ==  Config.COMMAND.HELP);
 	}
 
 	@Test
 	public void testVerboseHelpCommand() throws Config.BadConfig {
 		Config config = new Config(new String[]{ "-h", "-v" });
-		Assert.assertEquals(config.command, Config.COMMAND.HELP);
-		Assert.assertEquals(config.isVerbose, true);
+		Assert.assertTrue(config.command == Config.COMMAND.HELP);
+		Assert.assertTrue(config.isVerbose);
 	}
 
 	@Test(expected = Config.BadConfig.class)
@@ -52,14 +52,14 @@ public class ConfigTest {
 	@Test
 	public void testListCommand() throws Config.BadConfig {
 		Config config = new Config(new String[]{ "-l" });
-		Assert.assertEquals(config.command, Config.COMMAND.LIST);
+		Assert.assertTrue(config.command == Config.COMMAND.LIST);
 	}
 
 	@Test
 	public void testVerboseListCommand() throws Config.BadConfig {
 		Config config = new Config(new String[]{ "-l", "-v" });
-		Assert.assertEquals(config.command, Config.COMMAND.LIST);
-		Assert.assertEquals(config.isVerbose, true);
+		Assert.assertTrue(config.command == Config.COMMAND.LIST);
+		Assert.assertTrue(config.isVerbose);
 	}
 
 	@Test(expected = Config.BadConfig.class)
@@ -75,49 +75,112 @@ public class ConfigTest {
 	@Test
 	public void testInstrumentCommand() throws Config.BadConfig {
 		Config config = new Config(new String[]{ "123", "Class" });
-		Assert.assertEquals(config.command, Config.COMMAND.INSTRUMENT);
-		Assert.assertEquals(config.pid, 123);
-		Assert.assertEquals(config.classMatchingPattern, "Class");
-		Assert.assertEquals(config.methodMatchingPattern, null);
-		Assert.assertEquals(config.isWithStackTrace, false);
+		Assert.assertTrue(config.command == Config.COMMAND.INSTRUMENT);
+		Assert.assertTrue(config.pid == 123);
+		Assert.assertTrue(config.classMatchingPattern.equals("Class"));
+		Assert.assertTrue(config.methodMatchingPattern == null);
+		Assert.assertFalse(config.isWithStackTrace);
 	}
 
 	@Test
 	public void testVerboseIntrumentCommand() throws Config.BadConfig {
 		Config config = new Config(new String[]{ "123", "-v", "Class" });
-		Assert.assertEquals(config.command, Config.COMMAND.INSTRUMENT);
-		Assert.assertEquals(config.pid, 123);
-		Assert.assertEquals(config.classMatchingPattern, "Class");
-		Assert.assertEquals(config.isVerbose, true);
+		Assert.assertTrue(config.command == Config.COMMAND.INSTRUMENT);
+		Assert.assertTrue(config.pid == 123);
+		Assert.assertTrue(config.classMatchingPattern.equals("Class"));
+		Assert.assertTrue(config.isVerbose);
 	}
 
 	@Test
 	public void testLongInstrumentCommand() throws Config.BadConfig {
 		Config config = new Config(new String[]{ "123", "Class", "Method" });
-		Assert.assertEquals(config.command, Config.COMMAND.INSTRUMENT);
-		Assert.assertEquals(config.pid, 123);
-		Assert.assertEquals(config.classMatchingPattern, "Class");
-		Assert.assertEquals(config.methodMatchingPattern, "Method");
-		Assert.assertEquals(config.isWithStackTrace, false);
+		Assert.assertTrue(config.command == Config.COMMAND.INSTRUMENT);
+		Assert.assertTrue(config.pid == 123);
+		Assert.assertTrue(config.classMatchingPattern.equals("Class"));
+		Assert.assertTrue(config.methodMatchingPattern.equals("Method"));
+		Assert.assertFalse(config.isWithStackTrace);
 	}
 
 	@Test
 	public void testWithStackTraceInstrumentCommand() throws Config.BadConfig {
 		Config config = new Config(new String[]{ "123", "Class", "-s"});
-		Assert.assertEquals(config.command, Config.COMMAND.INSTRUMENT);
-		Assert.assertEquals(config.pid, 123);
-		Assert.assertEquals(config.classMatchingPattern, "Class");
-		Assert.assertEquals(config.isWithStackTrace, true);
+		Assert.assertTrue(config.command == Config.COMMAND.INSTRUMENT);
+		Assert.assertTrue(config.pid == 123);
+		Assert.assertTrue(config.classMatchingPattern.equals("Class"));
+		Assert.assertTrue(config.isWithStackTrace);
+		Assert.assertTrue(config.stackTraceFileName == null);
+	}
+
+	@Test
+	public void testWithStackTraceInstrumentCommand2() throws Config.BadConfig {
+		Config config = new Config(new String[]{ "-s", "123", "Class"});
+		Assert.assertTrue(config.command == Config.COMMAND.INSTRUMENT);
+		Assert.assertTrue(config.pid == 123);
+		Assert.assertTrue(config.classMatchingPattern.equals("Class"));
+		Assert.assertTrue(config.isWithStackTrace);
+		Assert.assertTrue(config.stackTraceFileName == null);
+	}
+
+	@Test
+	public void testWithStackTraceBigInstrumentCommand() throws Config.BadConfig {
+		Config config = new Config(new String[]{ "123", "Class", "-S", "/tmp/st.txt" });
+		Assert.assertTrue(config.command == Config.COMMAND.INSTRUMENT);
+		Assert.assertTrue(config.pid == 123);
+		Assert.assertTrue(config.classMatchingPattern.equals("Class"));
+		Assert.assertTrue(config.isWithStackTrace);
+		Assert.assertTrue(config.stackTraceFileName.equals("/tmp/st.txt"));
+	}
+
+	@Test
+	public void testWithStackTraceBigInstrumentCommand2() throws Config.BadConfig {
+		Config config = new Config(new String[]{ "-S", "/tmp/st.txt", "123", "Class"});
+		Assert.assertTrue(config.command == Config.COMMAND.INSTRUMENT);
+		Assert.assertTrue(config.pid == 123);
+		Assert.assertTrue(config.classMatchingPattern.equals("Class"));
+		Assert.assertTrue(config.isWithStackTrace);
+		Assert.assertTrue(config.stackTraceFileName.equals("/tmp/st.txt"));
 	}
 
 	@Test
 	public void testWithStackTraceLongInstrumentCommand() throws Config.BadConfig {
 		Config config = new Config(new String[]{ "123", "Class", "Method", "-s" });
-		Assert.assertEquals(config.command, Config.COMMAND.INSTRUMENT);
-		Assert.assertEquals(config.pid, 123);
-		Assert.assertEquals(config.classMatchingPattern, "Class");
-		Assert.assertEquals(config.methodMatchingPattern, "Method");
-		Assert.assertEquals(config.isWithStackTrace, true);
+		Assert.assertTrue(config.command == Config.COMMAND.INSTRUMENT);
+		Assert.assertTrue(config.pid == 123);
+		Assert.assertTrue(config.classMatchingPattern.equals("Class"));
+		Assert.assertTrue(config.methodMatchingPattern.equals("Method"));
+		Assert.assertTrue(config.isWithStackTrace);
+		Assert.assertTrue(config.stackTraceFileName == null);
+	}
+
+	@Test
+	public void testWithStackTraceBigLongInstrumentCommand() throws Config.BadConfig {
+		Config config = new Config(new String[]{ "123", "Class", "Method", "-S", "/tmp/123.txt" });
+		Assert.assertTrue(config.command == Config.COMMAND.INSTRUMENT);
+		Assert.assertTrue(config.pid == 123);
+		Assert.assertTrue(config.classMatchingPattern.equals("Class"));
+		Assert.assertTrue(config.methodMatchingPattern.equals("Method"));
+		Assert.assertTrue(config.isWithStackTrace);
+		Assert.assertTrue(config.stackTraceFileName.equals("/tmp/123.txt"));
+	}
+
+	@Test(expected = Config.BadConfig.class)
+	public void testSoleWithStackTraceIsWrong() throws Config.BadConfig {
+		Config config = new Config(new String[]{ "-s" });
+	}
+
+	@Test(expected = Config.BadConfig.class)
+	public void testSoleWithStackTraceBigIsWrong() throws Config.BadConfig {
+		Config config = new Config(new String[]{ "-S" });
+	}
+
+	@Test(expected = Config.BadConfig.class)
+	public void testInstrumentCommandWithStackTraceBigExpectsFileName() throws Config.BadConfig {
+		Config config = new Config(new String[]{ "123", "Class", "Method", "-S" });
+	}
+
+	@Test(expected = Config.BadConfig.class)
+	public void testInstrumentCommandWithStackTraceBigConsumesPid() throws Config.BadConfig {
+		Config config = new Config(new String[]{ "-S", "123", "Class", "Method" });
 	}
 
 	@Test(expected = Config.BadConfig.class)
@@ -133,26 +196,26 @@ public class ConfigTest {
 	@Test
 	public void testMinimalInstrumentCommand() throws Config.BadConfig {
 		Config config = new Config(new String[]{ "123" });
-		Assert.assertEquals(config.command, Config.COMMAND.INSTRUMENT);
-		Assert.assertEquals(config.pid, 123);
-		Assert.assertEquals(config.classMatchingPattern, null);
-		Assert.assertEquals(config.methodMatchingPattern, null);
-		Assert.assertEquals(config.isWithStackTrace, false);
+		Assert.assertTrue(config.command == Config.COMMAND.INSTRUMENT);
+		Assert.assertTrue(config.pid == 123);
+		Assert.assertTrue(config.classMatchingPattern == null);
+		Assert.assertTrue(config.methodMatchingPattern == null);
+		Assert.assertFalse(config.isWithStackTrace);
 	}
 
 	@Test
 	public void testDesintrumentCommand() throws Config.BadConfig {
 		Config config = new Config(new String[]{ "-r", "123" });
-		Assert.assertEquals(config.command, Config.COMMAND.DEINSTRUMENT);
-		Assert.assertEquals(config.pid, 123);
+		Assert.assertTrue(config.command == Config.COMMAND.DEINSTRUMENT);
+		Assert.assertTrue(config.pid == 123);
 	}
 
 	@Test
 	public void testVerboseDesintrumentCommand() throws Config.BadConfig {
 		Config config = new Config(new String[]{ "-r", "123", "-v" });
-		Assert.assertEquals(config.command, Config.COMMAND.DEINSTRUMENT);
-		Assert.assertEquals(config.pid, 123);
-		Assert.assertEquals(config.isVerbose, true);
+		Assert.assertTrue(config.command == Config.COMMAND.DEINSTRUMENT);
+		Assert.assertTrue(config.pid == 123);
+		Assert.assertTrue(config.isVerbose);
 	}
 
 	@Test(expected = Config.BadConfig.class)
