@@ -34,7 +34,7 @@ public class MetracerClassFileTransformer implements ClassFileTransformer {
 		if(theArguments == null)
 			throw new RuntimeException("Arguments are missing");
 
-		patterns = new Patterns(theArguments, null, false);
+		patterns = new Patterns(theArguments, null, StackTraceMode.DISABLED);
 	}
 
 	@Override

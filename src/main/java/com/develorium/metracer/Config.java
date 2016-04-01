@@ -3,7 +3,9 @@
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
- * You may obtain a copy of the License at
+.+
+
+* You may obtain a copy of the License at
  *
  *     http://www.apache.org/licenses/LICENSE-2.0
  *
@@ -37,6 +39,7 @@ public class Config {
 	public int pid = 0;
 	public String classMatchingPattern = null;
 	public String methodMatchingPattern = null;
+	public String patternsFileName = null;
 	private LinkedList<String> argumentList = null;
 
 	public Config(String[] theArguments) throws BadConfig {
@@ -53,7 +56,7 @@ public class Config {
 			checkThereAreNoMoreArguments(command.toString());
 			return;
 		case INSTRUMENT:
-			parseStackTraceOption();
+			parseInstrumentRelatedOptions();
 		case DEINSTRUMENT:
 			parsePositionalArguments();
 			checkThereAreNoMoreArguments(command.toString());
@@ -89,7 +92,7 @@ public class Config {
 		}
 	}
 
-	private void parseStackTraceOption() throws BadConfig {
+	private void parseInstrumentRelatedOptions() throws BadConfig {
 		ListIterator<String> it = argumentList.listIterator();
 
 		while(it.hasNext()) {
@@ -101,12 +104,21 @@ public class Config {
 
 				if(option.equals("-S")) {
 					if(!it.hasNext()) 
-						throw new BadConfig("-S requires an accompanying file name (for stack traces)");
+						throw new BadConfig("-S requires an accompanying file name (for storing patterns of stack traces)");
 
 					stackTraceFileName = it.next();
 					it.remove();
-					break;
 				}
+			}
+
+			if(option.equals("-f")) {
+				it.remove();
+
+				if(!it.hasNext()) 
+					throw new BadConfig("-f requires an accompanying file name (with patterns)");
+
+				patternsFileName = it.next();
+				it.remove();
 			}
 		}
 	}

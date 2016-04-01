@@ -74,7 +74,7 @@ public class MetracerClassVisitor extends ClassVisitor {
 		}
 
 		sayAboutInstrumentation(classNameWithDots, theName, theDescription);
-		methodVisitor = new PatternMatchedMethodMutator(className, method, api, methodVisitor, theAccess, theName, theDescription, patterns.getIsWithStackTraces());
+		methodVisitor = new PatternMatchedMethodMutator(className, method, api, methodVisitor, theAccess, theName, theDescription, patterns.getStackTraceMode().isEnabled());
 		patterns.registerInstrumentedMethod(loader, classNameWithDots, theName + theDescription);
 		isChanged = true;
 		return methodVisitor;

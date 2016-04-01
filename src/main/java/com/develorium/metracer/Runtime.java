@@ -25,7 +25,7 @@ public class Runtime {
 	static public int MaxElementsForPrinting = 10;
 	
 	public interface LoggerInterface {
-		public void printMessage(Class<?> theClass, String theMethodName, String theMessage);
+		public void printMessage(Class<?> theClass, String theMethodName, String theMessage, StackTraceElement[] theStackTraceElements);
 	}
 
 	private static LoggerInterface logger = null;
@@ -71,13 +71,13 @@ public class Runtime {
 		String message = String.format("%s%s.%s(%s)", messagePrefix, theClass.getName(), theMethodName, arguments.toString());
 
 		if(logger != null) {
-			logger.printMessage(theClass, theMethodName, message);
+			StackTraceElement[] stackTraceElements = theIsWithStackTraces ? Thread.currentThread().getStackTrace() : null;
+			logger.printMessage(theClass, theMethodName, message, stackTraceElements);
 
-			if(theIsWithStackTraces) {
-				StackTraceElement[] stackTraceElements = Thread.currentThread().getStackTrace();
+			if(stackTraceElements != null) {
 				// skip first and last lines
 				for(int i = 1; i < stackTraceElements.length - 1; ++i) {
-					logger.printMessage(theClass, theMethodName, String.format("%s    at %s", messagePrefix, stackTraceElements[i].toString()));
+					logger.printMessage(theClass, theMethodName, String.format("%s    at %s", messagePrefix, stackTraceElements[i].toString()), null);
 				}
 			}
 		}
@@ -90,7 +90,7 @@ public class Runtime {
 		String message = String.format("[metracer.%s]%s --- [%d] %s.%s%s", getFormattedThreadId(), getIndent(callDepth), callDepth, theClass.getName(), theMethodName, returnValueInfo);
 
 		if(logger != null) 
-			logger.printMessage(theClass, theMethodName, message);
+			logger.printMessage(theClass, theMethodName, message, null);
 	}
 
 	public static String formatArgumentValue(Object theArgumentValue) {

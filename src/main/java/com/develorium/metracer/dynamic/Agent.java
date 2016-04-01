@@ -29,7 +29,6 @@ import com.develorium.metracer.*;
 
 public class Agent extends NotificationBroadcasterSupport implements AgentMXBean, com.develorium.metracer.Runtime.LoggerInterface {
 	public static final String MxBeanName = "com.develorium.metracer.dynamic:type=Agent";
-	public static final String NotificationType = "com.develorium.metracer.traceevent";
 	private Instrumentation instrumentation = null;
 	private com.develorium.metracer.Runtime runtime = null;
 	private AtomicInteger messageSerial = new AtomicInteger();
@@ -43,23 +42,37 @@ public class Agent extends NotificationBroadcasterSupport implements AgentMXBean
 
 	@Override
 	public MBeanNotificationInfo[] getNotificationInfo() {
-		MBeanNotificationInfo info = new MBeanNotificationInfo(
-			new String[] { NotificationType }, 
+		MBeanNotificationInfo entryExitNotification = new MBeanNotificationInfo(
+			new String[] { JmxNotificationTypes.EntryExitNotificationType }, 
 			Notification.class.getName(), 
-			"Notification about metracer event (entry / exit of methods)");
-		return new MBeanNotificationInfo[] { info };
+			"metracer notification about methodd's entry / exit");
+		MBeanNotificationInfo stackTraceNotification = new MBeanNotificationInfo(
+			new String[] { JmxNotificationTypes.StackTraceNotificationType }, 
+			Notification.class.getName(), 
+			"metracer notification about stack trace");
+		return new MBeanNotificationInfo[] { entryExitNotification, stackTraceNotification };
 	}
 
 	@Override
-	public void printMessage(Class<?> theClass, String theMethodName, String theMessage) {
+	public void printMessage(Class<?> theClass, String theMethodName, String theMessage, StackTraceElement[] theStackTraceElements) {
 		Patterns p = patterns;
 
 		if(p == null || !p.isPatternMatched(theClass.getName(), theMethodName)) 
 			return;
 
 		String messageWithTimestamp = timestampFormat.format(new Date()) + " " + theMessage;
-		Notification notification = new Notification(NotificationType, this, messageSerial.incrementAndGet(), messageWithTimestamp);
+		Notification notification = new Notification(JmxNotificationTypes.EntryExitNotificationType, this, messageSerial.incrementAndGet(), messageWithTimestamp);
 		sendNotification(notification);
+
+		if(theStackTraceElements != null && p.getStackTraceMode() == StackTraceMode.PRINT_AND_REPORT) {
+			StringBuilder stackTraceMessage = new StringBuilder();
+
+			for(StackTraceElement stackTraceElement : theStackTraceElements)
+				stackTraceMessage.append(String.format("%s::%s", stackTraceElement.getClassName(), stackTraceElement.getMethodName()));
+
+			notification = new Notification(JmxNotificationTypes.StackTraceNotificationType, this, messageSerial.incrementAndGet(), stackTraceMessage.toString());
+			sendNotification(notification);
+		}
 	}
 
 	@Override
@@ -68,24 +81,24 @@ public class Agent extends NotificationBroadcasterSupport implements AgentMXBean
 	}
 
 	@Override
-	synchronized public byte[] setPatterns(String theClassMatchingPattern, String theMethodMatchingPattern, boolean theIsWithStackTraces) {
+	synchronized public byte[] setPatterns(String theClassMatchingPattern, String theMethodMatchingPattern, StackTraceMode theStackTraceMode) {
 		if(theClassMatchingPattern == null)
 			throw new NullPointerException("Class matching pattern is null");
 
-		Patterns newPatterns = new Patterns(theClassMatchingPattern, theMethodMatchingPattern, theIsWithStackTraces);
+		Patterns newPatterns = new Patterns(theClassMatchingPattern, theMethodMatchingPattern, theStackTraceMode);
 
 		if(patterns != null && patterns.equals(newPatterns)) {
 			runtime.say(String.format("Patterns already set to: class matching pattern = %s%s, stack traces = %s", 
 					theClassMatchingPattern, 
 					theMethodMatchingPattern != null ? String.format(", method matching pattern = %s", theMethodMatchingPattern) : "",
-					"" + theIsWithStackTraces));
+					"" + theStackTraceMode.isEnabled()));
 			return null;
 		}
 
 		runtime.say(String.format("Setting patterns: class matching pattern = %s%s, stack traces = %s",
 				theClassMatchingPattern, 
 				theMethodMatchingPattern != null ? String.format(", method matching pattern = %s", theMethodMatchingPattern) : "",
-				"" + theIsWithStackTraces));
+				"" + theStackTraceMode.isEnabled()));
 
 		if(patterns != null)
 			historyPatterns.add(patterns);

@@ -28,7 +28,7 @@ class RuntimeLogger implements com.develorium.metracer.Runtime.LoggerInterface {
 		Collections.synchronizedMap(new HashMap<String, WeakReference<Object>>(1000));
 
 	@Override
-	public void printMessage(Class<?> theClass, String theMethodName, String theMessage) {
+	public void printMessage(Class<?> theClass, String theMethodName, String theMessage, StackTraceElement[] theStackTraceElements) {
 		Object logger = getAndResolveLogger(theClass);
 
 		if(!isSlf4jLogger(logger)) 

@@ -33,21 +33,25 @@ public class Patterns {
 	public static List<String> BlacklistedClassNamePrefixes = new ArrayList<String>();
 	private Pattern classMatchingPattern = null;
 	private Pattern methodMatchingPattern = null;
-	private boolean isWithStackTraces = false;
+	private StackTraceMode stackTraceMode = StackTraceMode.DISABLED;
 	private Set<String> instrumentedMethods = Collections.synchronizedSet(new HashSet<String>(1000));
 
 	static {
 		BlacklistedClassNamePrefixes.add("com.develorium.metracer.");
 	}
 
-	public Patterns(String theClassMatchingPattern, String theMethodMatchingPattern, boolean theIsWithStackTraces) {
+	public Patterns(String theClassMatchingPattern, String theMethodMatchingPattern) {
+		this(theClassMatchingPattern, theMethodMatchingPattern, StackTraceMode.DISABLED);
+	}
+
+	public Patterns(String theClassMatchingPattern, String theMethodMatchingPattern, StackTraceMode theStackTraceMode) {
 		classMatchingPattern = createPattern(theClassMatchingPattern);
 
 		if(classMatchingPattern == null)
 			throw new NullPointerException("Class matching pattern is null");
 
 		methodMatchingPattern = createPattern(theMethodMatchingPattern);
-		isWithStackTraces = theIsWithStackTraces;
+		stackTraceMode = theStackTraceMode;
 	}
 
 	public Pattern getClassMatchingPattern() {
@@ -58,8 +62,8 @@ public class Patterns {
 		return methodMatchingPattern;
 	}
 
-	public boolean getIsWithStackTraces() {
-		return isWithStackTraces;
+	public StackTraceMode getStackTraceMode() {
+		return stackTraceMode;
 	}
 
 	@Override
@@ -73,7 +77,7 @@ public class Patterns {
 			return 
 				arePatternsEqual(classMatchingPattern, other.classMatchingPattern) && 
 				arePatternsEqual(methodMatchingPattern, other.methodMatchingPattern) &&
-				isWithStackTraces == other.isWithStackTraces;
+				stackTraceMode.equals(other.stackTraceMode);
 		}
 
 		return false;

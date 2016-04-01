@@ -92,7 +92,12 @@ public class Main {
 			say("Not setting any patterns, using ones from a previous session");
 		}
 		else {
-			byte[] encodedCounters = agent.setPatterns(config.classMatchingPattern, config.methodMatchingPattern, config.isWithStackTrace);
+			StackTraceMode stackTraceMode = config.isWithStackTrace 
+				? (config.stackTraceFileName != null 
+				   ? StackTraceMode.PRINT_AND_REPORT
+				   : StackTraceMode.PRINT)
+				: StackTraceMode.DISABLED;
+			byte[] encodedCounters = agent.setPatterns(config.classMatchingPattern, config.methodMatchingPattern, stackTraceMode);
 			say(String.format("Class matching pattern set to \"%s\"", config.classMatchingPattern));
 			
 			if(config.methodMatchingPattern != null)
@@ -178,7 +183,12 @@ public class Main {
 			connection.addNotificationListener(agentMxBeanName, new NotificationListener() {
 					@Override
 					public void handleNotification(Notification theNotification, Object theHandback) {
-						stdout.println(theNotification.getMessage());
+						String notificationType = theNotification.getType();
+
+						if(notificationType.equals(JmxNotificationTypes.EntryExitNotificationType)) 
+							stdout.println(theNotification.getMessage());
+						else if(notificationType.equals(JmxNotificationTypes.StackTraceNotificationType))
+							;
 					}
 				}, 
 				null, null);

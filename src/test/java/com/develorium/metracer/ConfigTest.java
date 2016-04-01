@@ -163,6 +163,32 @@ public class ConfigTest {
 		Assert.assertTrue(config.stackTraceFileName.equals("/tmp/123.txt"));
 	}
 
+	@Test
+	public void testInstrumentCommandFromFileName() throws Config.BadConfig {
+		Config config = new Config(new String[]{ "123", "-f", "/tmp/123.txt" });
+		Assert.assertTrue(config.command == Config.COMMAND.INSTRUMENT);
+		Assert.assertTrue(config.pid == 123);
+		Assert.assertTrue(config.patternsFileName.equals("/tmp/123.txt"));
+
+		config = new Config(new String[]{ "-f", "/tmp/123.txt", "123" });
+		Assert.assertTrue(config.command == Config.COMMAND.INSTRUMENT);
+		Assert.assertTrue(config.pid == 123);
+		Assert.assertTrue(config.patternsFileName.equals("/tmp/123.txt"));
+
+		config = new Config(new String[]{ "-f", "/tmp/123.txt", "123", "Class" });
+		Assert.assertTrue(config.command == Config.COMMAND.INSTRUMENT);
+		Assert.assertTrue(config.pid == 123);
+		Assert.assertTrue(config.classMatchingPattern.equals("Class"));
+		Assert.assertTrue(config.patternsFileName.equals("/tmp/123.txt"));
+
+		config = new Config(new String[]{ "-f", "/tmp/123.txt", "123", "Class", "Method" });
+		Assert.assertTrue(config.command == Config.COMMAND.INSTRUMENT);
+		Assert.assertTrue(config.pid == 123);
+		Assert.assertTrue(config.classMatchingPattern.equals("Class"));
+		Assert.assertTrue(config.methodMatchingPattern.equals("Method"));
+		Assert.assertTrue(config.patternsFileName.equals("/tmp/123.txt"));
+	}
+
 	@Test(expected = Config.BadConfig.class)
 	public void testSoleWithStackTraceIsWrong() throws Config.BadConfig {
 		Config config = new Config(new String[]{ "-s" });
@@ -174,7 +200,7 @@ public class ConfigTest {
 	}
 
 	@Test(expected = Config.BadConfig.class)
-	public void testInstrumentCommandWithStackTraceBigExpectsFileName() throws Config.BadConfig {
+	public void testInstrumentCommandWithStackTraceBigRequiresFileName() throws Config.BadConfig {
 		Config config = new Config(new String[]{ "123", "Class", "Method", "-S" });
 	}
 
@@ -191,6 +217,16 @@ public class ConfigTest {
 	@Test(expected = Config.BadConfig.class)
 	public void testBadPidInstrumentCommand() throws Config.BadConfig {
 		Config config = new Config(new String[]{ "habr", "Class" });
+	}
+
+	@Test(expected = Config.BadConfig.class)
+	public void testInstrumentWithFileNameConsumesPid() throws Config.BadConfig {
+		Config config = new Config(new String[]{ "-f", "123", "Class", "Method" });
+	}
+
+	@Test(expected = Config.BadConfig.class)
+	public void testInstrumentCommandFromFileNameRequiredFileName() throws Config.BadConfig {
+		Config config = new Config(new String[]{ "123", "-f" });
 	}
 
 	@Test

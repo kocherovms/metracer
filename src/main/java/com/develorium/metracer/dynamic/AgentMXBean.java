@@ -17,6 +17,7 @@
 package com.develorium.metracer.dynamic;
 
 import java.io.*;
+import com.develorium.metracer.*;
 
 public interface AgentMXBean {
 	public static class Counters implements Serializable {
@@ -44,7 +45,7 @@ public interface AgentMXBean {
 
 	public void setIsVerbose(boolean theIsVerbose);
 	// returns serialized Counters
-	public byte[] setPatterns(String theClassMatchingPattern, String theMethodMatchingPattern, boolean theIsWithStackTraces);
+	public byte[] setPatterns(String theClassMatchingPattern, String theMethodMatchingPattern, StackTraceMode theStackTraceMode);
 	// returns serialized Counters
 	public byte[] removePatterns();
 }
