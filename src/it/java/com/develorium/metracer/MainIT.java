@@ -186,6 +186,7 @@ public class MainIT {
 				if(line.contains("classes instrumented")) {
 					System.out.format("Captured instrumentation results: %s\n", line);
 					Assert.assertFalse(line.startsWith("0 methods"));
+					Assert.assertFalse(line.contains(" failed for "));
 					return 'q';
 				}
 			}
@@ -323,7 +324,7 @@ public class MainIT {
 		runMetracerScenario(scenario);
 	}
 
-	public static class InstrumentationOutputScenarioWithStackTraces extends Scenario {
+	public static class InstrumentationOutputWithStackTracesScenario extends Scenario {
 		private String pid = null;
 		Pattern pattern = Pattern.compile(
 			"\\[0\\] com.develorium.metracertest.Main.testStackTrace4.*" +
@@ -333,7 +334,7 @@ public class MainIT {
 			"\\s+at\\s+com.develorium.metracertest.Main.testStackTrace1.*" + 
 			"\\s+at\\s+com.develorium.metracertest.Main.testStackTrace0.*", Pattern.DOTALL);
 
-		public InstrumentationOutputScenarioWithStackTraces(String thePid) {
+		public InstrumentationOutputWithStackTracesScenario(String thePid) {
 			pid = thePid;
 		}
 
@@ -355,7 +356,7 @@ public class MainIT {
 
 	@Test(timeout = 5000)
 	public void testInstrumentationOutputWithStackTraces() {
-		Scenario scenario = new InstrumentationOutputScenarioWithStackTraces(pid);
+		Scenario scenario = new InstrumentationOutputWithStackTracesScenario(pid);
 		runMetracerScenario(scenario);
 	}
 
