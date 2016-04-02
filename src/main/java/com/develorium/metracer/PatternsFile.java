@@ -23,6 +23,9 @@ import java.io.*;
 public class PatternsFile {
 	private String classMatchingPattern = null;
 	private String methodMatchingPattern = null;
+	Writer writer = null;
+	int patternsSerial = 0;
+	Set<String> consumedPatterns = new HashSet<String>();
 
 	public PatternsFile(InputStream theInputStream) throws IOException {
 		Objects.requireNonNull(theInputStream);
@@ -31,6 +34,7 @@ public class PatternsFile {
 
 	public PatternsFile(OutputStream theOutputStream) {
 		Objects.requireNonNull(theOutputStream);
+		writer = new BufferedWriter(new OutputStreamWriter(theOutputStream));
 	}
 
 	public String getClassMatchingPattern() {
@@ -41,8 +45,24 @@ public class PatternsFile {
 		return methodMatchingPattern;
 	}
 
-	public void consumePatterns(String thePatterns, String theContext) {
-		//
+	public void consumePatterns(String thePatterns, String theContext) throws IOException {
+		if(writer == null)
+			throw new RuntimeException("PatternsFile is not initialized for writing");
+			
+		Objects.requireNonNull(thePatterns);
+		
+		if(consumedPatterns.contains(thePatterns))
+			return;
+
+		consumedPatterns.add(thePatterns);
+		writer.write(String.format("# stack trace no. %d\n", ++patternsSerial));
+
+		if(theContext != null && !theContext.isEmpty())
+			writer.write(String.format("# %s\n", theContext));
+
+		writer.write(thePatterns);
+		writer.write("\n\n");
+		writer.flush();
 	}
 
 	private void loadPatterns(InputStream theInputStream) throws IOException {

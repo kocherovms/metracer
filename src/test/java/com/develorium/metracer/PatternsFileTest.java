@@ -114,10 +114,58 @@ public class PatternsFileTest {
 	}
 
 	@Test 
-	public void testConsumingOfPatterns() {
+	public void testPatternsConsumption() throws IOException {
 		ByteArrayOutputStream outputStream = new ByteArrayOutputStream();
 		PatternsFile file = new PatternsFile(outputStream);
 		file.consumePatterns("com.develorium.metracer.Test::method", "Some context");
 		Assert.assertTrue(outputStream.toString().contains("com.develorium.metracer.Test::method"));
+		file.consumePatterns("com.acme.www.Servlet::doPerform\ncom.acme.www.Servlet::doBuild", "Another context");
+		Assert.assertTrue(outputStream.toString().contains("com.acme.www.Servlet::doPerform"));
+		Assert.assertTrue(outputStream.toString().contains("com.acme.www.Servlet::doBuild"));
+	}
+
+	@Test
+	public void testDuplicationProtectionDuringPatternsConsumption() throws IOException {
+		ByteArrayOutputStream outputStream = new ByteArrayOutputStream();
+		PatternsFile file = new PatternsFile(outputStream);
+		file.consumePatterns("x.y.z.MyClass::method1", "Some context");
+		int size = outputStream.size();
+
+		file.consumePatterns("x.y.z.MyClass::method1", "Some context");
+		Assert.assertTrue(size == outputStream.size());
+	}
+
+	@Test
+	public void testPatternsRecovery() throws IOException {
+		ByteArrayOutputStream outputStream = new ByteArrayOutputStream();
+		PatternsFile file = new PatternsFile(outputStream);
+		String stackTrace1 = 
+			"x.y.z.MyClass::method1\n" + 
+			"x.y.z.MyClass::method2\n" +
+			"x.y.z.MyClass::method3\n";
+
+		String stackTrace2 = 
+			"a.b.c.HisClass::buildx\n" + 
+			"a.b.c.HisClass::buildy\n" + 
+			"a.b.c.HisClass::buildz\n";
+
+		file.consumePatterns(stackTrace1, "Some context");
+		file.consumePatterns(stackTrace2, "Some context");
+
+		String content = outputStream.toString();
+		ByteArrayInputStream inputStream = new ByteArrayInputStream(content.getBytes());
+		file = new PatternsFile(inputStream);
+		Pattern classMatchingPattern = Pattern.compile(file.getClassMatchingPattern());
+		System.out.println("Class matching pattern = " + classMatchingPattern);
+		Assert.assertTrue(classMatchingPattern.matcher("x.y.z.MyClass").find());
+		Assert.assertTrue(classMatchingPattern.matcher("a.b.c.HisClass").find());
+		Pattern methodMatchingPattern = Pattern.compile(file.getMethodMatchingPattern());
+		System.out.println("Method matching pattern = " + methodMatchingPattern);
+
+		for(String line : stackTrace1.split("\n"))
+			Assert.assertTrue(methodMatchingPattern.matcher(line).find());
+
+		for(String line : stackTrace2.split("\n"))
+			Assert.assertTrue(methodMatchingPattern.matcher(line).find());
 	}
 }
