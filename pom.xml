@@ -75,7 +75,7 @@
           <archive>
             <manifestEntries>
               <Built-By>${user.name}</Built-By>
-              <Build-Host>${env.HOSTNAME}</Build-Host>
+              <Build-Host>${hostname}</Build-Host>
               <Site>${metracer.homepage}</Site>
               <Premain-Class>com.develorium.metracer.statik.Agent</Premain-Class>
               <Agent-Class>com.develorium.metracer.dynamic.Agent</Agent-Class>
@@ -130,6 +130,24 @@
               <goal>integration-test</goal>
               <goal>verify</goal>
             </goals>
+          </execution>
+        </executions>
+      </plugin>
+      <plugin>
+        <groupId>org.codehaus.groovy.maven</groupId>
+        <artifactId>gmaven-plugin</artifactId>
+        <version>1.0</version>
+        <executions>
+          <execution>
+            <phase>generate-resources</phase>
+            <goals>
+              <goal>execute</goal>
+            </goals>
+            <configuration>
+              <source>
+                project.properties["hostname"] = InetAddress.getLocalHost().getHostName()
+              </source>
+            </configuration>
           </execution>
         </executions>
       </plugin>
