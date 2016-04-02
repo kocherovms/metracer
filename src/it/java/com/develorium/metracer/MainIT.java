@@ -30,6 +30,7 @@ public class MainIT {
 	private static String pid = null;
 
 	private abstract static class Scenario extends InputStream {
+		public String pid = null;
 		public ByteArrayOutputStream stdout = new ByteArrayOutputStream();
 		public ByteArrayOutputStream stderr = new ByteArrayOutputStream();
 		public Date startTime = new Date();
@@ -160,8 +161,6 @@ public class MainIT {
 	}
 
 	private static class InstrumentAndQuitWithRemovalScenario extends Scenario {
-		private String pid = null;
-
 		public InstrumentAndQuitWithRemovalScenario(String thePid) {
 			pid = thePid;
 		}
@@ -207,8 +206,6 @@ public class MainIT {
 	}
 	
 	public static class InstrumentAndQuitWithoutRemovalScenario extends Scenario {
-		private String pid = null;
-
 		public InstrumentAndQuitWithoutRemovalScenario(String thePid) {
 			pid = thePid;
 		}
@@ -243,8 +240,6 @@ public class MainIT {
 	}
 
 	public static class RemoveInstrumentationScenario extends Scenario {
-		private String pid = null;
-
 		public RemoveInstrumentationScenario(String thePid) {
 			pid = thePid;
 		}
@@ -284,7 +279,6 @@ public class MainIT {
 	}
 
 	public static class InstrumentationOutputScenario extends Scenario {
-		private String pid = null;
 		private Pattern pattern = Pattern.compile(
 			"\\+\\+\\+ \\[0\\] com.develorium.metracertest.Main.testBundle.*" +
 			"\\+\\+\\+ \\[1\\] com.develorium.metracertest.Main.testIntRetVal.*" + 
@@ -318,7 +312,6 @@ public class MainIT {
 	}
 
 	public static class InstrumentationOutputWithStackTracesScenario extends Scenario {
-		private String pid = null;
 		private Pattern pattern = Pattern.compile(
 			"\\[0\\] com.develorium.metracertest.Main.testStackTrace4.*" +
 			"\\s+at\\s+com.develorium.metracertest.Main.testStackTrace4.*" + 
@@ -354,7 +347,6 @@ public class MainIT {
 	}
 
 	public static class InstrumentationWithStackTracesSavingScenario extends Scenario {
-		private String pid = null;
 		private String fileName = null;
 		private Pattern pattern = Pattern.compile(
 			"\\[0\\] com.develorium.metracertest.Main.testStackTrace4.*" +
@@ -386,7 +378,6 @@ public class MainIT {
 	}
 
 	public static class InstrumentWithPatternsFromFileScenario extends Scenario {
-		private String pid = null;
 		private String fileName = null;
 		private Pattern pattern = Pattern.compile(
 			"\\+\\+\\+ \\[\\d+\\] com.develorium.metracertest.Main.testStackTrace0.*" +
@@ -428,6 +419,40 @@ public class MainIT {
 		runMetracerScenario(saveStackTracesScenario);
 		Scenario instrumentWithPatternsFromFileScenario = new InstrumentWithPatternsFromFileScenario(pid, fileName);
 		runMetracerScenario(instrumentWithPatternsFromFileScenario);
+	}
+
+	public static class ReturnValuePrintingScenario extends Scenario {
+		public ReturnValuePrintingScenario(String thePid) {
+			pid = thePid;
+		}
+
+		@Override	
+		public String[] getLaunchArguments() {
+			return new String[] { pid, TestProgramMainClassName, "testReturnsMap" };
+		}
+
+		@Override	
+		public int process() {
+			printNewStdout();
+
+			for(String line : stdout.toString().split("\n")) {
+				if(line.contains("--- [0] com.develorium.metracertest.Main.testReturnsMap")) {
+					Assert.assertTrue(line.contains("return:"));
+					Assert.assertTrue(line.contains("2*2 => 4"));
+					Assert.assertTrue(line.contains("lorem => ipsum"));
+					Assert.assertTrue(line.contains("hello => world"));
+					return 'q';
+				}
+			}
+
+			return 0;
+		}
+	}
+
+	@Test(timeout = 5000)
+	public void testReturnValuePrinting() {
+		Scenario scenario = new ReturnValuePrintingScenario(pid);
+		runMetracerScenario(scenario);
 	}
 
 	private static void runMetracerScenario(Scenario theScenario) {

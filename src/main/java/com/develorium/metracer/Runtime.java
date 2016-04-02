@@ -260,7 +260,7 @@ public class Runtime {
 		else if(theReturnValue instanceof Throwable)
 			return String.format(" => exception: %s", theReturnValue.toString());
 		else 
-			return String.format(" => return: %s", theReturnValue != null ? theReturnValue.toString() : null);
+			return String.format(" => return: %s", formatArgumentValue(theReturnValue));
 	}
 
 	private static String getFormattedThreadId() {

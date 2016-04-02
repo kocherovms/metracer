@@ -239,4 +239,43 @@ public class RuntimeTest {
 		String v = r.formatReturnValue(false, e);
 		Assert.assertTrue(v.contains(" => exception") && v.contains(e.toString()));
 	}
+
+	@Test
+	public void testFormatReturnValueArray() {
+		int[] v = { 1, 2, 3 };
+		String expected = String.format("[%s, %s, %s]", "" + v[0], "" + v[1], "" + v[2]);
+		String rv = r.formatReturnValue(false, v);
+		Assert.assertTrue(rv.contains(expected));
+	}
+
+	@Test
+	public void testFormatReturnValueCollection() {
+		Integer[] a = { 1, 2, 3 };
+		List<Integer> v = Arrays.asList(a);
+		String expected = String.format("[%s, %s, %s]", a[0], a[1], a[2]);
+		String rv = r.formatReturnValue(false, v);
+		Assert.assertTrue(rv.contains(expected));
+	}
+
+	@Test
+	public void testFormatReturnValueMap() {
+		Map<String, String> v = new HashMap<String, String>();
+		v.put("Hello", "world");
+		v.put("Lorem", "ipsum");
+		v.put("no", "pasaran");
+		v.put("x", null);
+		v.put(null, "y");
+		StringBuilder b = new StringBuilder();
+
+		for(Map.Entry<String, String> e: v.entrySet()) {
+			if(b.length() > 0) 
+				b.append(", ");
+
+			b.append(e.getKey() + " => " + e.getValue());
+		}
+
+		String expected = "[" + b.toString() + "]";
+		String rv = r.formatReturnValue(false, v);
+		Assert.assertTrue(rv.contains(expected));
+	}
 }

@@ -207,6 +207,13 @@ public class Main extends MainBase {
 	}
 	private void testStackTrace4() {
 	}
+	private Map<String, String> testReturnsMap() {
+		Map<String, String> rv = new HashMap<String, String>();
+		rv.put("hello", "world");
+		rv.put("lorem", "ipsum");
+		rv.put("2*2", "4");
+		return rv;
+	}
 
 	private void startTestJob() {
 		testJob = new Thread(new Runnable() {
@@ -216,6 +223,7 @@ public class Main extends MainBase {
 						doSomething();
 						checkNpe();
 						testStackTrace0();
+						testReturnsMap();
 						try {
 							Thread.sleep(500);
 						} catch(InterruptedException e) {
