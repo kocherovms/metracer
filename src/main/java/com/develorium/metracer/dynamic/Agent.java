@@ -54,7 +54,7 @@ public class Agent extends NotificationBroadcasterSupport implements AgentMXBean
 	}
 
 	@Override
-	public void printMessage(Class<?> theClass, String theMethodName, String theMessage, StackTraceElement[] theStackTraceElements) {
+	public void printMessage(Class<?> theClass, String theMethodName, String theMessage, List<StackTraceElement> theStackTraceElements) {
 		Patterns p = patterns;
 
 		if(p == null || !p.isPatternMatched(theClass.getName(), theMethodName)) 
@@ -66,7 +66,7 @@ public class Agent extends NotificationBroadcasterSupport implements AgentMXBean
 
 		if(theStackTraceElements != null && p.getStackTraceMode() == StackTraceMode.PRINT_AND_REPORT) {
 			StringBuilder stackTraceMessage = new StringBuilder();
-			stackTraceMessage.append(String.format("# %s\n", theMessage));
+			stackTraceMessage.append(String.format("# Stack trace context: %s\n", theMessage));
 
 			for(StackTraceElement stackTraceElement : theStackTraceElements)
 				stackTraceMessage.append(String.format("%s::%s\n", stackTraceElement.getClassName(), stackTraceElement.getMethodName()));

@@ -88,8 +88,24 @@ public class Main {
 	private void executeInstrument() {
 		loadAgent(true);
 		agent.setIsVerbose(config.isVerbose);
+		String effectiveClassMatchingPattern = config.classMatchingPattern;
+		String effectiveMethodMatchingPattern = config.methodMatchingPattern;
 
-		if(config.classMatchingPattern == null) { 
+		if(config.patternsFileName != null) {
+			say(String.format("Loading patterns from \"%s\"", config.patternsFileName));
+			try {
+				FileInputStream inputStream = new FileInputStream(config.patternsFileName);
+				PatternsFile inputStreamFile = new PatternsFile(inputStream);
+				effectiveClassMatchingPattern = inputStreamFile.getClassMatchingPattern();
+				effectiveMethodMatchingPattern = inputStreamFile.getMethodMatchingPattern();
+			} catch(FileNotFoundException e) {
+				throw new RuntimeException(String.format("Failed to open \"%s\" for reading: %s", config.patternsFileName, e.getMessage()), e);
+			} catch(IOException e) {
+				throw new RuntimeException(String.format("Failed to read patterns from \"%s\": %s", config.patternsFileName, e.getMessage()), e);
+			}
+		}
+
+		if(effectiveClassMatchingPattern == null) {
 			say("Not setting any patterns, using ones from a previous session");
 		}
 		else {
@@ -107,11 +123,11 @@ public class Main {
 				   ? StackTraceMode.PRINT_AND_REPORT
 				   : StackTraceMode.PRINT)
 				: StackTraceMode.DISABLED;
-			byte[] encodedCounters = agent.setPatterns(config.classMatchingPattern, config.methodMatchingPattern, stackTraceMode);
-			say(String.format("Class matching pattern set to \"%s\"", config.classMatchingPattern));
+			byte[] encodedCounters = agent.setPatterns(effectiveClassMatchingPattern, effectiveMethodMatchingPattern, stackTraceMode);
+			say(String.format("Class matching pattern set to \"%s\"", effectiveClassMatchingPattern));
 			
-			if(config.methodMatchingPattern != null)
-				say(String.format("Method matching pattern set to \"%s\"", config.methodMatchingPattern));
+			if(effectiveMethodMatchingPattern != null)
+				say(String.format("Method matching pattern set to \"%s\"", effectiveMethodMatchingPattern));
 			
 			if(config.isWithStackTrace)
 				say("Stack traces enabled");

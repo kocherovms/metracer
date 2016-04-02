@@ -25,7 +25,7 @@ public class Runtime {
 	static public int MaxElementsForPrinting = 10;
 	
 	public interface LoggerInterface {
-		public void printMessage(Class<?> theClass, String theMethodName, String theMessage, StackTraceElement[] theStackTraceElements);
+		public void printMessage(Class<?> theClass, String theMethodName, String theMessage, List<StackTraceElement> theStackTraceElements);
 	}
 
 	private static LoggerInterface logger = null;
@@ -72,12 +72,23 @@ public class Runtime {
 
 		if(logger != null) {
 			StackTraceElement[] stackTraceElements = theIsWithStackTraces ? Thread.currentThread().getStackTrace() : null;
-			logger.printMessage(theClass, theMethodName, message, stackTraceElements);
-
+			List<StackTraceElement> prunedStackTraceElements = null;
+			
 			if(stackTraceElements != null) {
-				// skip first and last lines
-				for(int i = 1; i < stackTraceElements.length - 1; ++i) {
-					logger.printMessage(theClass, theMethodName, String.format("%s    at %s", messagePrefix, stackTraceElements[i].toString()), null);
+				for(StackTraceElement element : stackTraceElements) {
+					if(element.getClassName().equals(theClass.getName()) && element.getMethodName().equals(theMethodName))
+						prunedStackTraceElements = new LinkedList<StackTraceElement>();
+
+					if(prunedStackTraceElements != null)
+						prunedStackTraceElements.add(element);
+				}
+			}
+
+			logger.printMessage(theClass, theMethodName, message, prunedStackTraceElements);
+
+			if(prunedStackTraceElements != null) {
+				for(StackTraceElement element : prunedStackTraceElements) {
+					logger.printMessage(theClass, theMethodName, String.format("%s    at %s", messagePrefix, element.toString()), null);
 				}
 			}
 		}

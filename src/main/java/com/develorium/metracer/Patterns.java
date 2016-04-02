@@ -37,6 +37,7 @@ public class Patterns {
 	private Set<String> instrumentedMethods = Collections.synchronizedSet(new HashSet<String>(1000));
 
 	static {
+		BlacklistedClassNamePrefixes.add("java.lang.");
 		BlacklistedClassNamePrefixes.add("com.develorium.metracer.");
 	}
 

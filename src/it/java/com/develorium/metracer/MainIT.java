@@ -119,27 +119,20 @@ public class MainIT {
 		}
 
 		Assert.assertTrue(testProgramProcess != null);
-		int attempsCount = 3;
+		Scenario scenario = new JvmListingScenario(); 
+		runMetracerScenario(scenario);
+		String capturedOutput = scenario.stdout.toString();
+		System.out.println(capturedOutput);
 
-		while(attempsCount-- > 0 && (pid == null || pid.isEmpty())) {
-			Scenario scenario = new JvmListingScenario(); 
-			runMetracerScenario(scenario);
-			String capturedOutput = scenario.stdout.toString();
-			System.out.println(capturedOutput);
+		for (String capturedOutputLine : capturedOutput.split("\n", 1000)){
+			if(capturedOutputLine.contains(TestProgramMainClassName)) {
+				if(pid != null) 
+					throw new RuntimeException(String.format("More that one running test program detected (%s): can't decide to which to connect to", TestProgramMainClassName));
 
-			for (String capturedOutputLine : capturedOutput.split("\n", 1000)){
-				if(capturedOutputLine.contains(TestProgramMainClassName)) {
-					Scanner scanner = new Scanner(capturedOutputLine);
-					System.out.format("Searching for PID within \"%s\"\n", capturedOutputLine);
-					Assert.assertTrue(scanner.hasNextInt());
-					pid = "" + scanner.nextInt();
-					break;
-				}
-			}
-
-			try {
-				Thread.currentThread().sleep(1000);
-			} catch(InterruptedException e) {
+				Scanner scanner = new Scanner(capturedOutputLine);
+				System.out.format("Searching for PID within \"%s\"\n", capturedOutputLine);
+				Assert.assertTrue(scanner.hasNextInt());
+				pid = "" + scanner.nextInt();
 			}
 		}
 
@@ -222,7 +215,7 @@ public class MainIT {
 
 		@Override	
 		public String[] getLaunchArguments() {
-			return new String[] { "-v",  pid, "com.develorium.metracertest.Main" };
+			return new String[] { "-v",  pid, "com.develorium.metracertest.Main", "doSomething" };
 		}
 
 		@Override	
@@ -396,11 +389,16 @@ public class MainIT {
 		private String pid = null;
 		private String fileName = null;
 		private Pattern pattern = Pattern.compile(
-			"\\[0\\] com.develorium.metracertest.Main.testStackTrace0.*" +
-			"\\[1\\] com.develorium.metracertest.Main.testStackTrace1.*" + 
-			"\\[2\\] com.develorium.metracertest.Main.testStackTrace2.*" + 
-			"\\[3\\] com.develorium.metracertest.Main.testStackTrace3.*" + 
-			"\\[4\\] com.develorium.metracertest.Main.testStackTrace4.*", Pattern.DOTALL);
+			"\\+\\+\\+ \\[\\d+\\] com.develorium.metracertest.Main.testStackTrace0.*" +
+			"\\+\\+\\+ \\[\\d+\\] com.develorium.metracertest.Main.testStackTrace1.*" + 
+			"\\+\\+\\+ \\[\\d+\\] com.develorium.metracertest.Main.testStackTrace2.*" + 
+			"\\+\\+\\+ \\[\\d+\\] com.develorium.metracertest.Main.testStackTrace3.*" + 
+			"\\+\\+\\+ \\[\\d+\\] com.develorium.metracertest.Main.testStackTrace4.*" +
+			"\\-\\-\\- \\[\\d+\\] com.develorium.metracertest.Main.testStackTrace4.*" +
+			"\\-\\-\\- \\[\\d+\\] com.develorium.metracertest.Main.testStackTrace3.*" + 
+			"\\-\\-\\- \\[\\d+\\] com.develorium.metracertest.Main.testStackTrace2.*" + 
+			"\\-\\-\\- \\[\\d+\\] com.develorium.metracertest.Main.testStackTrace1.*" + 
+			"\\-\\-\\- \\[\\d+\\] com.develorium.metracertest.Main.testStackTrace0.*", Pattern.DOTALL);
 
 		public InstrumentWithPatternsFromFileScenario(String thePid, String theFileName) {
 			pid = thePid;
