@@ -45,7 +45,7 @@ public class PatternsFile {
 		return methodMatchingPattern;
 	}
 
-	public void consumePatterns(String thePatterns, String theContext) throws IOException {
+	public void consumePatterns(String thePatterns) throws IOException {
 		if(writer == null)
 			throw new RuntimeException("PatternsFile is not initialized for writing");
 			
@@ -55,11 +55,7 @@ public class PatternsFile {
 			return;
 
 		consumedPatterns.add(thePatterns);
-		writer.write(String.format("# stack trace no. %d\n", ++patternsSerial));
-
-		if(theContext != null && !theContext.isEmpty())
-			writer.write(String.format("# %s\n", theContext));
-
+		writer.write(String.format("# patterns set no. %d\n", ++patternsSerial));
 		writer.write(thePatterns);
 		writer.write("\n\n");
 		writer.flush();

@@ -66,9 +66,10 @@ public class Agent extends NotificationBroadcasterSupport implements AgentMXBean
 
 		if(theStackTraceElements != null && p.getStackTraceMode() == StackTraceMode.PRINT_AND_REPORT) {
 			StringBuilder stackTraceMessage = new StringBuilder();
+			stackTraceMessage.append(String.format("# %s\n", theMessage));
 
 			for(StackTraceElement stackTraceElement : theStackTraceElements)
-				stackTraceMessage.append(String.format("%s::%s", stackTraceElement.getClassName(), stackTraceElement.getMethodName()));
+				stackTraceMessage.append(String.format("%s::%s\n", stackTraceElement.getClassName(), stackTraceElement.getMethodName()));
 
 			notification = new Notification(JmxNotificationTypes.StackTraceNotificationType, this, messageSerial.incrementAndGet(), stackTraceMessage.toString());
 			sendNotification(notification);

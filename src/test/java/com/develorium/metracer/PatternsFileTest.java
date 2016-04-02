@@ -117,9 +117,9 @@ public class PatternsFileTest {
 	public void testPatternsConsumption() throws IOException {
 		ByteArrayOutputStream outputStream = new ByteArrayOutputStream();
 		PatternsFile file = new PatternsFile(outputStream);
-		file.consumePatterns("com.develorium.metracer.Test::method", "Some context");
+		file.consumePatterns("com.develorium.metracer.Test::method");
 		Assert.assertTrue(outputStream.toString().contains("com.develorium.metracer.Test::method"));
-		file.consumePatterns("com.acme.www.Servlet::doPerform\ncom.acme.www.Servlet::doBuild", "Another context");
+		file.consumePatterns("com.acme.www.Servlet::doPerform\ncom.acme.www.Servlet::doBuild");
 		Assert.assertTrue(outputStream.toString().contains("com.acme.www.Servlet::doPerform"));
 		Assert.assertTrue(outputStream.toString().contains("com.acme.www.Servlet::doBuild"));
 	}
@@ -128,10 +128,10 @@ public class PatternsFileTest {
 	public void testDuplicationProtectionDuringPatternsConsumption() throws IOException {
 		ByteArrayOutputStream outputStream = new ByteArrayOutputStream();
 		PatternsFile file = new PatternsFile(outputStream);
-		file.consumePatterns("x.y.z.MyClass::method1", "Some context");
+		file.consumePatterns("x.y.z.MyClass::method1");
 		int size = outputStream.size();
 
-		file.consumePatterns("x.y.z.MyClass::method1", "Some context");
+		file.consumePatterns("x.y.z.MyClass::method1");
 		Assert.assertTrue(size == outputStream.size());
 	}
 
@@ -149,8 +149,8 @@ public class PatternsFileTest {
 			"a.b.c.HisClass::buildy\n" + 
 			"a.b.c.HisClass::buildz\n";
 
-		file.consumePatterns(stackTrace1, "Some context");
-		file.consumePatterns(stackTrace2, "Some context");
+		file.consumePatterns("# Comment 1\n" + stackTrace1);
+		file.consumePatterns("# Comment 2\n" + stackTrace2);
 
 		String content = outputStream.toString();
 		ByteArrayInputStream inputStream = new ByteArrayInputStream(content.getBytes());

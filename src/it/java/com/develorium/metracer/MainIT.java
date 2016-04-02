@@ -292,7 +292,7 @@ public class MainIT {
 
 	public static class InstrumentationOutputScenario extends Scenario {
 		private String pid = null;
-		Pattern pattern = Pattern.compile(
+		private Pattern pattern = Pattern.compile(
 			"\\+\\+\\+ \\[0\\] com.develorium.metracertest.Main.testBundle.*" +
 			"\\+\\+\\+ \\[1\\] com.develorium.metracertest.Main.testIntRetVal.*" + 
 			"\\-\\-\\- \\[1\\] com.develorium.metracertest.Main.testIntRetVal.*" +
@@ -326,7 +326,7 @@ public class MainIT {
 
 	public static class InstrumentationOutputWithStackTracesScenario extends Scenario {
 		private String pid = null;
-		Pattern pattern = Pattern.compile(
+		private Pattern pattern = Pattern.compile(
 			"\\[0\\] com.develorium.metracertest.Main.testStackTrace4.*" +
 			"\\s+at\\s+com.develorium.metracertest.Main.testStackTrace4.*" + 
 			"\\s+at\\s+com.develorium.metracertest.Main.testStackTrace3.*" + 
@@ -358,6 +358,78 @@ public class MainIT {
 	public void testInstrumentationOutputWithStackTraces() {
 		Scenario scenario = new InstrumentationOutputWithStackTracesScenario(pid);
 		runMetracerScenario(scenario);
+	}
+
+	public static class InstrumentationWithStackTracesSavingScenario extends Scenario {
+		private String pid = null;
+		private String fileName = null;
+		private Pattern pattern = Pattern.compile(
+			"\\[0\\] com.develorium.metracertest.Main.testStackTrace4.*" +
+			"\\s+at\\s+com.develorium.metracertest.Main.testStackTrace4.*" + 
+			"\\s+at\\s+com.develorium.metracertest.Main.testStackTrace3.*" + 
+			"\\s+at\\s+com.develorium.metracertest.Main.testStackTrace2.*" + 
+			"\\s+at\\s+com.develorium.metracertest.Main.testStackTrace1.*" + 
+			"\\s+at\\s+com.develorium.metracertest.Main.testStackTrace0.*", Pattern.DOTALL);
+
+		public InstrumentationWithStackTracesSavingScenario(String thePid, String theFileName) {
+			pid = thePid;
+			fileName = theFileName;
+		}
+
+		@Override	
+		public String[] getLaunchArguments() {
+			return new String[] { "-v",  "-S", fileName, pid, "com.develorium.metracertest.Main", "testStackTrace4" };
+		}
+
+		@Override	
+		public int process() {
+			printNewStdout();
+
+			if(pattern.matcher(stdout.toString()).find())
+				return 'q';
+
+			return 0;
+		}
+	}
+
+	public static class InstrumentWithPatternsFromFileScenario extends Scenario {
+		private String pid = null;
+		private String fileName = null;
+		private Pattern pattern = Pattern.compile(
+			"\\[0\\] com.develorium.metracertest.Main.testStackTrace0.*" +
+			"\\[1\\] com.develorium.metracertest.Main.testStackTrace1.*" + 
+			"\\[2\\] com.develorium.metracertest.Main.testStackTrace2.*" + 
+			"\\[3\\] com.develorium.metracertest.Main.testStackTrace3.*" + 
+			"\\[4\\] com.develorium.metracertest.Main.testStackTrace4.*", Pattern.DOTALL);
+
+		public InstrumentWithPatternsFromFileScenario(String thePid, String theFileName) {
+			pid = thePid;
+			fileName = theFileName;
+		}
+
+		@Override	
+		public String[] getLaunchArguments() {
+			return new String[] { "-v",  "-f", fileName, pid };
+		}
+
+		@Override	
+		public int process() {
+			printNewStdout();
+
+			if(pattern.matcher(stdout.toString()).find())
+				return 'q';
+
+			return 0;
+		}
+	}
+
+	@Test(timeout = 5000)
+	public void testVerticalInstrumentation() {
+		String fileName = String.format("%s/target/stacktrace.txt", System.getProperty("basedir"));
+		Scenario saveStackTracesScenario = new InstrumentationWithStackTracesSavingScenario(pid, fileName);
+		runMetracerScenario(saveStackTracesScenario);
+		Scenario instrumentWithPatternsFromFileScenario = new InstrumentWithPatternsFromFileScenario(pid, fileName);
+		runMetracerScenario(instrumentWithPatternsFromFileScenario);
 	}
 
 	private static void runMetracerScenario(Scenario theScenario) {

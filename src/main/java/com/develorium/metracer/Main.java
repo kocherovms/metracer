@@ -32,6 +32,7 @@ public class Main {
 	MBeanServerConnection connection = null;
 	ObjectName agentMxBeanName = null;
 	AgentMXBean agent = null;
+	PatternsFile outputPatternsFile = null;
 
 	public static void main(String[] theArguments) {
 		try {
@@ -92,6 +93,15 @@ public class Main {
 			say("Not setting any patterns, using ones from a previous session");
 		}
 		else {
+			if(config.isWithStackTrace && config.stackTraceFileName != null) {
+				try {
+					FileOutputStream outputStream = new FileOutputStream(config.stackTraceFileName);
+					outputPatternsFile = new PatternsFile(outputStream);
+				} catch(FileNotFoundException e) {
+					throw new RuntimeException(String.format("Failed to open \"%s\" for writing: %s", config.stackTraceFileName, e.getMessage()), e);
+				}
+			}
+
 			StackTraceMode stackTraceMode = config.isWithStackTrace 
 				? (config.stackTraceFileName != null 
 				   ? StackTraceMode.PRINT_AND_REPORT
@@ -187,8 +197,12 @@ public class Main {
 
 						if(notificationType.equals(JmxNotificationTypes.EntryExitNotificationType)) 
 							stdout.println(theNotification.getMessage());
-						else if(notificationType.equals(JmxNotificationTypes.StackTraceNotificationType))
-							;
+						else if(notificationType.equals(JmxNotificationTypes.StackTraceNotificationType) && outputPatternsFile != null)
+							try {
+								outputPatternsFile.consumePatterns(theNotification.getMessage());
+							} catch(IOException e) {
+								stderr.format("Failed to write new patterns: %s\n", e.getMessage());
+							}
 					}
 				}, 
 				null, null);
