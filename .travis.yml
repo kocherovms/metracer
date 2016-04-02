@@ -1,3 +1,13 @@
 language: java
 sudo: false
 script: mvn clean verify
+deploy:
+  provider: releases
+  api_key:
+    secure: pOax23+KlRmvfnwfZHJSsY49RFdqrzMJXcQfszYYrDU5qfpGCBOTLmjHl8KcFQFIr1I7KnMrTBFPfdMiHli4HnDNKBq5PA135Ul6QLYNY0jLY+LyO6rF3PefOYRIYOaP//5RdNNOxVnTKm+EnmpgEsXvUVvaDT3UjuV44VJTmjJLXNefFTjSRDE1Xv5dwdiUpMRZtllu7/f12D98IJZOfzx5p0BTo0/Zobr/JhtHJqcQLPCQUIrjqiaaDfvbSST1VVSNFdOXWIg/l5A98bQ1wfXkU53iFFx0+DDSCFlI2S2+UMloyLmv3BNJGNeTwMlUHHaHVhMEJVo5IeC2HtjeigPQrG+OMCyMJCYSdfy0ccVLoE3426rJ11r/tDAe6Jh3ebcGaemkhXmiArRF/C6nanGN/+D0khPMrYwQoyqlXJ24KVkWbDMT2DxLA68z6huAcMPa7fjdWW0+z9V3xO3qTFVoAXv8/2GdPsFJTAqwZVZiXyovQNikfXoFGGlcmYGX4phwUDLriTboKKMp4/p+h1sVwpRhmh05ED0161gI1y0NSmqyxloPTSSmWDTJyuCB/DhcW/LVq1nXoIcVOX/kILqbGzDyEN6M50aziWu1j7Ze3XXHoR35mRiqtdmU3u80ozu4INYzUaK02Kz6JdOenIOfF00R6HvRTOkeuuW7w+U=
+  file: 
+    - "target/metracer.sh"
+    - "target/metracer*.jar"
+  skip_cleanup: true
+  on:
+    tags: true
