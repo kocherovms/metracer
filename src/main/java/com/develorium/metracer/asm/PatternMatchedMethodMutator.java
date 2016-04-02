@@ -29,6 +29,7 @@ class PatternMatchedMethodMutator extends AdviceAdapter {
 	private boolean isWithStackTraces = false;
 	private Label startFinally = new Label(); 
 	private Label endFinally = new Label(); 
+	private int runtimeClassVariableIndex = -1;
 
 	public PatternMatchedMethodMutator(String theClassName, MethodNode theMethod, int theApiVersion, 
 		MethodVisitor theDelegatingMethodVisitor, int theAccess, String theMethodName, String theMethodDescription, boolean theIsWithStackTraces) {
@@ -47,24 +48,30 @@ class PatternMatchedMethodMutator extends AdviceAdapter {
 		injectTraceExit(ATHROW);
 		mv.visitInsn(ATHROW);
 
+		if(runtimeClassVariableIndex != -1)
+			mv.visitLocalVariable("runtimeClass", "Ljava/lang/Class;", "Ljava/lang/Class<*>;", startFinally, endFinally, runtimeClassVariableIndex);
+
 		super.visitMaxs(theMaxStack, theMaxLocals);
 	}
 
 	@Override
 	protected void onMethodEnter() {
-		mv.visitLabel(startFinally);
+		// Class<?> runtimeClass = null;
+		mv.visitInsn(ACONST_NULL);
+		runtimeClassVariableIndex = newLocal(Type.getType("Ljava/lang/Class;"));
+		mv.visitVarInsn(ASTORE, runtimeClassVariableIndex);
 
+		mv.visitLabel(startFinally);
 		// ClassLoader systemClassLoader = ClassLoader.getSystemClassLoader();
 		int systemClassLoaderVariableIndex = newLocal(Type.getType("Ljava/lang/ClassLoader;"));
 		mv.visitMethodInsn(INVOKESTATIC, "java/lang/ClassLoader", "getSystemClassLoader", "()Ljava/lang/ClassLoader;", false);
 		mv.visitVarInsn(ASTORE, systemClassLoaderVariableIndex);
 
-		// Class<?> runtimeClass = Class.forName("com.develorium.metracer.Runtime", true, systemClassLoader);
+		// runtimeClass = Class.forName("com.develorium.metracer.Runtime", true, systemClassLoader);
 		mv.visitLdcInsn("com.develorium.metracer.Runtime");
 		mv.visitInsn(ICONST_1);
 		mv.visitVarInsn(ALOAD, systemClassLoaderVariableIndex);
 		mv.visitMethodInsn(INVOKESTATIC, "java/lang/Class", "forName", "(Ljava/lang/String;ZLjava/lang/ClassLoader;)Ljava/lang/Class;", false);
-		int runtimeClassVariableIndex = newLocal(Type.getType("Ljava/lang/Class;"));
 		mv.visitVarInsn(ASTORE, runtimeClassVariableIndex);
 
 		// Class<?>[] traceEntryArgumentTypes = { Class.class, String.class, String[].class, Object[].class, boolean.class };
@@ -195,7 +202,6 @@ class PatternMatchedMethodMutator extends AdviceAdapter {
 		mv.visitTryCatchBlock(startFinally, methodEnterEnd, methodEnterCatchBlock, "java/lang/Throwable"); 
 
 		mv.visitLocalVariable("systemClassLoader", "Ljava/lang/ClassLoader;", null, startFinally, methodEnterEnd, systemClassLoaderVariableIndex);
-		mv.visitLocalVariable("runtimeClass", "Ljava/lang/Class;", "Ljava/lang/Class<*>;", startFinally, methodEnterEnd, runtimeClassVariableIndex);
 		mv.visitLocalVariable("traceEntryArgumentTypes", "[Ljava/lang/Class;", null, startFinally, methodEnterEnd, traceEntryArgumentTypesVariableIndex);
 		mv.visitLocalVariable("traceEntryMethod", "Ljava/lang/reflect/Method;", null, startFinally, methodEnterEnd, traceEntryMethodVariableIndex);
 		mv.visitLocalVariable("argumentNames", "[Ljava/lang/String;", null, startFinally, methodEnterEnd, argumentNamesVariableIndex);
@@ -237,19 +243,6 @@ class PatternMatchedMethodMutator extends AdviceAdapter {
 
 		Label methodExitStart = new Label(); 
 		mv.visitLabel(methodExitStart);
-
-		// ClassLoader systemClassLoader = ClassLoader.getSystemClassLoader();
-		int systemClassLoaderVariableIndex = newLocal(Type.getType("Ljava/lang/ClassLoader;"));
-		mv.visitMethodInsn(INVOKESTATIC, "java/lang/ClassLoader", "getSystemClassLoader", "()Ljava/lang/ClassLoader;", false);
-		mv.visitVarInsn(ASTORE, systemClassLoaderVariableIndex);
-
-		// Class<?> runtimeClass = Class.forName("com.develorium.metracer.Runtime", true, systemClassLoader);
-		mv.visitLdcInsn("com.develorium.metracer.Runtime");
-		mv.visitInsn(ICONST_1);
-		mv.visitVarInsn(ALOAD, systemClassLoaderVariableIndex);
-		mv.visitMethodInsn(INVOKESTATIC, "java/lang/Class", "forName", "(Ljava/lang/String;ZLjava/lang/ClassLoader;)Ljava/lang/Class;", false);
-		int runtimeClassVariableIndex = newLocal(Type.getType("Ljava/lang/Class;"));
-		mv.visitVarInsn(ASTORE, runtimeClassVariableIndex);
 
 		// Class<?>[] traceExitArgumentTypes = { Class.class, String.class, boolean.class, Object.class };
 		mv.visitInsn(ICONST_4);
@@ -348,8 +341,6 @@ class PatternMatchedMethodMutator extends AdviceAdapter {
 		
 		mv.visitTryCatchBlock(methodExitStart, methodExitEnd, methodExitCatchBlock, "java/lang/Throwable"); 
 		mv.visitLocalVariable("rv", "Ljava/lang/Object;", null, methodExitEarlyStart, methodExitEndUltimate, returnValueVariableIndex);
-		mv.visitLocalVariable("systemClassLoader", "Ljava/lang/ClassLoader;", null, methodExitStart, methodExitEnd, systemClassLoaderVariableIndex);
-		mv.visitLocalVariable("runtimeClass", "Ljava/lang/Class;", "Ljava/lang/Class<*>;", methodExitStart, methodExitEnd, runtimeClassVariableIndex);
 		mv.visitLocalVariable("traceExitArgumentTypes", "[Ljava/lang/Class;", null, methodExitStart, methodExitEnd, traceExitArgumentTypesVariableIndex);
 		mv.visitLocalVariable("traceExitMethod", "Ljava/lang/reflect/Method;", null, methodExitStart, methodExitEnd, traceExitMethodVariableIndex);
 		mv.visitLocalVariable("traceExitArgumentValues", "[Ljava/lang/Object;", null, methodExitStart, methodExitEnd, traceExitArgumentValuesVariableIndex);
