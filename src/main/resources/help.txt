@@ -23,6 +23,19 @@ Usage examples:
 5) Spy for invocations of all methods of classes which name either starts from com.myprogram.ThisClass or from com.myprogram.ThatClass in a Java program with PID 345
 
 # ${launchstring} 345 "(com.myprogram.ThisClass|com.myprogram.ThatClass)"
+
+6) Remove all previous instrumentation in a Java program with PID 345
+
+# ${launchstring} 345 -r
+
+7) Spy for invocations of method doSomething in com.myprogram.MyClass in a Java program with PID 345 and additionally save all stack traces into file /tmp/st.txt
+
+# ${launchstring} 345 -S /tmp/st.txt com.myprogram.MyClass doSomething
+
+8) Spy for invocation of methods listed in file /tmp/st.txt in a Java program with PID 345
+
+# ${launchstring} 345 -f /tmp/st.txt
+
 ---
 
 Note 1: ${name} requires tools.jar from a JDK in a classpath.
