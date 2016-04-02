@@ -38,6 +38,7 @@ public class Patterns {
 
 	static {
 		BlacklistedClassNamePrefixes.add("java.lang.");
+		BlacklistedClassNamePrefixes.add("sun.reflect.");
 		BlacklistedClassNamePrefixes.add("com.develorium.metracer.");
 	}
 
