@@ -77,6 +77,11 @@ fi
 if [ -n "$is_list_requested" ]; then
 	# For JVM listing no impersonation is required	
 	"$java" -Xbootclasspath/a:"$tools_jar" -jar $MYSELF "$@"
+
+	if [ "$(id -u)" != "0" ]; then
+	    printf '\nWARNING: JVM list may be not full (missing root privileges). Use `sudo sh %s -l` to get a full list\n' "$0" 1>&2
+	fi
+
 	exit 0
 else
 	eval pid="\$$OPTIND"
