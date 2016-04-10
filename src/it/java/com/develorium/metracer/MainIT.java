@@ -21,7 +21,6 @@ import java.util.*;
 import java.io.*;
 import java.util.regex.*;
 import org.junit.*;
-import org.junit.*;
 import junit.framework.Assert;
 
 public class MainIT {
