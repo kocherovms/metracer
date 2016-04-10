@@ -20,7 +20,7 @@ import java.util.*;
 import java.util.regex.*;
 
 public class Config {
-	public static class BadConfig extends Exception {
+	public static class BadConfig extends RuntimeException {
 		public BadConfig(String theMessage) {
 			super(theMessage);
 		}

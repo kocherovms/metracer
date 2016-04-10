@@ -23,142 +23,7 @@ import java.util.regex.*;
 import org.junit.*;
 import junit.framework.Assert;
 
-public class MainIT {
-	private static final String TestProgramMainClassName = "com.develorium.metracertest.Main";
-	private static Process testProgramProcess = null;
-	private static String pid = null;
-
-	private abstract static class Scenario extends InputStream {
-		public String pid = null;
-		public ByteArrayOutputStream stdout = new ByteArrayOutputStream();
-		public ByteArrayOutputStream stderr = new ByteArrayOutputStream();
-		public Date startTime = new Date();
-		private int[] extractedStdoutSize = { 0 };
-		private int[] extractedStderrSize = { 0 };
-
-		public abstract String[] getLaunchArguments();
-
-		public int process() {
-			return 0;
-		}
-
-		public long getDuration() {
-			Date currentTime = new Date();
-			return currentTime.getTime() - startTime.getTime();
-		}
-
-		@Override
-		public int read() {
-			try {
-				Thread.currentThread().sleep(50);
-			} catch(InterruptedException e) {
-			}
-
-			return process();
-		}
-
-		public void printNewStdout() {
-			String newStdout = getNewPortionOfBuffer(stdout, extractedStdoutSize);
-
-			if(!newStdout.isEmpty())
-				System.out.println(newStdout);
-		}
-
-		public void printNewStderr() {
-			String newStderr = getNewPortionOfBuffer(stderr, extractedStderrSize);
-
-			if(!newStderr.isEmpty())
-				System.out.println(newStderr);
-		}
-
-		public void dump() {
-			System.out.format("Captured stdout output:\n%s\n", stdout.toString());
-			System.out.format("Captured stderr output:\n%s\n", stderr.toString());
-		}
-
-		private String getNewPortionOfBuffer(ByteArrayOutputStream theBuffer, int[] theExtractedSize) {
-			String text = theBuffer.toString();
-			
-			if(text.length() <= theExtractedSize[0])
-				return "";
-
-			String rv = text.substring(extractedStdoutSize[0]);
-			theExtractedSize[0] = text.length();
-			return rv;
-		}
-	}
-
-	private static class JvmListingScenario extends Scenario {
-		@Override
-		public String[] getLaunchArguments() {
-			return new String[] { "-l" };
-		}
-	}
-
-	@BeforeClass 
-	public static void launchTestProgram() throws IOException {
-		String[] args = {
-			"java",
-			"-cp",
-			String.format("%s/target/test-classes", System.getProperty("basedir")),
-			TestProgramMainClassName
-		};
-		Process p = java.lang.Runtime.getRuntime().exec(args);
-		// wait for program to start
-		String magicMessage = "kms@ sample program started";
-		InputStream stdout = p.getInputStream();
-		BufferedReader reader = new BufferedReader(new InputStreamReader(stdout));
-		String line = null;
-
-		while((line = reader.readLine()) != null) {
-			if(line.startsWith(magicMessage)) {
-				System.out.println("Test program started");
-				testProgramProcess = p;
-				break;
-			}
-		}
-
-		Assert.assertTrue(testProgramProcess != null);
-		Scenario scenario = new JvmListingScenario(); 
-		runMetracerScenario(scenario);
-		String capturedOutput = scenario.stdout.toString();
-		System.out.println(capturedOutput);
-
-		for (String capturedOutputLine : capturedOutput.split("\n", 1000)){
-			if(capturedOutputLine.contains(TestProgramMainClassName)) {
-				if(pid != null) 
-					throw new RuntimeException(String.format("More that one running test program detected (%s): can't decide to which to connect to", TestProgramMainClassName));
-
-				Scanner scanner = new Scanner(capturedOutputLine);
-				System.out.format("Searching for PID within \"%s\"\n", capturedOutputLine);
-				Assert.assertTrue(scanner.hasNextInt());
-				pid = "" + scanner.nextInt();
-			}
-		}
-
-		Assert.assertTrue(pid != null && !pid.isEmpty());
-		System.out.format("Resolved PID is %s\n\n", pid);
-	}
-
-	@AfterClass
-	public static void shutdownTestProgram() throws IOException {
-		if(testProgramProcess != null) {
-			testProgramProcess.destroy();
-			testProgramProcess = null;
-			System.out.println("Test program destroyed");
-		}
-	}
-
-	@Before
-	public void printStartSeparator() {
-		System.out.println("------TEST STARTED------");
-	}
-
-	@After
-	public void printEndSeparator() {
-		System.out.println("------TEST FINISHED------\n");
-	}
-
+public class MainIT extends BaseClass {
 	private static class InstrumentAndQuitWithRemovalScenario extends Scenario {
 		public InstrumentAndQuitWithRemovalScenario(String thePid) {
 			pid = thePid;
@@ -187,7 +52,7 @@ public class MainIT {
 	}
 
 	@Test(timeout = 5000)
-	public void testInstrumentAndQuitWithRemoval() {
+	public void testInstrumentAndQuitWithRemoval() throws Throwable {
 		Scenario scenario = new InstrumentAndQuitWithRemovalScenario(pid);
 		runMetracerScenario(scenario);
 		String capturedStderr = scenario.stderr.toString();
@@ -230,7 +95,7 @@ public class MainIT {
 	}
 
 	@Test(timeout = 5000)
-	public void testInstrumentAndQuitWithoutRemoval() {
+	public void testInstrumentAndQuitWithoutRemoval() throws Throwable {
 		Scenario scenario = new InstrumentAndQuitWithoutRemovalScenario(pid);
 		runMetracerScenario(scenario);
 		String capturedStderr = scenario.stderr.toString();
@@ -305,7 +170,7 @@ public class MainIT {
 	}
 
 	@Test(timeout = 5000)
-	public void testInstrumentationOutput() {
+	public void testInstrumentationOutput() throws Throwable {
 		Scenario scenario = new InstrumentationOutputScenario(pid);
 		runMetracerScenario(scenario);
 	}
@@ -340,7 +205,7 @@ public class MainIT {
 	}
 
 	@Test(timeout = 5000)
-	public void testInstrumentationOutputWithStackTraces() {
+	public void testInstrumentationOutputWithStackTraces() throws Throwable {
 		Scenario scenario = new InstrumentationOutputWithStackTracesScenario(pid);
 		runMetracerScenario(scenario);
 	}
@@ -412,7 +277,7 @@ public class MainIT {
 	}
 
 	@Test(timeout = 5000)
-	public void testVerticalInstrumentation() {
+	public void testVerticalInstrumentation() throws Throwable {
 		String fileName = String.format("%s/target/stacktrace.txt", System.getProperty("basedir"));
 		Scenario saveStackTracesScenario = new InstrumentationWithStackTracesSavingScenario(pid, fileName);
 		runMetracerScenario(saveStackTracesScenario);
@@ -449,28 +314,8 @@ public class MainIT {
 	}
 
 	@Test(timeout = 5000)
-	public void testReturnValuePrinting() {
+	public void testReturnValuePrinting() throws Throwable {
 		Scenario scenario = new ReturnValuePrintingScenario(pid);
 		runMetracerScenario(scenario);
-	}
-
-	private static void runMetracerScenario(Scenario theScenario) {
-		String[] launchArguments = theScenario.getLaunchArguments();
-		StringBuilder launchArgumentsStringified = new StringBuilder();
-
-		for(String launchArgument: launchArguments)
-			launchArgumentsStringified.append(launchArgument + " ");
-
-		System.out.format(">>> Launching scenario %s with arguments: %s\n", theScenario.getClass().getSimpleName(), launchArgumentsStringified.toString());
-		try {
-			try {
-				Main.main(launchArguments, theScenario, new PrintStream(theScenario.stdout), new PrintStream(theScenario.stderr));
-			} catch(Throwable e) {
-				theScenario.dump();
-				throw new RuntimeException(e);
-			}
-		} finally {
-			System.out.format("<<< Scenario %s finished in %d ms\n", theScenario.getClass().getSimpleName(), theScenario.getDuration());
-		}
 	}
 }

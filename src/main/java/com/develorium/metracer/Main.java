@@ -25,14 +25,13 @@ import javax.management.remote.*;
 import com.develorium.metracer.dynamic.*;
 
 public class Main {
-	InputStream stdin = System.in;
-	PrintStream stdout = System.out;
-	PrintStream stderr = System.err;
+	Environment env = new SystemEnvironment();
 	Config config = null;
 	MBeanServerConnection connection = null;
 	ObjectName agentMxBeanName = null;
 	AgentMXBean agent = null;
 	PatternsFile outputPatternsFile = null;
+	boolean isFinished = false;
 
 	public static void main(String[] theArguments) {
 		try {
@@ -42,34 +41,33 @@ public class Main {
 		}
 	}
 
-	public static void main(String[] theArguments, InputStream theStdin, PrintStream theStdout, PrintStream theStderr) throws Config.BadConfig, Throwable {
-		new Main(theStdin, theStdout, theStderr).execute(theArguments);
+	public static void main(String[] theArguments, Environment theEnvironment) throws Throwable {
+		new Main(theEnvironment).execute(theArguments);
 	}
 
 	public Main() {
 	}
 
-	public Main(InputStream theStdin, PrintStream theStdout, PrintStream theStderr) {
-		stdin = theStdin;
-		stdout = theStdout;
-		stderr = theStderr;
+	public Main(Environment theEnvironment) {
+		env = theEnvironment;
 	}
 
-	private void execute(String[] theArguments) throws Config.BadConfig, Throwable {
+	private void execute(String[] theArguments) throws Throwable {
 		try {
 			config = new Config(theArguments);
 
-			if(Aux.executeAuxCommands(config.command, stdout))
+			if(Aux.executeAuxCommands(config.command, env.getStdout()))
 				return;
 
 			executeCommands();
+			isFinished = true;
 		} catch(Config.BadConfig e) {
-			stderr.println(e.getMessage());
-			Aux.printUsage(stderr);
+			env.getStderr().println(e.getMessage());
+			Aux.printUsage(env.getStderr());
 			throw e;
 		} catch(Throwable e) {
-			stderr.println(e.getMessage());
-			e.printStackTrace();
+			env.getStderr().println(e.getMessage());
+			e.printStackTrace(env.getStderr());
 			throw e;
 		}
 	}
@@ -138,7 +136,7 @@ public class Main {
 		say("Press 'q' to quit with removal of instrumentation, 'Q' - to quit with retention of instrumentation in target JVM");
 		startListeningToAgentEvents();
 
-		if(!Aux.waitForQuit(stdin, stderr)) {
+		if(!Aux.waitForQuit(env.getStdin(), env.getStderr())) {
 			say("Quitting with retention of instrumentation in target JVM");
 			return;
 		}
@@ -212,12 +210,12 @@ public class Main {
 						String notificationType = theNotification.getType();
 
 						if(notificationType.equals(JmxNotificationTypes.EntryExitNotificationType)) 
-							stdout.println(theNotification.getMessage());
+							env.getStdout().println(theNotification.getMessage());
 						else if(notificationType.equals(JmxNotificationTypes.StackTraceNotificationType) && outputPatternsFile != null)
 							try {
 								outputPatternsFile.consumePatterns(theNotification.getMessage());
 							} catch(IOException e) {
-								stderr.format("Failed to write new patterns: %s\n", e.getMessage());
+								env.getStderr().format("Failed to write new patterns: %s\n", e.getMessage());
 							}
 					}
 				}, 
@@ -276,6 +274,23 @@ public class Main {
 	private MBeanServerConnection connectToMbeanServer(String theJmxLocalConnectAddress) throws java.net.MalformedURLException, IOException, Exception {
 		JMXServiceURL jmxUrl = new JMXServiceURL(theJmxLocalConnectAddress);
 		JMXConnector jmxConnector = JMXConnectorFactory.connect(jmxUrl);
+		NotificationListener connectionListener = new NotificationListener() {
+			@Override
+			public void handleNotification(Notification theNotification, Object theHandback) {
+				if(isFinished) 
+					return;
+
+				if(theNotification.getType().equals("jmx.remote.connection.failed")) {
+					say("Aborting: connection failed");
+					env.exit(2);
+				}
+				else if(theNotification.getType().equals("jmx.remote.connection.closed")) {
+					say("Aborting: connection closed");
+					env.exit(3);
+				}
+			}
+		};
+		jmxConnector.addConnectionNotificationListener(connectionListener, null, null);
 		return jmxConnector.getMBeanServerConnection();
 	}
 
@@ -347,6 +362,6 @@ public class Main {
 		if(!config.isVerbose)
 			return;
 
-		stderr.println(theMessage);
+		env.getStderr().println(theMessage);
 	}
 }
