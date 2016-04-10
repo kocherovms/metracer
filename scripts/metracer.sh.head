@@ -1,10 +1,7 @@
 #!/bin/sh
 
 usage() {
-	printf 'Usage: %s -h\n' ${0}
-	printf '       %s -l\n' ${0}
-	printf '       %s [-v] -r PID\n' ${0}
-	printf '       %s [-v] [-s] [-S PATTERNS-FILE-DST] [-f PATTERNS-FILE-SRC] [CLASS-MATCHING-PATTERN [METHOD-MATCHING-PATTERN]] PID\n' ${0}
+${usage_placeholder}
 }
 
 if [ $# -eq 0 ]; then

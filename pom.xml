@@ -179,7 +179,11 @@
                   <executable>/bin/sh</executable>
                   <arguments>
                     <argument>-c</argument>
-                    <argument>cat ${basedir}/scripts/metracer.sh.head ${project.build.directory}/${project.build.finalName}.jar &gt; ${project.build.directory}/metracer.sh</argument>
+                    <argument>\
+		    sed 's|${launchstring}|metracer.sh|g' ${basedir}/src/main/resources/usage.txt &gt; ${project.build.directory}/metracer.sh.usage &amp;&amp; \
+		    sed 's|${usage_file_name}|${project.build.directory}/metracer.sh.usage|g' ${basedir}/scripts/fill_usage.sed &gt; ${project.build.directory}/fill_usage.sed &amp;&amp; \
+		    sed -f ${project.build.directory}/fill_usage.sed ${basedir}/scripts/metracer.sh.head &gt; ${project.build.directory}/metracer.sh &amp;&amp; \
+		    cat ${project.build.directory}/${project.build.finalName}.jar &gt;&gt; ${project.build.directory}/metracer.sh</argument>
                   </arguments>
                 </configuration>
               </execution>
