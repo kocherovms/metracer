@@ -56,14 +56,14 @@ public class Main {
 		try {
 			config = new Config(theArguments);
 
-			if(Aux.executeAuxCommands(config.command, env.getStdout()))
+			if(Helper.executeAuxCommands(config.command, env.getStdout()))
 				return;
 
 			executeCommands();
 			isFinished = true;
 		} catch(Config.BadConfig e) {
 			env.getStderr().println(e.getMessage());
-			Aux.printUsage(env.getStderr());
+			Helper.printUsage(env.getStderr());
 			throw e;
 		} catch(Throwable e) {
 			env.getStderr().println(e.getMessage());
@@ -136,7 +136,7 @@ public class Main {
 		say("Press 'q' to quit with removal of instrumentation, 'Q' - to quit with retention of instrumentation in target JVM");
 		startListeningToAgentEvents();
 
-		if(!Aux.waitForQuit(env.getStdin(), env.getStderr())) {
+		if(!Helper.waitForQuit(env.getStdin(), env.getStderr())) {
 			say("Quitting with retention of instrumentation in target JVM");
 			return;
 		}

@@ -20,25 +20,25 @@ import java.io.*;
 import junit.framework.Assert;
 import org.junit.Test;
 
-public class AuxTest {
+public class HelperTest {
 	@Test
 	public void testUsageIsWorking() {
 		ByteArrayOutputStream output = new ByteArrayOutputStream();
-		Aux.printUsage(new PrintStream(output));
+		Helper.printUsage(new PrintStream(output));
 		Assert.assertTrue(output.size() > 0);
 	}
 
 	@Test
 	public void testHelpIsWorking() {
 		ByteArrayOutputStream output = new ByteArrayOutputStream();
-		Aux.executeAuxCommands(Config.COMMAND.HELP, new PrintStream(output));
+		Helper.executeAuxCommands(Config.COMMAND.HELP, new PrintStream(output));
 		Assert.assertTrue(output.size() > 0);
 	}
 
 	@Test
 	public void testJvmListIsWorking() {
 		ByteArrayOutputStream output = new ByteArrayOutputStream();
-		Aux.executeAuxCommands(Config.COMMAND.LIST, new PrintStream(output));
+		Helper.executeAuxCommands(Config.COMMAND.LIST, new PrintStream(output));
 		Assert.assertTrue(output.size() > 0);
 	}
 }

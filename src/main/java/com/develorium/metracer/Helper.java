@@ -21,7 +21,7 @@ import java.io.*;
 import com.sun.tools.attach.*;
 import java.lang.management.*;
 
-public class Aux {
+public class Helper {
 	public static void printUsage(PrintStream theOutput) {
 		try {
 			theOutput.println(loadInfoResource("usage.txt"));
@@ -97,7 +97,7 @@ public class Aux {
 
 	private static String loadInfoResource(String theResourceId) {
 		try {
-			ClassLoader loader = Aux.class.getClassLoader();
+			ClassLoader loader = Helper.class.getClassLoader();
 			InputStream stream = loader.getResourceAsStream(theResourceId);
 
 			if(stream == null)
