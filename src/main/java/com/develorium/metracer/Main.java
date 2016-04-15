@@ -331,15 +331,11 @@ public class Main {
 
 	private String resolveMetracerAgentJar() throws UnsupportedEncodingException {
 		try {
-			String sourcePath = new File(Main.class.getProtectionDomain().getCodeSource().getLocation().toURI().getPath()).getAbsolutePath();
-			System.out.println("kms@ sourcePath = " + sourcePath);
-			return sourcePath;
-			//return java.net.URLDecoder.decode(sourcePath, "UTF-8");
+			return new File(Main.class.getProtectionDomain().getCodeSource().getLocation().toURI().getPath()).getAbsolutePath();
 		} catch(java.net.URISyntaxException e) {
-			throw new RuntimeException(e);
+			throw new RuntimeException(String.format("Failed to resolve metracer agent JAR: %s", e.getMessage()), e);
 		}
 	}
-
 
 	private void sayCounters(byte[] theEncodedCounters, String theVerb) {
 		if(!config.isVerbose) 
