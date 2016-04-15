@@ -330,8 +330,14 @@ public class Main {
 	}
 
 	private String resolveMetracerAgentJar() throws UnsupportedEncodingException {
-		String sourcePath = Main.class.getProtectionDomain().getCodeSource().getLocation().getPath();
-		return java.net.URLDecoder.decode(sourcePath, "UTF-8");
+		try {
+			String sourcePath = new File(Main.class.getProtectionDomain().getCodeSource().getLocation().toURI().getPath()).getAbsolutePath();
+			System.out.println("kms@ sourcePath = " + sourcePath);
+			return sourcePath;
+			//return java.net.URLDecoder.decode(sourcePath, "UTF-8");
+		} catch(java.net.URISyntaxException e) {
+			throw new RuntimeException(e);
+		}
 	}
 
 
