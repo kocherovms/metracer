@@ -21,7 +21,7 @@ else
 fi
 
 if [ ! -f "$java" ]; then
-	printf "Failed to find 'java' executable. Please, make sure that Java is installed\n" 1&2
+	printf "Failed to find 'java' executable. Please, make sure that Java is installed\n" 1>&2
 	exit 1
 fi
 
