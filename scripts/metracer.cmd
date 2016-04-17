@@ -1,4 +1,4 @@
-:: @ECHO OFF
+@ECHO OFF
 SETLOCAL ENABLEEXTENSIONS 
 SETLOCAL ENABLEDELAYEDEXPANSION
 SET myself=%~dpnx0
@@ -52,7 +52,7 @@ IF EXIST "%java_exe_folder%..\lib\tools.jar" (
 )
 
 IF DEFINED is_list_requested (
- :: For JVM listing no impersonation is required                                                                                                                                                                                                                             
+ :: For JVM listing no impersonation is required
  "%java_exe%" -Xbootclasspath/a:%tools_jar% -jar "%myself%" %*
  EXIT /B !ERRORLEVEL!
 )

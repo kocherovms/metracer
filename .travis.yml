@@ -7,6 +7,7 @@ deploy:
   file_glob: true
   file: 
     - "target/metracer.sh"
+    - "target/metracer.cmd"
     - "target/metracer*.jar"
   skip_cleanup: true
   on:

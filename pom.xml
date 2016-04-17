@@ -180,10 +180,10 @@
                   <arguments>
                     <argument>-c</argument>
                     <argument>\
-		    sed 's|${launchstring}|metracer.sh|g' ${basedir}/src/main/resources/usage.txt &gt; ${project.build.directory}/metracer.sh.usage &amp;&amp; \
-		    sed 's|${usage_file_name}|${project.build.directory}/metracer.sh.usage|g' ${basedir}/scripts/fill_usage.sed &gt; ${project.build.directory}/fill_usage.sed &amp;&amp; \
-		    sed -f ${project.build.directory}/fill_usage.sed ${basedir}/scripts/metracer.sh.head &gt; ${project.build.directory}/metracer.sh &amp;&amp; \
-		    cat ${project.build.directory}/${project.build.finalName}.jar &gt;&gt; ${project.build.directory}/metracer.sh</argument>
+                     sed 's|${launchstring}|metracer.sh|g' ${basedir}/src/main/resources/usage.txt &gt; ${project.build.directory}/metracer.sh.usage &amp;&amp; \
+                     sed 's|${usage_file_name}|${project.build.directory}/metracer.sh.usage|g' ${basedir}/scripts/fill_usage_for_sh.sed &gt; ${project.build.directory}/fill_usage_for_sh.sed &amp;&amp; \
+                     sed -f ${project.build.directory}/fill_usage_for_sh.sed ${basedir}/scripts/metracer.sh &gt; ${project.build.directory}/metracer.sh &amp;&amp; \
+                     cat ${project.build.directory}/${project.build.finalName}.jar &gt;&gt; ${project.build.directory}/metracer.sh</argument>
                   </arguments>
                 </configuration>
               </execution>
@@ -198,10 +198,11 @@
                   <arguments>
                     <argument>-c</argument>
                     <argument>\
-		    sed 's|${launchstring}|metracer.cmd|g' ${basedir}/src/main/resources/usage.txt &gt; ${project.build.directory}/metracer.cmd.usage &amp;&amp; \
-		    sed 's|${usage_file_name}|${project.build.directory}/metracer.cmd.usage|g' ${basedir}/scripts/fill_usage.sed &gt; ${project.build.directory}/fill_usage.sed &amp;&amp; \
-		    sed -f ${project.build.directory}/fill_usage.sed ${basedir}/scripts/metracer.cmd &gt; ${project.build.directory}/metracer.cmd &amp;&amp; \
-		    cat ${project.build.directory}/${project.build.finalName}.jar &gt;&gt; ${project.build.directory}/metracer.cmd</argument>
+                     sed 's|${launchstring}|metracer.cmd|g' ${basedir}/src/main/resources/usage.txt &gt; ${project.build.directory}/metracer.cmd.usage &amp;&amp; \
+                     sed -e 's|^\(.*\)$|SET help_line="\1"|' -e a\ 'ECHO !help_line:"=!' -i ${project.build.directory}/metracer.cmd.usage &amp;&amp; \
+                     sed 's|${usage_file_name}|${project.build.directory}/metracer.cmd.usage|g' ${basedir}/scripts/fill_usage_for_cmd.sed &gt; ${project.build.directory}/fill_usage_for_cmd.sed &amp;&amp; \
+                     sed -f ${project.build.directory}/fill_usage_for_cmd.sed ${basedir}/scripts/metracer.cmd &gt; ${project.build.directory}/metracer.cmd &amp;&amp; \
+                     cat ${project.build.directory}/${project.build.finalName}.jar &gt;&gt; ${project.build.directory}/metracer.cmd</argument>
                   </arguments>
                 </configuration>
               </execution>
