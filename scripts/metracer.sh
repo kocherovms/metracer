@@ -50,7 +50,7 @@ done
 
 if [ -n "$is_help_requested" ]; then
 	exec "$java" -jar $MYSELF "$@"
-	exit 0
+	exit 1 # Must never get here (exec is used)
 fi
 
 # For all other options we need tools.jar, resolve it
@@ -74,34 +74,35 @@ fi
 if [ -n "$is_list_requested" ]; then
 	# For JVM listing no impersonation is required	
 	"$java" -Xbootclasspath/a:"$tools_jar" -jar $MYSELF "$@"
+    RV=$?
 
 	if [ "$(id -u)" != "0" ]; then
 	    printf '\nWARNING: JVM list may be not full (missing root privileges). Use `sudo sh %s -l` to get a full list\n' "$0" 1>&2
 	fi
 
-	exit 0
-else
-	eval pid="\$$OPTIND"
-	user_name=""
-
-	if [ -n "$pid" ]; then
-		user_name=$(ps -Ao pid,user | grep -P "^\s*$pid" | head -n1 | awk '{ print $2 }')
-	fi
-
-	current_user_name=$(whoami)
-	stty_save=$(stty -g)
-	stty -echo
-	stty cbreak
-	export METRACER_IS_CBREAK_DISABLED="1"
-
-	if [ -n "$user_name" ] && [ "$current_user_name" != "$user_name" ]; then
-		sudo -u $user_name METRACER_LAUNCH_STRING=$METRACER_LAUNCH_STRING METRACER_IS_CBREAK_DISABLED=$METRACER_IS_CBREAK_DISABLED "$java" -Xbootclasspath/a:"$tools_jar" -jar $MYSELF "$@"
-	else
-		"$java" -Xbootclasspath/a:"$tools_jar" -jar $MYSELF "$@"
-	fi
-
-	stty $stty_save
-	exit 0
+	exit $RV
 fi
 
-exit 1
+eval pid="\$$OPTIND"
+user_name=""
+
+if [ -n "$pid" ]; then
+	user_name=$(ps -Ao pid,user | grep -P "^\s*$pid" | head -n1 | awk '{ print $2 }')
+fi
+
+current_user_name=$(whoami)
+stty_save=$(stty -g)
+stty -echo
+stty cbreak
+export METRACER_IS_CBREAK_DISABLED="1"
+
+if [ -n "$user_name" ] && [ "$current_user_name" != "$user_name" ]; then
+	sudo -u $user_name METRACER_LAUNCH_STRING=$METRACER_LAUNCH_STRING METRACER_IS_CBREAK_DISABLED=$METRACER_IS_CBREAK_DISABLED "$java" -Xbootclasspath/a:"$tools_jar" -jar $MYSELF "$@"
+	RV=$?
+else
+	"$java" -Xbootclasspath/a:"$tools_jar" -jar $MYSELF "$@"
+	RV=$?
+fi
+
+stty $stty_save
+exit $RV
