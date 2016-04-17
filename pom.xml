@@ -187,6 +187,24 @@
                   </arguments>
                 </configuration>
               </execution>
+              <execution>
+                <id>metracer.cmd compilation</id>
+                <phase>package</phase>
+                <goals>
+                  <goal>exec</goal>
+                </goals>
+                <configuration>
+                  <executable>/bin/sh</executable>
+                  <arguments>
+                    <argument>-c</argument>
+                    <argument>\
+		    sed 's|${launchstring}|metracer.cmd|g' ${basedir}/src/main/resources/usage.txt &gt; ${project.build.directory}/metracer.cmd.usage &amp;&amp; \
+		    sed 's|${usage_file_name}|${project.build.directory}/metracer.cmd.usage|g' ${basedir}/scripts/fill_usage.sed &gt; ${project.build.directory}/fill_usage.sed &amp;&amp; \
+		    sed -f ${project.build.directory}/fill_usage.sed ${basedir}/scripts/metracer.cmd &gt; ${project.build.directory}/metracer.cmd &amp;&amp; \
+		    cat ${project.build.directory}/${project.build.finalName}.jar &gt;&gt; ${project.build.directory}/metracer.cmd</argument>
+                  </arguments>
+                </configuration>
+              </execution>
             </executions>
           </plugin>
         </plugins>
