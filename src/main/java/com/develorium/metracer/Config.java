@@ -145,7 +145,7 @@ public class Config {
 			throw new BadConfig(String.format("Value \"%s\" of a PID argument is not an integer", thePid));
 		}
 				
-		if(rv <= 0)
+		if(rv < 0)
 			throw new BadConfig(String.format("Given PID %d is invalid", rv));
 
 		return rv;

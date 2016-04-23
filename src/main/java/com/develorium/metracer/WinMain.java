@@ -23,9 +23,7 @@ import org.apache.commons.csv.*;
 public class WinMain {
 	public static void main(String[] theArguments) {
 		try {
-			Config config = new Config(theArguments);
-			CSVParser parser = getTaskList();
-			String userName = resolveUserNameOfPid(parser, "" + config.pid);
+			String userName = resolveUserName(theArguments);
 
 			if(userName != null)
 				System.out.println(userName);
@@ -38,12 +36,18 @@ public class WinMain {
 		}
 	}
 
-	private static CSVParser getTaskList() throws IOException {
+	static String resolveUserName(String[] theArguments) throws Config.BadConfig, IOException {
+		Config config = new Config(theArguments);
+		CSVParser parser = getTaskList();
+		return resolveUserNameOfPid(parser, "" + config.pid);
+	}
+
+	static CSVParser getTaskList() throws IOException {
 		String[] args = {
 			"tasklist.exe",
 			"/nh",
 			"/fo",
-			"/csv",
+			"csv",
 			"/v"
 		};
 		Process p = java.lang.Runtime.getRuntime().exec(args);
@@ -52,7 +56,7 @@ public class WinMain {
 		return CSVFormat.DEFAULT.parse(reader);
 	}
 
-	private static String resolveUserNameOfPid(CSVParser theParser, String thePid) {
+	static String resolveUserNameOfPid(CSVParser theParser, String thePid) {
 		for(CSVRecord record : theParser) {
 			String recordPid = record.get(1);
 
