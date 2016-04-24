@@ -23,21 +23,31 @@ import org.apache.commons.csv.*;
 public class WinMain {
 	public static void main(String[] theArguments) {
 		try {
+			for(String arg : theArguments)
+				System.err.println(arg);
+
 			String userName = resolveUserName(theArguments);
 
 			if(userName != null)
 				System.out.println(userName);
 		} catch(Config.BadConfig e) {
+			System.err.println(e.getMessage());
+			e.printStackTrace(System.err);
 			System.exit(1);
 		} catch(IOException e) {
+			System.err.println(e.getMessage());
+			e.printStackTrace(System.err);
 			System.exit(2);
 		} catch(Throwable e) {
+			System.err.println(e.getMessage());
+			e.printStackTrace(System.err);
 			System.exit(3);
 		}
 	}
 
 	static String resolveUserName(String[] theArguments) throws Config.BadConfig, IOException {
 		Config config = new Config(theArguments);
+		System.err.println("zzz PID = " + config.pid);
 		CSVParser parser = getTaskList();
 		return resolveUserNameOfPid(parser, "" + config.pid);
 	}
@@ -57,14 +67,18 @@ public class WinMain {
 	}
 
 	static String resolveUserNameOfPid(CSVParser theParser, String thePid) {
+		String rv = null;
 		for(CSVRecord record : theParser) {
 			String recordPid = record.get(1);
+			System.err.println(record.get(0) + " " + record.get(1));
 
 			if(recordPid.equals(thePid)) {
-				return record.get(6);
+				System.err.println("AAAAAA");
+				//return record.get(6);
+				rv = record.get(6);
 			}
 		}
 
-		return null;
+		return rv;
 	}
 }

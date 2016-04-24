@@ -1,4 +1,4 @@
-@ECHO OFF
+::@ECHO OFF
 SETLOCAL ENABLEEXTENSIONS 
 SETLOCAL ENABLEDELAYEDEXPANSION
 SET myself=%~dpnx0
@@ -44,7 +44,7 @@ IF DEFINED is_help_requested (
 
 :: For all other options we need tools.jar, resolve it
 IF EXIST "%java_exe_folder%..\lib\tools.jar" (
- SET tools_jar="%java_exe_folder%..\lib\tools.jar"
+ SET tools_jar=%java_exe_folder%..\lib\tools.jar
 ) ELSE (
   ECHO Failed to resolve tools.jar from a JDK. Please, make sure that JDK is installed and JAVA_HOME environment variable is properly set
   EXIT /B 1
@@ -53,15 +53,20 @@ IF EXIST "%java_exe_folder%..\lib\tools.jar" (
 
 IF DEFINED is_list_requested (
  :: For JVM listing no impersonation is required
- "%java_exe%" -Xbootclasspath/a:%tools_jar% -jar "%myself%" %*
+ "%java_exe%" -Xbootclasspath/a:"%tools_jar%" -jar "%myself%" %*
  EXIT /B !ERRORLEVEL!
 )
 
-:: Following could be used to find user of a target JVM
-:: FOR /F delims^=^"^ tokens^=3^,13 %%P IN ('tasklist /FO CSV /V /NH') DO (
-::  @ECHO %p %q
-::)
-:: Following could be used to resolve whoami: %USERDOMAIN%\%USERNAME%
+FOR /F %%I IN ('CALL "%java_exe%" -cp "%myself%" com.develorium.metracer.WinMain %*') DO SET user_name=%%I
+ECHO user_name=%user_name%
 
-"%java_exe%" -Xbootclasspath/a:%tools_jar% -jar "%myself%" %*
+IF DEFINED user_name (
+ SET current_user_name=%USERDOMAIN%\%USERNAME%
+ IF NOT "!current_user_name!"=="%user_name%" (
+  runas /user:"%user_name%" "\"%java_exe%\" -Xbootclasspath/a:\"%tools_jar%\" -jar \"%myself%\" %*"
+  EXIT /B !ERRORLEVEL!
+ )
+)
+
+"%java_exe%" -Xbootclasspath/a:"%tools_jar%" -jar "%myself%" %*
 EXIT /B !ERRORLEVEL!

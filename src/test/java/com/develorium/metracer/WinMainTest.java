@@ -23,11 +23,6 @@ import org.junit.*;
 import org.apache.commons.csv.*;
 
 public class WinMainTest {
-	@Before
-	public void runOnWindowsOnly() {
-		String osName = System.getProperty("os.name");
-		org.junit.Assume.assumeTrue(osName.startsWith("Windows"));
-	}
 	@Test
 	public void testResolveUserNameOfPid() throws IOException {
 		String[] samples = {
@@ -36,6 +31,7 @@ public class WinMainTest {
 			"\"explorer.exe\",\"1584\",\"Console\",\"0\",\"18 432 КБ\",\"Работает\",\"VIRTUALPC\\вася\",\"0:01:43\",\"Н/Д\"", "1584", "VIRTUALPC\\вася",
 			"\"some\", \"strange\", \"csv\"", "100", null,
 			"\"csrss.exe\",\"364\",\"Services\",\"0\",\"3,480 K\",\"Unknown\",\"NT AUTHORITY\\SYSTEM\",\"0:00:22\",\"N/A\"", "zzzz", null,
+			"\"cmd.exe\",\"1232\",\"Console\",\"0\",\"1 472 КБ\",\"Работает\",\"VIRTUALPC\\вася\",\"0:00:00\",\"C:\\WINDOWS\\system32\\cmd.exe - java -cp target\\test-classes \"\"com.develorium.metracertest.Main\"\"\"", "1232", "VIRTUALPC\\вася"
 		};
 
 		for(int i = 0; i < samples.length; i += 3) {
@@ -50,10 +46,19 @@ public class WinMainTest {
 	}
 	@Test
 	public void testResolveUserName() throws Config.BadConfig, IOException {
+		if(!isWindows()) {
+			System.out.println("Skipping test testResolveUserName - must be executed under Windows only");
+			return;
+		}
 		// Check 0 ("System Idle Process") - hope it always exists
 		String userName = WinMain.resolveUserName(new String[] { "0" });
 		System.out.println(String.format("Resolved user name of PID 0: %s", userName));
 		Assert.assertTrue(userName != null);
 		Assert.assertTrue(userName.length() > 0);
+	}
+
+	private static boolean isWindows() {
+		String osName = System.getProperty("os.name");
+		return osName.startsWith("Windows");
 	}
 }
