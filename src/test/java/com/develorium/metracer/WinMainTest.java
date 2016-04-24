@@ -20,27 +20,95 @@ import java.io.*;
 import junit.framework.Assert;
 import org.junit.Test;
 import org.junit.*;
-import org.apache.commons.csv.*;
 
 public class WinMainTest {
 	@Test
-	public void testResolveUserNameOfPid() throws IOException {
+	public void testExtractFieldValue() {
 		String[] samples = {
-			"\"csrss.exe\",\"364\",\"Services\",\"0\",\"3,480 K\",\"Unknown\",\"NT AUTHORITY\\SYSTEM\",\"0:00:22\",\"N/A\"", "364", "NT AUTHORITY\\SYSTEM",
-			"\"System\",\"4\",\"Console\",\"0\",\"212 КБ\",\"Работает\",\"NT AUTHORITY\\SYSTEM\",\"0:00:31\",\"Н/Д\"", "4", "NT AUTHORITY\\SYSTEM",
-			"\"explorer.exe\",\"1584\",\"Console\",\"0\",\"18 432 КБ\",\"Работает\",\"VIRTUALPC\\вася\",\"0:01:43\",\"Н/Д\"", "1584", "VIRTUALPC\\вася",
-			"\"some\", \"strange\", \"csv\"", "100", null,
-			"\"csrss.exe\",\"364\",\"Services\",\"0\",\"3,480 K\",\"Unknown\",\"NT AUTHORITY\\SYSTEM\",\"0:00:22\",\"N/A\"", "zzzz", null,
-			"\"cmd.exe\",\"1232\",\"Console\",\"0\",\"1 472 КБ\",\"Работает\",\"VIRTUALPC\\вася\",\"0:00:00\",\"C:\\WINDOWS\\system32\\cmd.exe - java -cp target\\test-classes \"\"com.develorium.metracertest.Main\"\"\"", "1232", "VIRTUALPC\\вася"
+			"PID:\t123", "123",
+			"PID:\t\t123\t", "123",
+			"PID:  123  ", "123",
+			"PID:\t  123  \t", "123",
+			":123", "123",
+			"PID:", null,
+			"PID:123", "123",	
+			"PID:1", "1",
+			"User name: NT AUTHORITY\\SYSTEM", "NT AUTHORITY\\SYSTEM",
+			"User name: VIRTUALPC\\вася", "VIRTUALPC\\вася",
+			"Пользователь: NT AUTHORITY\\SYSTEM", "NT AUTHORITY\\SYSTEM",
+			"Пользователь: VIRTUALPC\\вася", "VIRTUALPC\\вася",
 		};
 
+		for(int i = 0; i < samples.length; i += 2) {
+			String field = samples[i];
+			String value = samples[i + 1];
+			String resolvedValue = WinMain.extractFieldValue(field);
+			System.out.format("%s => %s VS %s\n", field, resolvedValue, value);
+			Assert.assertEquals(value, resolvedValue);
+		}
+	}
+	@Test
+	public void testResolveUserNameOfPid() throws IOException {
+		String[] samples = {
+			"Имя образа:     tasklist.exe\n" + 
+			"PID:            1188\n" +
+			"Имя сессии:     Console\n" +
+			"№ сеанса:       0\n" +
+			"Память:         3 464 КБ\n" +
+			"Статус:         Работает\n" +
+			"Пользователь:   VIRTUALPC\\вася\n" +
+			"Время ЦП:       0:00:00\n" +
+			"Заголовок окна: OleMainThreadWndName\n", "1188", "VIRTUALPC\\вася",
+
+			"Имя образа:     cmd.exe\n" +
+			"PID:            1528\n" +
+			"Имя сессии:     Console\n" +
+			"№ сеанса:       0\n" +
+			"Память:         232 КБ\n" +
+			"Статус:         Работает\n" +
+			"Пользователь:   VIRTUALPC\\Администратор\n" +
+			"Время ЦП:       0:00:00\n" +
+			"Заголовок окна: cmd (запущено от имени VIRTUALPC\\Администратор) - java -cp target\test-classes com.develorium.metracertest.Main\n", "1528", "VIRTUALPC\\Администратор",
+
+			"\n" +
+			"Имя образа:     System\n" +
+			"PID:            4\n" +
+			"Имя сессии:     Console\n" +
+			"№ сеанса:       0\n" +
+			"Память:         212 КБ\n" +
+			"Статус:         Работает\n" +
+			"Пользователь:   NT AUTHORITY\\SYSTEM\n" +
+			"Время ЦП:       0:00:36\n" +
+			"Заголовок окна: Н/Д\n", "4", "NT AUTHORITY\\SYSTEM",
+
+			"Image Name:   conhost.exe\n" +
+			"PID:          4396\n" +
+			"Session Name: Services\n" +
+			"Session#:     0\n" +
+			"Mem Usage:    2,856 K\n" +
+			"Status:       Unknown\n" +
+			"User Name:    NT AUTHORITY\\SYSTEM\n" +
+			"CPU Time:     0:00:00\n" +
+			"Window Title: N/A\n", "4396", "NT AUTHORITY\\SYSTEM",
+
+			"Image Name:   mytask.exe\n" +
+			"PID:          5555\n" +
+			"Session Name: Services\n" +
+			"Session#:     0\n" +
+			"Mem Usage:    2,856 K\n" +
+			"Status:       Unknown\n" +
+			"User Name:    NT AUTHORITY\\SYSTEM\n" +
+			"CPU Time:     0:00:00\n" +
+			"Window Title: \"Hello, world: this is me!\"\n", "5555", "NT AUTHORITY\\SYSTEM",
+		};
+	
 		for(int i = 0; i < samples.length; i += 3) {
-			String line = samples[i];
+			String fields = samples[i];
 			String pid = samples[i + 1];
 			String userName = samples[i + 2];
-			CSVParser parser = CSVParser.parse(line, CSVFormat.DEFAULT);
-			String resolvedUserName = WinMain.resolveUserNameOfPid(parser, pid);
-			System.out.format("%s => %s => %s VS %s\n", line, pid, resolvedUserName, userName);
+			BufferedReader reader = new BufferedReader(new StringReader(fields));
+			String resolvedUserName = WinMain.resolveUserNameOfPid(reader, pid);
+			System.out.format("%s => %s => %s VS %s\n", fields, pid, resolvedUserName, userName);
 			Assert.assertEquals(userName, resolvedUserName);
 		}
 	}
@@ -56,7 +124,7 @@ public class WinMainTest {
 		Assert.assertTrue(userName != null);
 		Assert.assertTrue(userName.length() > 0);
 	}
-
+	
 	private static boolean isWindows() {
 		String osName = System.getProperty("os.name");
 		return osName.startsWith("Windows");

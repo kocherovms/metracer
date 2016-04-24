@@ -41,8 +41,15 @@ public class Config {
 	private LinkedList<String> argumentList = null;
 
 	public Config(String[] theArguments) throws BadConfig {
-		if(theArguments == null)
+		if(theArguments == null || theArguments.length == 0) {
+			Map<String,String> env = System.getenv();
+			
+			for(Map.Entry<String, String> entry : env.entrySet()) {
+				System.err.format("%s => %s\n", entry.getKey(), entry.getValue());
+			}
+			
 			throw new BadConfig("arguments are not specified");
+		}
 
 		argumentList = new LinkedList<String>(Arrays.asList(theArguments));
 		isVerbose = argumentList.remove("-v");

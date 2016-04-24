@@ -42,11 +42,6 @@
       <version>5.0.4</version>
     </dependency>
     <dependency>
-      <groupId>org.apache.commons</groupId>
-      <artifactId>commons-csv</artifactId>
-      <version>1.2</version>
-    </dependency>
-    <dependency>
       <groupId>com.sun</groupId>
       <artifactId>tools</artifactId>
       <version>1.6.0</version>

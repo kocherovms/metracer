@@ -8,6 +8,7 @@ FOR %%P IN (%*) DO (
  SET /A argc+=1
  IF "%%P%"=="-h" (SET is_help_requested=1)
  IF "%%P%"=="-l" (SET is_list_requested=1)
+ SET METRACER_ARGUMENT_!argc!="%%P%"
 )
 
 IF "%argc%"=="0" (
@@ -37,6 +38,8 @@ IF NOT EXIST "%java_exe%" (
  EXIT /B 1
 )
 
+SET METRACER_LAUNCH_STRING=metracer.cmd
+
 IF DEFINED is_help_requested (
  "%java_exe%" -jar "%myself%" %*
  EXIT /B !ERRORLEVEL!
@@ -57,16 +60,17 @@ IF DEFINED is_list_requested (
  EXIT /B !ERRORLEVEL!
 )
 
-FOR /F %%I IN ('CALL "%java_exe%" -cp "%myself%" com.develorium.metracer.WinMain %*') DO SET user_name=%%I
-ECHO user_name=%user_name%
+:: Do not use arguments (%*) passing to metracer - they would be consumed from environment variables.
+:: This is to overcome problems with escaping of arguments, e.g. -v 2016 "com.develorium.metracertest|something" won't work
+FOR /F %%I IN ('CALL "%java_exe%" -cp "%myself%" com.develorium.metracer.WinMain') DO SET user_name=%%I
 
 IF DEFINED user_name (
  SET current_user_name=%USERDOMAIN%\%USERNAME%
  IF NOT "!current_user_name!"=="%user_name%" (
-  runas /user:"%user_name%" "\"%java_exe%\" -Xbootclasspath/a:\"%tools_jar%\" -jar \"%myself%\" %*"
+  runas /user:"%user_name%" "\"%java_exe%\" -Xbootclasspath/a:\"%tools_jar%\" -jar \"%myself%\""
   EXIT /B !ERRORLEVEL!
  )
 )
 
-"%java_exe%" -Xbootclasspath/a:"%tools_jar%" -jar "%myself%" %*
+"%java_exe%" -Xbootclasspath/a:"%tools_jar%" -jar "%myself%"
 EXIT /B !ERRORLEVEL!

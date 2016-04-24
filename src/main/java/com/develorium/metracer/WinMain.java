@@ -18,14 +18,10 @@ package com.develorium.metracer;
 
 import java.util.*;
 import java.io.*;
-import org.apache.commons.csv.*;
 
 public class WinMain {
 	public static void main(String[] theArguments) {
 		try {
-			for(String arg : theArguments)
-				System.err.println(arg);
-
 			String userName = resolveUserName(theArguments);
 
 			if(userName != null)
@@ -47,38 +43,59 @@ public class WinMain {
 
 	static String resolveUserName(String[] theArguments) throws Config.BadConfig, IOException {
 		Config config = new Config(theArguments);
-		System.err.println("zzz PID = " + config.pid);
-		CSVParser parser = getTaskList();
-		return resolveUserNameOfPid(parser, "" + config.pid);
+		BufferedReader reader = getTaskList();
+		return resolveUserNameOfPid(reader, "" + config.pid);
 	}
-
-	static CSVParser getTaskList() throws IOException {
+	
+ 	static BufferedReader getTaskList() throws IOException {
 		String[] args = {
 			"tasklist.exe",
-			"/nh",
 			"/fo",
-			"csv",
+			"list", // not using a CSV, because tasklist produces incorrect CSV (e.g. when program caption contains " symbol)
 			"/v"
 		};
 		Process p = java.lang.Runtime.getRuntime().exec(args);
 		InputStream stdout = p.getInputStream();
-		BufferedReader reader = new BufferedReader(new InputStreamReader(stdout));
-		return CSVFormat.DEFAULT.parse(reader);
+		return new BufferedReader(new InputStreamReader(stdout));
 	}
+	
+	static String resolveUserNameOfPid(BufferedReader theReader, String thePid) throws IOException {
+		String line = null;
+		int fieldIndex = 0;
+		boolean pidFound = false;
 
-	static String resolveUserNameOfPid(CSVParser theParser, String thePid) {
-		String rv = null;
-		for(CSVRecord record : theParser) {
-			String recordPid = record.get(1);
-			System.err.println(record.get(0) + " " + record.get(1));
-
-			if(recordPid.equals(thePid)) {
-				System.err.println("AAAAAA");
-				//return record.get(6);
-				rv = record.get(6);
+		while((line = theReader.readLine()) != null) {
+			line = line.trim();
+			
+			if(line.isEmpty()) {
+				fieldIndex = 0;
+				continue;
 			}
+
+			if(fieldIndex == 1 && !pidFound) {
+				String currentPid = extractFieldValue(line);
+				
+				if(currentPid != null && currentPid.equals(thePid)) {
+					pidFound = true;
+				}
+			}
+			else if(fieldIndex == 6 && pidFound) {
+				return extractFieldValue(line);
+			}
+
+			fieldIndex++;
 		}
 
-		return rv;
+		return null;
+	}
+
+	static String extractFieldValue(String theField) {
+		int index = theField.indexOf(':');
+		
+		if(index < 0 || (index == theField.length() - 1))
+			return null;
+
+		String rv = theField.substring(index + 1);
+		return rv.trim();
 	}
 }
