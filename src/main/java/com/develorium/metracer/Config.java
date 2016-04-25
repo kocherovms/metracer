@@ -41,15 +41,10 @@ public class Config {
 	private LinkedList<String> argumentList = null;
 
 	public Config(String[] theArguments) throws BadConfig {
-		if(theArguments == null || theArguments.length == 0) {
-			Map<String,String> env = System.getenv();
-			
-			for(Map.Entry<String, String> entry : env.entrySet()) {
-				System.err.format("%s => %s\n", entry.getKey(), entry.getValue());
-			}
-			
+		theArguments = Config.readArgumentsFromEnvironmentVariablesIfTheyAreEmpty(theArguments, System.getenv());
+
+		if(theArguments == null || theArguments.length == 0)
 			throw new BadConfig("arguments are not specified");
-		}
 
 		argumentList = new LinkedList<String>(Arrays.asList(theArguments));
 		isVerbose = argumentList.remove("-v");
@@ -69,6 +64,39 @@ public class Config {
 		default:
 			throw new BadConfig("Failed to recognize any known command");
 		}
+	}
+
+	static String[] readArgumentsFromEnvironmentVariablesIfTheyAreEmpty(String[] theArguments, Map<String, String> theEnv) {
+		if(theArguments != null && theArguments.length > 0)
+			return theArguments;
+		
+		Map<Integer, String> args = new TreeMap<Integer, String>();
+		final String Prefix = "METRACER_ARGUMENT_";
+			
+		for(Map.Entry<String, String> entry : theEnv.entrySet()) {
+			String keyName = entry.getKey();
+			
+			if(!keyName.startsWith(Prefix)) 
+				continue;
+		
+			try {
+				Integer argumentIndex = Integer.parseInt(keyName.replace(Prefix, ""));
+				args.put(argumentIndex, entry.getValue());
+			} catch(NumberFormatException e) {
+				continue;
+			}
+		}
+		
+		if(args.size() <= 0)
+			return null;
+		
+		String[] rv = new String[args.size()];
+		int i = 0;
+		
+		for(Map.Entry<Integer, String> entry : args.entrySet())
+			rv[i++] = entry.getValue();
+		
+		return rv;
 	}
 
 	private COMMAND findCommand() {
@@ -171,6 +199,4 @@ public class Config {
 			throw new BadConfig(String.format("Provided pattern \"%s\" is malformed: %s", thePattern, e.getMessage()));
 		}
 	}
-
-
 }

@@ -1,4 +1,4 @@
-::@ECHO OFF
+@ECHO OFF
 SETLOCAL ENABLEEXTENSIONS 
 SETLOCAL ENABLEDELAYEDEXPANSION
 SET myself=%~dpnx0
@@ -8,7 +8,7 @@ FOR %%P IN (%*) DO (
  SET /A argc+=1
  IF "%%P%"=="-h" (SET is_help_requested=1)
  IF "%%P%"=="-l" (SET is_list_requested=1)
- SET METRACER_ARGUMENT_!argc!="%%P%"
+ SET METRACER_ARGUMENT_!argc!=%%~P
 )
 
 IF "%argc%"=="0" (
@@ -67,7 +67,7 @@ FOR /F %%I IN ('CALL "%java_exe%" -cp "%myself%" com.develorium.metracer.WinMain
 IF DEFINED user_name (
  SET current_user_name=%USERDOMAIN%\%USERNAME%
  IF NOT "!current_user_name!"=="%user_name%" (
-  runas /user:"%user_name%" "\"%java_exe%\" -Xbootclasspath/a:\"%tools_jar%\" -jar \"%myself%\""
+  runas /env /user:"%user_name%" "\"%java_exe%\" -Xbootclasspath/a:\"%tools_jar%\" -jar \"%myself%\""
   EXIT /B !ERRORLEVEL!
  )
 )

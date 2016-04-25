@@ -27,6 +27,52 @@ public class ConfigTest {
 	}
 
 	@Test
+	public void testReadArgumentsFromEnvironmentVariablesIfTheyAreEmpty() {
+		Map<String, String> env = new HashMap<String, String>();
+		env.put("METRACER_ARGUMENT_0", "A");
+		env.put("METRACER_ARGUMENT_1", "B");
+		env.put("METRACER_ARGUMENT_2", "C");
+		String[] args = Config.readArgumentsFromEnvironmentVariablesIfTheyAreEmpty(null, env);
+		Assert.assertEquals(3, args.length);
+		Assert.assertEquals("A", args[0]);
+		Assert.assertEquals("B", args[1]);
+		Assert.assertEquals("C", args[2]);
+
+		args = Config.readArgumentsFromEnvironmentVariablesIfTheyAreEmpty(new String[] { "-v", "2016", "test" }, env);
+		Assert.assertEquals(3, args.length);
+		Assert.assertEquals("-v", args[0]);
+		Assert.assertEquals("2016", args[1]);
+		Assert.assertEquals("test", args[2]);
+
+		env.clear();
+		env.put("METRACER_ARGUMENT_0", "A");
+		env.put("METRACER_ARGUMENT_1", "B");
+		env.put("METRACER_ARGUMENT_9", "C");
+		env.put("METRACER_ARGUMENT_10", "D");
+		env.put("METRACER_ARGUMENT_11", "E");
+		args = Config.readArgumentsFromEnvironmentVariablesIfTheyAreEmpty(null, env);
+		Assert.assertEquals(5, args.length);
+		Assert.assertEquals("A", args[0]);
+		Assert.assertEquals("B", args[1]);
+		Assert.assertEquals("C", args[2]);
+		Assert.assertEquals("D", args[3]);
+		Assert.assertEquals("E", args[4]);
+
+		env.clear();
+		env.put("JAVA_HOME", "c:\\Program Files\\Java\\bin");
+		env.put("METRACER_ARGUMENT_0", "A");
+		env.put("PATH", "c:\\test");
+		args = Config.readArgumentsFromEnvironmentVariablesIfTheyAreEmpty(null, env);
+		Assert.assertEquals(1, args.length);
+		Assert.assertEquals("A", args[0]);
+
+		env.clear();
+		env.put("METRACER_ARGUMENT_zzz", "A");
+		args = Config.readArgumentsFromEnvironmentVariablesIfTheyAreEmpty(null, env);
+		Assert.assertEquals(null, args);
+	}
+
+	@Test
 	public void testHelpCommand() {
 		Config config = new Config(new String[]{ "-h" });
 		Assert.assertTrue(config.command ==  Config.COMMAND.HELP);
