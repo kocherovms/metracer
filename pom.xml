@@ -92,10 +92,37 @@
         <version>2.4.3</version>
         <executions>
           <execution>
+	    <id>BARE metracer compilation</id>
             <phase>package</phase>
             <goals>
               <goal>shade</goal>
             </goals>
+	    <configuration>
+	      <createDependencyReducedPom>false</createDependencyReducedPom>
+	      <outputFile>${project.build.directory}/metracer_bare-${project.version}.jar</outputFile>
+              <transformers>
+                <transformer implementation="org.apache.maven.plugins.shade.resource.ManifestResourceTransformer">
+                  <mainClass>com.develorium.metracer.Main</mainClass>
+                </transformer>
+	      </transformers>
+	    </configuration>
+          </execution>
+
+          <execution>
+	    <id>WIN metracer compilation</id>
+            <phase>package</phase>
+            <goals>
+              <goal>shade</goal>
+            </goals>
+	    <configuration>
+	      <createDependencyReducedPom>false</createDependencyReducedPom>
+	      <outputFile>${project.build.directory}/metracer_win-${project.version}.jar</outputFile>
+              <transformers>
+                <transformer implementation="org.apache.maven.plugins.shade.resource.ManifestResourceTransformer">
+                  <mainClass>com.develorium.metracer.WinMain</mainClass>
+                </transformer>
+	      </transformers>
+	    </configuration>
           </execution>
         </executions>
       </plugin>
@@ -202,7 +229,25 @@
                      sed -e 's|^\(.*\)$|SET help_line="\1"|' -e a\ 'ECHO !help_line:"=!' -i ${project.build.directory}/metracer.cmd.usage &amp;&amp; \
                      sed 's|${usage_file_name}|${project.build.directory}/metracer.cmd.usage|g' ${basedir}/scripts/fill_usage_for_cmd.sed &gt; ${project.build.directory}/fill_usage_for_cmd.sed &amp;&amp; \
                      sed -f ${project.build.directory}/fill_usage_for_cmd.sed ${basedir}/scripts/metracer.cmd &gt; ${project.build.directory}/metracer.cmd &amp;&amp; \
-                     cat ${project.build.directory}/${project.build.finalName}.jar &gt;&gt; ${project.build.directory}/metracer.cmd</argument>
+                     cat ${project.build.directory}/${project.build.finalName}.jar &gt;&gt; ${project.build.directory}/metracer.cmd
+		    </argument>
+                  </arguments>
+                </configuration>
+              </execution>
+              <execution>
+                <id>metracer.vbs compilation</id>
+                <phase>package</phase>
+                <goals>
+                  <goal>exec</goal>
+                </goals>
+                <configuration>
+                  <executable>/bin/sh</executable>
+                  <arguments>
+                    <argument>-c</argument>
+                    <argument>\
+                     cat ${basedir}/scripts/metracer.vbs &gt; ${project.build.directory}/metracer.vbs &amp;&amp; \
+                     cat ${project.build.directory}/${project.build.finalName}.jar &gt;&gt; ${project.build.directory}/metracer.vbs
+		    </argument>
                   </arguments>
                 </configuration>
               </execution>

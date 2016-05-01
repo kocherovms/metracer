@@ -18,13 +18,14 @@ package com.develorium.metracer;
 
 import java.util.*;
 import java.io.*;
+import java.net.*;
 import com.sun.tools.attach.*;
 import java.lang.management.*;
 
 public class Helper {
-	public static void printUsage(PrintStream theOutput) {
+	public static void printUsage(PrintStream theOutput, String theLaunchString) {
 		try {
-			theOutput.println(loadInfoResource("usage.txt"));
+			theOutput.println(loadInfoResource("usage.txt", theLaunchString));
 		} catch(Throwable t) {
 			throw new RuntimeException(String.format("Failed to print usage: %s", t.getMessage()), t);
 		}
@@ -53,7 +54,7 @@ public class Helper {
 				else if(symbol == 'Q')
 					return false;
 				else if(symbol == 10) { // return / enter
-					if(System.getenv().get("METRACER_IS_CBREAK_DISABLED") != null)
+					if(System.getenv().get(Constants.METRACER_IS_CBREAK_DISABLED) != null)
 						theStdout.println("");
 				}
 			} catch(IOException e) {
@@ -61,10 +62,27 @@ public class Helper {
 		}
 	}
 
+	public static File getSelfJarFile() throws URISyntaxException {
+		return new File(Helper.class.getProtectionDomain().getCodeSource().getLocation().toURI().getPath());
+	}
+
+	public static File getSelfJarFileSafe() {
+		try {
+			return getSelfJarFile();
+		} catch(Throwable e) {
+			return null;
+		}
+	}
+
+	public static String getSelfPid() {
+		String jvmName = ManagementFactory.getRuntimeMXBean().getName();
+		return jvmName.substring(0, jvmName.indexOf('@'));
+	}
+
 	private static void printHelp(PrintStream theOutput) {
 		try {
-			String usage = loadInfoResource("usage.txt");
-			String help = loadInfoResource("help.txt");
+			String usage = loadInfoResource("usage.txt", null);
+			String help = loadInfoResource("help.txt", null);
 			String processedHelp = help.replace("${usage}", usage);
 			theOutput.println(processedHelp);
 		} catch(Throwable t) {
@@ -73,12 +91,18 @@ public class Helper {
 	}
 
 	private static void printJvmList(PrintStream theOutput) {
-		String selfPid = getSelfPid();
+		Set<String> blacklistedPids = new HashSet<String>();
+		blacklistedPids.add(getSelfPid());
+		String launcherPid = System.getenv().get(Constants.METRACER_LAUNCHER_PID);
+
+		if(launcherPid != null && !launcherPid.isEmpty())
+			blacklistedPids.add(launcherPid);
+
 		List<VirtualMachineDescriptor> jvmList = VirtualMachine.list();
 		List<String> jvms = new ArrayList<String>();
 
 		for(VirtualMachineDescriptor jvm: jvmList) {
-			if(selfPid.equals(jvm.id()))
+			if(blacklistedPids.contains(jvm.id()))
 				continue;
 
 			jvms.add(String.format("%s\t%s", jvm.id(), jvm.displayName()));
@@ -95,7 +119,7 @@ public class Helper {
 			theOutput.println(jvm);
 	}
 
-	private static String loadInfoResource(String theResourceId) {
+	private static String loadInfoResource(String theResourceId, String theLaunchString) {
 		try {
 			ClassLoader loader = Helper.class.getClassLoader();
 			InputStream stream = loader.getResourceAsStream(theResourceId);
@@ -105,11 +129,15 @@ public class Helper {
 
 			InputStreamReader streamReader = new InputStreamReader(stream);
 			BufferedReader reader = new BufferedReader(streamReader);
-			Map<String, String> env = System.getenv();
-			String launchString = env.get("METRACER_LAUNCH_STRING");
+			String launchString = theLaunchString;
 
-			if(launchString == null)
-				launchString = "java -Xbootclasspath/a:<path-to-tools.jar> -jar metracer.jar";
+			if(launchString == null) {
+				Map<String, String> env = System.getenv();
+				launchString = env.get(Constants.METRACER_LAUNCH_STRING);
+
+				if(launchString == null)
+					launchString = "java -Xbootclasspath/a:<path-to-tools.jar> -jar metracer.jar";
+			}
 
 			StringBuilder rv = new StringBuilder();
 			String line;
@@ -127,10 +155,5 @@ public class Helper {
 		} catch(Throwable t) {
 			throw new RuntimeException(String.format("Failed to load info resource %s: %s", theResourceId, t.getMessage()), t);
 		}
-	}
-
-	private static String getSelfPid() {
-		String jvmName = ManagementFactory.getRuntimeMXBean().getName();
-		return jvmName.substring(0, jvmName.indexOf('@'));
 	}
 }

@@ -24,7 +24,7 @@ public class HelperTest {
 	@Test
 	public void testUsageIsWorking() {
 		ByteArrayOutputStream output = new ByteArrayOutputStream();
-		Helper.printUsage(new PrintStream(output));
+		Helper.printUsage(new PrintStream(output), null);
 		Assert.assertTrue(output.size() > 0);
 	}
 

@@ -63,7 +63,7 @@ public class Main {
 			isFinished = true;
 		} catch(Config.BadConfig e) {
 			env.getStderr().println(e.getMessage());
-			Helper.printUsage(env.getStderr());
+			Helper.printUsage(env.getStderr(), null);
 			throw e;
 		} catch(Throwable e) {
 			env.getStderr().println(e.getMessage());
@@ -329,10 +329,10 @@ public class Main {
 		return JMX.newMXBeanProxy(connection, agentMxBeanName, AgentMXBean.class, true);
 	}
 
-	private String resolveMetracerAgentJar() throws UnsupportedEncodingException {
+	private String resolveMetracerAgentJar() {
 		try {
-			return new File(Main.class.getProtectionDomain().getCodeSource().getLocation().toURI().getPath()).getAbsolutePath();
-		} catch(java.net.URISyntaxException e) {
+			return Helper.getSelfJarFile().getAbsolutePath();
+		} catch(Throwable e) {
 			throw new RuntimeException(String.format("Failed to resolve metracer agent JAR: %s", e.getMessage()), e);
 		}
 	}

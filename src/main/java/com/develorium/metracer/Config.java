@@ -27,7 +27,18 @@ public class Config {
 	};
 
 	enum COMMAND {
-		HELP, LIST, INSTRUMENT, DEINSTRUMENT
+		HELP(false, false), 
+		LIST(true, false),
+		INSTRUMENT(true, true), 
+		DEINSTRUMENT(true, true);
+
+		COMMAND(boolean theIsToolsJarNeeded, boolean theIsImpersonationNeeded) {
+			isToolsJarNeeded = theIsToolsJarNeeded;
+			isImpersonationNeeded = theIsImpersonationNeeded;
+		}
+
+		public boolean isToolsJarNeeded;
+		public boolean isImpersonationNeeded;
 	};
 
 	public COMMAND command = null;

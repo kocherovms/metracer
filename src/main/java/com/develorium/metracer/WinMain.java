@@ -21,24 +21,95 @@ import java.io.*;
 
 public class WinMain {
 	public static void main(String[] theArguments) {
-		try {
-			String userName = resolveUserName(theArguments);
+		File selfJar = Helper.getSelfJarFileSafe();
+		String launchString = String.format("java -jar %s", selfJar != null ? selfJar.getName() : "metracer_win.jar");
 
-			if(userName != null)
-				System.out.println(userName);
+		try {
+			Config config = new Config(theArguments);
+			String[] javaLocation = resolveJavaLocation();
+			String javaExe = javaLocation[0];
+			String javaExeFolder = javaLocation[1];
+
+			if(!new File(javaExe).exists())
+				throw new RuntimeException(String.format("Resolved 'java.exe' executable (%s) doesn't exist", javaExe));
+
+			String toolsJarFileName = null;
+
+			if(config.command.isToolsJarNeeded) {
+				toolsJarFileName = resolveToolsJarFileName(javaExeFolder);
+				System.out.println(toolsJarFileName);
+				
+				if(!new File(toolsJarFileName).exists())
+					throw new RuntimeException("Failed to resolve tools.jar from a JDK. Please, make sure that JDK is installed and JAVA_HOME environment variable is properly set");
+			}
+
+			String userName = null;
+
+			if(config.command.isImpersonationNeeded) {
+				userName = resolveUserName(theArguments);
+			}
+			
+			List<String> args = new ArrayList<String>();
+			args.add(javaExe);
+
+			if(toolsJarFileName != null)
+				args.add(String.format("-Xbootclasspath/a:%s", toolsJarFileName));
+
+			args.add("-cp");
+			// TODO: handle null
+			args.add(selfJar.getAbsolutePath());
+			args.add("com.develorium.metracer.Main");
+				
+			for(String arg : theArguments)
+				args.add(arg);
+
+			ProcessBuilder pb = new ProcessBuilder(args);
+			pb.inheritIO();
+			pb.environment().put(Constants.METRACER_LAUNCH_STRING, launchString);
+			pb.environment().put(Constants.METRACER_LAUNCHER_PID, Helper.getSelfPid());
+			Process p = pb.start();
+
+			while(true) {
+				try {
+					System.exit(p.waitFor());
+				} catch(InterruptedException e) {
+				}
+			}
 		} catch(Config.BadConfig e) {
 			System.err.println(e.getMessage());
-			e.printStackTrace(System.err);
+			Helper.printUsage(System.err, launchString);
 			System.exit(1);
-		} catch(IOException e) {
-			System.err.println(e.getMessage());
-			e.printStackTrace(System.err);
-			System.exit(2);
+		//} catch(IOException e) {
+		//	System.err.println(e.getMessage());
+		//	e.printStackTrace(System.err);
+		//	System.exit(2);
 		} catch(Throwable e) {
 			System.err.println(e.getMessage());
 			e.printStackTrace(System.err);
 			System.exit(3);
 		}
+	}
+
+	static String[] resolveJavaLocation() {
+		Map<String, String> env = System.getenv();
+		String home = env.containsKey("JAVA_HOME")
+			? env.get("JAVA_HOME")
+			: System.getProperty("java.home");
+
+		if(home == null || home.isEmpty())
+			throw new RuntimeException("Failed to resolve path to java.exe - neither JAVA_HOME env variable or 'java.home' system prop is set ");
+
+		String sep = System.getProperty("file.separator");
+		String[] rv = {
+			home + sep + "bin" + sep + "java",
+			home + sep + "bin",
+		};
+		return rv;
+	}
+
+	static String resolveToolsJarFileName(String theJavaExeFolder) {
+		String sep = System.getProperty("file.separator");
+		return theJavaExeFolder + sep + ".." + sep + "lib" + sep + "tools.jar";
 	}
 
 	static String resolveUserName(String[] theArguments) throws Config.BadConfig, IOException {
