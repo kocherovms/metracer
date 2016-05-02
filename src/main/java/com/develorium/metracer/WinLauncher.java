@@ -30,17 +30,50 @@ public class WinLauncher extends AbstractLauncher {
 	}
 
 	@Override
-	protected String getDefaultSelfJarName() {
-		return "metracer_win.jar";
-	}
-
-	@Override
 	protected String resolveUserNameOfTargetJvm(int thePid) {
 		return resolveUserNameOfTargetJvm_impl(thePid);
 	}
 
 	@Override
-	protected void prepareImpersonation(List<String> theArguments, Map<String, String> theEnvVariables, String theUserName) {
+	protected List<String> prepareArguments(String[] theOriginalArguments, Map<String, String> theEnvVariables) {
+		assert(theOriginalArguments != null);
+		assert(theEnvVariables != null);
+
+		List<String> args = new ArrayList<String>();
+
+		if(config.command.isImpersonationNeeded && !selfUserName.equals(userNameOfTargetJvm)) {
+			args.add("runas");
+			args.add("/env");
+			args.add("/user:" + userNameOfTargetJvm);
+			String toolsJarSubArgument = toolsJarPath != null
+				? String.format("-Xbootclasspath/a:\"%s\"", toolsJarPath)
+				: "";
+			
+			assert(selfJar != null);
+			String argumentsStrippedCommand = String.format("\"%s\" %s -cp \"%s\" com.develorium.metracer.Main", 
+									javaExePath, toolsJarSubArgument, selfJar.getAbsolutePath());
+
+			int i = 0;
+
+			for(String arg : theOriginalArguments)
+				theEnvVariables.put("METRACER_ARGUMENT_" + (i++), arg);
+		}
+		else {
+			args.add(javaExePath);
+		
+			if(toolsJarPath != null)
+				args.add(String.format("-Xbootclasspath/a:%s", toolsJarPath));
+		
+			args.add("-cp");
+			assert(selfJar != null);
+			args.add(selfJar.getAbsolutePath());
+			args.add("com.develorium.metracer.Main");
+
+			for(String arg : theOriginalArguments)
+				args.add(arg);
+		}
+
+		return args;
 	}
 
 	static String resolveUserNameOfTargetJvm_impl(int thePid) {

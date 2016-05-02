@@ -20,6 +20,8 @@ import java.util.*;
 import java.io.*;
 
 public class LinLauncher extends AbstractLauncher {
+	private String sttyState = null;
+
 	public static void main(String[] theArguments) {
 		new LinLauncher().execute(theArguments);
 	}
@@ -27,11 +29,6 @@ public class LinLauncher extends AbstractLauncher {
 	@Override
 	protected String getJavaExeName() {
 		return "java";
-	}
-
-	@Override
-	protected String getDefaultSelfJarName() {
-		return "metracer.jar";
 	}
 
 	@Override
@@ -47,30 +44,94 @@ public class LinLauncher extends AbstractLauncher {
 
 	@Override
 	protected void prepareExecutionEnvironment(Map<String, String> theEnvVariables) {
+		try {
+			sttyState = execStty("-g", true);
+			execStty("-echo", false);
+			execStty("cbreak", false);
+		} catch(Throwable e) {
+			System.err.format("Failed to enable non-buffered input: %s\n", e);
+			// we don't need a half-working terminal - better to restore it to an original state
+			cleanupExecutionEnvironment();
+			return;
+		}
+
+		theEnvVariables.put(Constants.METRACER_IS_CBREAK_DISABLED, "1");
 	}
 
 	@Override
 	protected void cleanupExecutionEnvironment() {
+		if(sttyState == null) 
+			return;
+
+		try {
+			execStty(sttyState, false);
+		} catch(Throwable e) {
+			System.err.format("Failed to restore stty state to \"%s\": %s\n", sttyState, e);
+		}
+
+		sttyState = null;
 	}
 
-	@Override 
-	protected void prepareImpersonation(List<String> theArguments, Map<String, String> theEnvVariables, String theUserName) {
-		assert(theArguments != null);
+	@Override
+	protected List<String> prepareArguments(String[] theOriginalArguments, Map<String, String> theEnvVariables) {
+		assert(theOriginalArguments != null);
 		assert(theEnvVariables != null);
-		assert(theUserName != null);
-		String selfPid = Helper.getSelfPid();
-		String currentUserName = resolveUserNameOfTargetJvm(Integer.parseInt(selfPid));
+
+		List<String> args = new ArrayList<String>();
+
+		if(config.command.isImpersonationNeeded && !selfUserName.equals(userNameOfTargetJvm)) {
+			args.add( "sudo");
+			args.add("-u");
+			args.add("#" + userNameOfTargetJvm);
+
+			for(Map.Entry<String, String> kv : theEnvVariables.entrySet())
+				args.add(String.format("%s=%s", kv.getKey(), kv.getValue()));
+
+		}
+
+		args.add(javaExePath);
 		
-		if(currentUserName.equals(theUserName))
-			return; 
+		if(toolsJarPath != null)
+			args.add(String.format("-Xbootclasspath/a:%s", toolsJarPath));
 		
-		int i = 0;
-		theArguments.add(i++, "sudo");
-		theArguments.add(i++, "-u");
-		theArguments.add(i++, "#" + theUserName);
+		args.add("-cp");
+		assert(selfJar != null);
+		args.add(selfJar.getAbsolutePath());
+		args.add("com.develorium.metracer.Main");
 		
-		for(Map.Entry<String, String> kv : theEnvVariables.entrySet())
-			theArguments.add(i++, String.format("%s=%s", kv.getKey(), kv.getValue()));
+		for(String arg : theOriginalArguments)
+			args.add(arg);
+		
+		return args;
+	}
+
+	//@Override 
+	//protected void prepareImpersonation(List<String> theArguments, Map<String, String> theEnvVariables, String theUserName) {
+	//	assert(theArguments != null);
+	//	assert(theEnvVariables != null);
+	//	assert(theUserName != null);
+	//	
+	//	if(selfUserName.equals(theUserName))
+	//		return; 
+	//	
+	//	int i = 0;
+	//	theArguments.add(i++, "sudo");
+	//	theArguments.add(i++, "-u");
+	//	theArguments.add(i++, "#" + theUserName);
+	//	
+	//	for(Map.Entry<String, String> kv : theEnvVariables.entrySet())
+	//		theArguments.add(i++, String.format("%s=%s", kv.getKey(), kv.getValue()));
+	//}
+
+	@Override
+	protected void postProcessCommand() {
+		if(config.command != Config.COMMAND.LIST)
+			return;
+		
+		if(selfUserName.equals("0"))
+			return;
+
+		System.out.format("\nWARNING: JVM list may be not full (missing root privileges). Use `sudo %s` to get a full list\n", launchString);
 	}
 
 	static String processStatusContent(BufferedReader theReader) throws IOException {
@@ -82,7 +143,7 @@ public class LinLauncher extends AbstractLauncher {
 			if(!line.startsWith("uid:"))
 				continue;
 
-			// IDs goes in following order (http://man7.org/linux/man-pages/man5/proc.5.html): 
+			// IDs go in following order (http://man7.org/linux/man-pages/man5/proc.5.html): 
 			// Real, effective, saved set, and filesystem UIDs. 
 			// We need a real UID
 			Scanner scanner = new Scanner(line);
@@ -91,5 +152,40 @@ public class LinLauncher extends AbstractLauncher {
 		}
 
 		return null;
+	}
+
+	static String execStty(String theArgument, boolean theIsOutputNeeded) throws IOException {
+		assert(theArgument != null);
+		String[] args = { "stty", theArgument };
+		ProcessBuilder pb = new ProcessBuilder(args);
+		pb.inheritIO();
+
+		if(theIsOutputNeeded)
+			pb.redirectOutput(ProcessBuilder.Redirect.PIPE);
+
+		Process p = pb.start();
+		String output = null;
+
+		if(theIsOutputNeeded) {
+			BufferedReader reader = new BufferedReader(new InputStreamReader(p.getInputStream()));
+			String line = null;
+
+			while((line = reader.readLine()) != null) {
+				if(output == null)
+					output = line;
+				else
+					output += "\n" + line;
+			}
+		}
+
+		while(true) {
+			try {
+				p.waitFor();
+				break;
+			} catch(InterruptedException e) {
+			}
+		}
+
+		return output;
 	}
 }
