@@ -18,6 +18,7 @@ package com.develorium.metracer;
 
 import java.util.*;
 import java.io.*;
+import java.nio.charset.*;
 
 public class WinLauncher extends AbstractLauncher {
 	public static void main(String[] theArguments) {
@@ -46,12 +47,12 @@ public class WinLauncher extends AbstractLauncher {
 			args.add("/env");
 			args.add("/user:" + userNameOfTargetJvm);
 			String toolsJarSubArgument = toolsJarPath != null
-				? String.format("-Xbootclasspath/a:\"%s\"", toolsJarPath)
+				? String.format("-Xbootclasspath/a:\\\"%s\\\"", toolsJarPath)
 				: "";
 			
 			assert(selfJar != null);
-			String argumentsStrippedCommand = String.format("\"%s\" %s -cp \"%s\" com.develorium.metracer.Main", 
-									javaExePath, toolsJarSubArgument, selfJar.getAbsolutePath());
+			String argumentsStrippedCommand = String.format("\\\"%s\\\" %s -cp \\\"%s\\\" %s", javaExePath, toolsJarSubArgument, selfJar.getAbsolutePath(), Main.class.getName());
+			args.add(argumentsStrippedCommand);
 
 			int i = 0;
 
@@ -67,7 +68,7 @@ public class WinLauncher extends AbstractLauncher {
 			args.add("-cp");
 			assert(selfJar != null);
 			args.add(selfJar.getAbsolutePath());
-			args.add("com.develorium.metracer.Main");
+			args.add(Main.class.getName());
 
 			for(String arg : theOriginalArguments)
 				args.add(arg);
@@ -86,6 +87,7 @@ public class WinLauncher extends AbstractLauncher {
 	}
 	
  	static BufferedReader getTaskList() throws IOException {
+		String charsetName = getCurrentCharsetName();
 		String[] args = {
 			"tasklist.exe",
 			"/fo",
@@ -94,7 +96,23 @@ public class WinLauncher extends AbstractLauncher {
 		};
 		Process p = java.lang.Runtime.getRuntime().exec(args);
 		InputStream stdout = p.getInputStream();
-		return new BufferedReader(new InputStreamReader(stdout));
+		InputStreamReader inputStreamReader = charsetName != null
+			? new InputStreamReader(stdout, charsetName)
+			: new InputStreamReader(stdout);
+		return new BufferedReader(inputStreamReader);
+	}
+
+	static String getCurrentCharsetName() {
+		try {
+			Process p = java.lang.Runtime.getRuntime().exec("chcp.com");
+			String line = new BufferedReader(new InputStreamReader(p.getInputStream())).readLine();
+			Scanner scanner = new Scanner(line).useDelimiter(":");
+			scanner.next();
+			return scanner.next().trim();
+		} catch(Throwable e) {
+			System.err.format("Failed to resolve current charset name: %s\n", e.getMessage());
+			return null;
+		}
 	}
 
 	static String processTaskListOutput(BufferedReader theReader, String thePid) throws IOException {

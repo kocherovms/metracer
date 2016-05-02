@@ -97,31 +97,13 @@ public class LinLauncher extends AbstractLauncher {
 		args.add("-cp");
 		assert(selfJar != null);
 		args.add(selfJar.getAbsolutePath());
-		args.add("com.develorium.metracer.Main");
+		args.add(Main.class.getName());
 		
 		for(String arg : theOriginalArguments)
 			args.add(arg);
 		
 		return args;
 	}
-
-	//@Override 
-	//protected void prepareImpersonation(List<String> theArguments, Map<String, String> theEnvVariables, String theUserName) {
-	//	assert(theArguments != null);
-	//	assert(theEnvVariables != null);
-	//	assert(theUserName != null);
-	//	
-	//	if(selfUserName.equals(theUserName))
-	//		return; 
-	//	
-	//	int i = 0;
-	//	theArguments.add(i++, "sudo");
-	//	theArguments.add(i++, "-u");
-	//	theArguments.add(i++, "#" + theUserName);
-	//	
-	//	for(Map.Entry<String, String> kv : theEnvVariables.entrySet())
-	//		theArguments.add(i++, String.format("%s=%s", kv.getKey(), kv.getValue()));
-	//}
 
 	@Override
 	protected void postProcessCommand() {

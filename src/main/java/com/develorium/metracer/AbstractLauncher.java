@@ -70,24 +70,6 @@ public abstract class AbstractLauncher {
 				customEnvVariables.put(Constants.METRACER_LAUNCHER_PID, selfPid);
 				prepareExecutionEnvironment(customEnvVariables);
 				List<String> args = prepareArguments(theArguments, customEnvVariables);
-
-				//List<String> args = new ArrayList<String>();
-				//args.add(javaExePath);
-				//
-				//if(toolsJarPath != null)
-				//	args.add(String.format("-Xbootclasspath/a:%s", toolsJarPath));
-				//
-				//args.add("-cp");
-				//assert(selfJar != null);
-				//args.add(selfJar.getAbsolutePath());
-				//args.add("com.develorium.metracer.Main");
-				//
-				//for(String arg : theArguments)
-				//	args.add(arg);
-				//
-				//if(config.command.isImpersonationNeeded)
-				//	prepareImpersonation(args, customEnvVariables, userName);
-
 				ProcessBuilder pb = new ProcessBuilder(args);
 				pb.inheritIO();
 				pb.environment().putAll(customEnvVariables);
@@ -124,7 +106,6 @@ public abstract class AbstractLauncher {
 	protected void cleanupExecutionEnvironment() {
 	}
 	protected abstract List<String> prepareArguments(String[] theOriginalArguments, Map<String, String> theEnvVariables);
-	//protected abstract void prepareImpersonation(List<String> theArguments, Map<String, String> theEnvVariables, String theUserName);
 	protected void postProcessCommand() {
 	}
 
