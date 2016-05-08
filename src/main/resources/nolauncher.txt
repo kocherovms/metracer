@@ -1,0 +1,8 @@
+Failed to determine suitable auto-launcher for an operating system "${osname}".
+Please, launch metracer manually:
+java -Xbootclasspath/a:<path-to-JDK-tools.jar> -cp "${metracerjarpath}" com.develorium.metracer.Main ${arguments}
+
+Make sure that metracer is launched under the same user as a target JVM, otherwise metracer would fail to connect to a target JVM.
+
+Also, please report this issue (along with the operating system name) via https://github.com/kocherovms/metracer/issues
+

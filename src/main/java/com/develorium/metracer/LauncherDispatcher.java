@@ -19,23 +19,45 @@ package com.develorium.metracer;
 import java.util.*;
 import java.io.*;
 
-public abstract class LauncherDispatcher {
-	public void main(String[] theArguments) {
+public class LauncherDispatcher {
+	public static void main(String[] theArguments) {
 		String osName = getOsName();
 		AbstractLauncher launcher = getLauncher(osName);
+
+		if(launcher == null) {
+			reportLauncherMiss(osName, theArguments);
+			System.exit(1);
+		}
+
 		launcher.execute(theArguments);
 	}
 
-	private String getOsName() {
+	private static String getOsName() {
 		return System.getProperty("os.name", "unknown").toLowerCase(Locale.ENGLISH);
 	}
 
-	private AbstractLauncher getLauncher(String theOsName) {
+	private static AbstractLauncher getLauncher(String theOsName) {
 		if(theOsName.contains("windows"))
 			return new WindowsLauncher();
 		else if(theOsName.contains("linux"))
 			return new LinuxLauncher();
 		else 
 			return null;
+	}
+
+	private static void reportLauncherMiss(String theOsName, String[] theArguments) {
+		StringBuilder argumentsInlined = new StringBuilder();
+
+		for(String arg : theArguments)
+			argumentsInlined.append(arg + " ");
+
+		String message = Helper.loadTextResource("nolauncher.txt");
+		message = message.replace("${osname}", theOsName);
+		String metracerJarPath = Helper.getSelfJarFileSafe() != null 
+			? Helper.getSelfJarFileSafe().getAbsolutePath() 
+			: "metracer.jar";
+		message = message.replace("${metracerjarpath}", metracerJarPath);
+		message = message.replace("${arguments}", argumentsInlined.toString());
+		System.err.format(message);
 	}
 }

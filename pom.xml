@@ -92,7 +92,6 @@
         <version>2.4.3</version>
         <executions>
           <execution>
-	    <id>Compilation of an jar metracer uber jar</id>
             <phase>package</phase>
             <goals>
               <goal>shade</goal>

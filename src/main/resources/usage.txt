@@ -1,14 +1,14 @@
 Usage: ${launchstring} -h
        ${launchstring} -l
        ${launchstring} [-v] -r PID
-       ${launchstring} [-v] [-s] [-S PATTERNS-FILE-DST] [-f PATTERNS-FILE-SRC] [CLASS-MATCHING-PATTERN [METHOD-MATCHING-PATTERN]] PID
-	-h - prints this help
-	-l - list active Java processes
+       ${launchstring} [-v] [-s] [-S PATTERNS-FILE-DST] [-f PATTERNS-FILE-SRC] PID [CLASS-MATCHING-PATTERN [METHOD-MATCHING-PATTERN]]
+	-h - print this help
+	-l - list active Java processes which metracer could connect to
 	-v - enables verbose output of what is going on (useful for troubleshoting)
-	-r - remove all previous instrumentation (from all previous sessions)
+	-r - remove all previous instrumentation in target JVM
 	-s - print stack trace for each entry event
 	-S - print stack trace for each entry event and additionally dump stack trace into PATTERNS-FILE-DST
 	-f - load patterns from PATTERNS-FILE-SRC
-	PID - PID of a Java program to attach to
+	PID - PID of a Java program (target JVM) to attach to
 	CLASS-MATCHING-PATTERN - a regex to decide for which classes tracing must be added
 	METHOD-MATCHING-PATTERN - a regex to decide which methods must be traced; if not specified then all methods of a matching classes will be traced

@@ -26,6 +26,7 @@ public class HelperTest {
 		ByteArrayOutputStream output = new ByteArrayOutputStream();
 		Helper.printUsage(new PrintStream(output), null);
 		Assert.assertTrue(output.size() > 0);
+		Assert.assertFalse(output.toString().contains("${launchstring}"));
 	}
 
 	@Test
@@ -33,6 +34,7 @@ public class HelperTest {
 		ByteArrayOutputStream output = new ByteArrayOutputStream();
 		Helper.executeAuxCommands(Config.COMMAND.HELP, new PrintStream(output));
 		Assert.assertTrue(output.size() > 0);
+		Assert.assertFalse(output.toString().contains("${launchstring}"));
 	}
 
 	@Test

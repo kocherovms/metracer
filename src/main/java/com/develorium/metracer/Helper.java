@@ -25,7 +25,7 @@ import java.lang.management.*;
 public class Helper {
 	public static void printUsage(PrintStream theOutput, String theLaunchString) {
 		try {
-			theOutput.println(loadInfoResource("usage.txt", theLaunchString));
+			theOutput.println(loadAndProcessTextResource("usage.txt", theLaunchString));
 		} catch(Throwable t) {
 			throw new RuntimeException(String.format("Failed to print usage: %s", t.getMessage()), t);
 		}
@@ -79,10 +79,36 @@ public class Helper {
 		return jvmName.substring(0, jvmName.indexOf('@'));
 	}
 
+	public static String loadTextResource(String theResourceId) {
+		try {
+			ClassLoader loader = Helper.class.getClassLoader();
+			InputStream stream = loader.getResourceAsStream(theResourceId);
+
+			if(stream == null)
+				throw new RuntimeException("Failed to locate a resource " + theResourceId);
+
+			InputStreamReader streamReader = new InputStreamReader(stream);
+			BufferedReader reader = new BufferedReader(streamReader);
+			StringBuilder rv = new StringBuilder();
+			String line;
+
+			while((line = reader.readLine()) != null) {
+				if(rv.length() > 0)
+					rv.append("\n");
+
+				rv.append(line);
+			}
+
+			return rv.toString();
+		} catch(Throwable t) {
+			throw new RuntimeException(String.format("Failed to load text resource %s: %s", theResourceId, t.getMessage()), t);
+		}
+	}
+
 	private static void printHelp(PrintStream theOutput) {
 		try {
-			String usage = loadInfoResource("usage.txt", null);
-			String help = loadInfoResource("help.txt", null);
+			String usage = loadAndProcessTextResource("usage.txt", null);
+			String help = loadAndProcessTextResource("help.txt", null);
 			String processedHelp = help.replace("${usage}", usage);
 			theOutput.println(processedHelp);
 		} catch(Throwable t) {
@@ -119,41 +145,18 @@ public class Helper {
 			theOutput.println(jvm);
 	}
 
-	private static String loadInfoResource(String theResourceId, String theLaunchString) {
-		try {
-			ClassLoader loader = Helper.class.getClassLoader();
-			InputStream stream = loader.getResourceAsStream(theResourceId);
+	private static String loadAndProcessTextResource(String theResourceId, String theLaunchString) {
+		String textResourceContent = loadTextResource(theResourceId);
+		String launchString = theLaunchString;
 
-			if(stream == null)
-				throw new RuntimeException("Failed to locate a resource " + theResourceId);
+		if(launchString == null) {
+			Map<String, String> env = System.getenv();
+			launchString = env.get(Constants.METRACER_LAUNCH_STRING);
 
-			InputStreamReader streamReader = new InputStreamReader(stream);
-			BufferedReader reader = new BufferedReader(streamReader);
-			String launchString = theLaunchString;
-
-			if(launchString == null) {
-				Map<String, String> env = System.getenv();
-				launchString = env.get(Constants.METRACER_LAUNCH_STRING);
-
-				if(launchString == null)
-					launchString = "java -Xbootclasspath/a:<path-to-tools.jar> -jar metracer.jar";
-			}
-
-			StringBuilder rv = new StringBuilder();
-			String line;
-
-			while((line = reader.readLine()) != null) {
-				String processedLine = line.replace("${launchstring}", launchString);
-
-				if(rv.length() > 0)
-					rv.append("\n");
-
-				rv.append(processedLine);
-			}
-
-			return rv.toString();
-		} catch(Throwable t) {
-			throw new RuntimeException(String.format("Failed to load info resource %s: %s", theResourceId, t.getMessage()), t);
+			if(launchString == null)
+				launchString = "java -Xbootclasspath/a:<path-to-tools.jar> -jar metracer.jar";
 		}
+
+		return textResourceContent.replace("${launchstring}", launchString);
 	}
 }
