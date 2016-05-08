@@ -80,7 +80,7 @@
               <Premain-Class>com.develorium.metracer.statik.Agent</Premain-Class>
               <Agent-Class>com.develorium.metracer.dynamic.Agent</Agent-Class>
               <Can-Retransform-Classes>true</Can-Retransform-Classes>
-              <Main-Class>com.develorium.metracer.Main</Main-Class>
+              <Main-Class>com.develorium.metracer.LauncherDispatcher</Main-Class>
               <Package-Version>${project.version}</Package-Version>
             </manifestEntries>
           </archive>
@@ -92,52 +92,13 @@
         <version>2.4.3</version>
         <executions>
           <execution>
-	    <id>Compilation of Windows-friendly metracer.jar</id>
+	    <id>Compilation of an jar metracer uber jar</id>
             <phase>package</phase>
             <goals>
               <goal>shade</goal>
             </goals>
 	    <configuration>
 	      <createDependencyReducedPom>false</createDependencyReducedPom>
-	      <outputFile>${project.build.directory}/metracer_win-${project.version}.jar</outputFile>
-              <transformers>
-                <transformer implementation="org.apache.maven.plugins.shade.resource.ManifestResourceTransformer">
-                  <mainClass>com.develorium.metracer.WinLauncher</mainClass>
-                </transformer>
-	      </transformers>
-	    </configuration>
-          </execution>
-
-          <execution>
-	    <id>Compilation of Linux-friendly metracer.jar</id>
-            <phase>package</phase>
-            <goals>
-              <goal>shade</goal>
-            </goals>
-	    <configuration>
-	      <createDependencyReducedPom>false</createDependencyReducedPom>
-	      <outputFile>${project.build.directory}/metracer_lin-${project.version}.jar</outputFile>
-              <transformers>
-                <transformer implementation="org.apache.maven.plugins.shade.resource.ManifestResourceTransformer">
-                  <mainClass>com.develorium.metracer.LinLauncher</mainClass>
-                </transformer>
-	      </transformers>
-	    </configuration>
-          </execution>
-	  
-          <execution>
-	    <id>Compilation of platform agnostic metracer.jar</id>
-            <phase>package</phase>
-            <goals>
-              <goal>shade</goal>
-            </goals>
-	    <configuration>
-	      <createDependencyReducedPom>false</createDependencyReducedPom>
-              <transformers>
-                <transformer implementation="org.apache.maven.plugins.shade.resource.ManifestResourceTransformer">
-                  <mainClass>com.develorium.metracer.Main</mainClass>
-                </transformer>
-	      </transformers>
 	    </configuration>
           </execution>
         </executions>

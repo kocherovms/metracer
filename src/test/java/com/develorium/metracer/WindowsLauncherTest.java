@@ -21,7 +21,7 @@ import junit.framework.Assert;
 import org.junit.Test;
 import org.junit.*;
 
-public class WinLauncherTest {
+public class WindowsLauncherTest {
 	@Test
 	public void testExtractFieldValue() {
 		String[] samples = {
@@ -42,7 +42,7 @@ public class WinLauncherTest {
 		for(int i = 0; i < samples.length; i += 2) {
 			String field = samples[i];
 			String value = samples[i + 1];
-			String resolvedValue = WinLauncher.extractFieldValue(field);
+			String resolvedValue = WindowsLauncher.extractFieldValue(field);
 			System.out.format("%s => %s VS %s\n", field, resolvedValue, value);
 			Assert.assertEquals(value, resolvedValue);
 		}
@@ -107,7 +107,7 @@ public class WinLauncherTest {
 			String pid = samples[i + 1];
 			String userName = samples[i + 2];
 			BufferedReader reader = new BufferedReader(new StringReader(fields));
-			String resolvedUserName = WinLauncher.processTaskListOutput(reader, pid);
+			String resolvedUserName = WindowsLauncher.processTaskListOutput(reader, pid);
 			System.out.format("%s => %s => %s VS %s\n", fields, pid, resolvedUserName, userName);
 			Assert.assertEquals(userName, resolvedUserName);
 		}
@@ -119,7 +119,7 @@ public class WinLauncherTest {
 			return;
 		}
 		// Check 0 ("System Idle Process") - hope it always exists
-		String userName = WinLauncher.resolveUserNameOfTargetJvm_impl(0);
+		String userName = WindowsLauncher.resolveUserNameOfTargetJvm_impl(0);
 		System.out.println(String.format("Resolved user name of PID 0: %s", userName));
 		Assert.assertTrue(userName != null);
 		Assert.assertTrue(userName.length() > 0);

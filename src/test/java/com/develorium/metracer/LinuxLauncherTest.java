@@ -21,7 +21,7 @@ import junit.framework.Assert;
 import org.junit.Test;
 import org.junit.*;
 
-public class LinLauncherTest {
+public class LinuxLauncherTest {
 	@Test
 	public void testProcessStatusContent() throws IOException {
 		String[] samples = {
@@ -64,7 +64,7 @@ public class LinLauncherTest {
 			String statusContent = samples[i];
 			String value = samples[i + 1];
 			BufferedReader reader = new BufferedReader(new StringReader(statusContent));
-			String resolvedValue = LinLauncher.processStatusContent(reader);
+			String resolvedValue = LinuxLauncher.processStatusContent(reader);
 			System.out.format("%s => %s VS %s\n", statusContent, resolvedValue, value);
 			Assert.assertEquals(value, resolvedValue);
 		}

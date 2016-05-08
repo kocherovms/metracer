@@ -20,11 +20,7 @@ import java.util.*;
 import java.io.*;
 import java.nio.charset.*;
 
-public class WinLauncher extends AbstractLauncher {
-	public static void main(String[] theArguments) {
-		new WinLauncher().execute(theArguments);
-	}
-
+public class WindowsLauncher extends AbstractLauncher {
 	@Override
 	protected String getJavaExeName() {
 		return "java.exe";

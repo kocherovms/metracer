@@ -19,12 +19,8 @@ package com.develorium.metracer;
 import java.util.*;
 import java.io.*;
 
-public class LinLauncher extends AbstractLauncher {
+public class LinuxLauncher extends AbstractLauncher {
 	private String sttyState = null;
-
-	public static void main(String[] theArguments) {
-		new LinLauncher().execute(theArguments);
-	}
 
 	@Override
 	protected String getJavaExeName() {
