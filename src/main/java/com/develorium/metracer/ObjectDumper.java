@@ -19,7 +19,9 @@ package com.develorium.metracer;
 import java.lang.reflect.Field;
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.HashSet;
 import java.util.List;
+import java.util.Set;
 
 public class ObjectDumper {
 	public static String dumpObject(Object theObject) {
@@ -46,21 +48,27 @@ public class ObjectDumper {
 		return rv;
 	}
 
-	static Set<String> PrintableTypeNames = new HashSet<String> { {
-			"java.lang.String",
-			"java.lang.Byte",
-			"java.lang.Short",
-			"java.lang.Integer",
-			"java.lang.Long",
-			"java.lang.Character",
-			"java.lang.Float",
-			"java.lang.Double",
-			"java.lang.Boolean"
+	static Set<String> PrintableTypeNames = new HashSet<String>() { {
+			add("java.lang.String");
+			add("java.lang.Byte");
+			add("java.lang.Short");
+			add("java.lang.Integer");
+			add("java.lang.Long");
+			add("java.lang.Character");
+			add("java.lang.Float");
+			add("java.lang.Double");
+			add("java.lang.Boolean");
 		}
 	};
 
 	static String dumpSingleField(Object theObject, Field theField) {
-		Object fieldValue = theField.get(theObject);
+		Object fieldValue = null;
+
+		try {
+			fieldValue = theField.get(theObject);
+		} catch(IllegalAccessException e) {
+			return "N/A (security)";
+		}
 
 		if(fieldValue == null) 
 			return String.format("%s=null", theField.getName());

@@ -27,49 +27,97 @@ public class ObjectDumperTest {
 	}
 
 	public static class BaseTestObject {
-		public boolean testBoolean = true;
+		public String testBaseString = "hello,world!";
 	}
 
 	public static class TestObject extends BaseTestObject {
-		public String testString = "loremipsum";
 		public byte testByte = 20;
 		public short testShort = 32;
-		public char testChar = 42;
+		public char testChar = '!';
 		public int testInt = 1024;
 		public long testLong = 9999999;
-		public float testFloat = 3.14;
-		public double testDouble = 2.72;
+		public float testFloat = 3.14f;
+		public double testDouble = 2.71;
+		public boolean testBoolean = true;
+
+		public Byte testBigByte = 20;
+		public Short testBigShort = 32;
+		public Character testBigChar = 42;
+		public Integer testBigInt = 1024;
+		public Long testBigLong = 9999999L;
+		public Float testBigFloat = 3.14f;
+		public Double testBigDouble = 2.71;
+		public Boolean testBigBoolean = true;
+
+		public String testString = "loremipsum";
 		public Object testObject = new Terminator();
 	}
 
 	@Test
 	public void testGetAllDeclaredFields() {
 		List<Field> fields = ObjectDumper.getAllDeclaredFields(new TestObject());
-		Assert.assertTrue(hasField(fields, "java.lang.String", "testString"));
-		Assert.assertTrue(hasField(fields, "int", "testInt"));
-		Assert.assertTrue(hasField(fields, "java.lang.Object", "testObject"));
-		Assert.assertTrue(hasField(fields, "boolean", "testBoolean"));
-		Assert.assertFalse(hasField(fields, "java.lang.Object", "anotherTestObject"));
+		String[] samples = {
+			"byte", "testByte",
+			"short", "testShort",
+			"char", "testChar",
+			"int", "testInt",
+			"long", "testLong",
+			"float", "testFloat",
+			"double", "testDouble",
+			"boolean", "testBoolean",
+			"java.lang.Byte", "testBigByte",
+			"java.lang.Short", "testBigShort",
+			"java.lang.Character", "testBigChar",
+			"java.lang.Integer", "testBigInt",
+			"java.lang.Long", "testBigLong",
+			"java.lang.Float", "testBigFloat",
+			"java.lang.Double", "testBigDouble",
+			"java.lang.Boolean", "testBigBoolean",
+			"java.lang.String", "testString",
+			"java.lang.String", "testBaseString",
+			"java.lang.Object", "testObject"
+		};
+
+		for(int i = 0; i < samples.length;) {
+			String typeName = samples[i++];
+			String fieldName = samples[i++];
+			System.out.println(String.format("Looging for field %s of type %s", fieldName, typeName));
+			Assert.assertTrue(hasField(fields, fieldName, typeName));
+			Assert.assertFalse(hasField(fields, fieldName, typeName + "nonce"));
+			Assert.assertFalse(hasField(fields, fieldName + "nonce", typeName));
+			Assert.assertFalse(hasField(fields, fieldName + "nonce", typeName + "nonce"));
+		}
 	}
 
 	@Test
 	public void testDumpSingleField() {
 		TestObject testObject = new TestObject();
-		testObject.testBoolean = true;
-		testObject.testString = "loremipsum";
-		testObject.testInt = 123;
-		
 		List<Field> fields = ObjectDumper.getAllDeclaredFields(new TestObject());
-		Assert.assertTrue(hasField(fields, "java.lang.String", "testString"));
-		Assert.assertTrue(hasField(fields, "int", "testInt"));
-		Assert.assertTrue(hasField(fields, "java.lang.Object", "testObject"));
-		Assert.assertTrue(hasField(fields, "boolean", "testBoolean"));
-		Assert.assertFalse(hasField(fields, "java.lang.Object", "anotherTestObject"));
+		String[] samples = {
+			"testByte", "" + testObject.testByte,
+			"testShort", "" + testObject.testShort,
+			"testChar", "" + testObject.testChar
+		};
+
+		for(int i = 0; i < samples.length;) {
+			String fieldName = samples[i++];
+			String expectedDumpContent = samples[i++];
+			Field field = findField(fields, fieldName);
+			Assert.assertTrue(field != null);
+			String dumpResult = ObjectDumper.dumpSingleField(testObject, field);
+			System.out.println("Single field dump: " + dumpResult);
+			Assert.assertTrue(dumpResult.contains(fieldName));	
+			Assert.assertTrue(dumpResult.contains(expectedDumpContent));
+		}
 	}
 
-	private static Field findField(List<Field> theFields, String theTypeName, String theName) {
+	private static Field findField(List<Field> theFields, String theName) {
+		return findField(theFields, theName, null);
+	}
+
+	private static Field findField(List<Field> theFields, String theName, String theTypeName) {
 		for(Field f : theFields) {
-			if(f.getType().getName().equals(theTypeName) && f.getName().equals(theName))
+			if((theTypeName == null || f.getType().getName().equals(theTypeName)) && f.getName().equals(theName))
 				return f;
 		}
 
