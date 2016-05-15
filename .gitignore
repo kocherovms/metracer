@@ -2,3 +2,4 @@ dependency-reduced-pom.xml
 test/dependency-reduced-pom.xml
 /target/
 *~
+tags

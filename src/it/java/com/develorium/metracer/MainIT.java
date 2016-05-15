@@ -302,9 +302,9 @@ public class MainIT extends BaseClass {
 			for(String line : stdout.toString().split("\n")) {
 				if(line.contains("--- [0] com.develorium.metracertest.Main.testReturnsMap")) {
 					Assert.assertTrue(line.contains("return:"));
-					Assert.assertTrue(line.contains("2*2 => 4"));
-					Assert.assertTrue(line.contains("lorem => ipsum"));
-					Assert.assertTrue(line.contains("hello => world"));
+					Assert.assertTrue(line.contains("2*2=>4"));
+					Assert.assertTrue(line.contains("lorem=>ipsum"));
+					Assert.assertTrue(line.contains("hello=>world"));
 					return 'q';
 				}
 			}

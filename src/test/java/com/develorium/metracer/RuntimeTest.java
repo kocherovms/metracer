@@ -49,72 +49,72 @@ public class RuntimeTest {
 	@Test
 	public void testFormatArgumentValueBooleanArray() {
 		boolean[] v = { true, false, true };
-		String expected = String.format("[%s, %s, %s]", "" + v[0], "" + v[1], "" + v[2]);
-		Assert.assertEquals(r.formatArgumentValue(v), expected);
+		String expected = String.format("[%s,%s,%s]", "" + v[0], "" + v[1], "" + v[2]);
+		Assert.assertEquals(expected, r.formatArgumentValue(v));
 	}
 
 	@Test
 	public void testFormatArgumentValueByteArray() {
 		byte[] v = { 1, 2, 3 };
-		String expected = String.format("[%s, %s, %s]", "" + v[0], "" + v[1], "" + v[2]);
-		Assert.assertEquals(r.formatArgumentValue(v), expected);
+		String expected = String.format("[%s,%s,%s]", "" + v[0], "" + v[1], "" + v[2]);
+		Assert.assertEquals(expected, r.formatArgumentValue(v));
 	}
 
 	@Test
 	public void testFormatArgumentValueShortArray() {
 		short[] v = { 1, 2, 3 };
-		String expected = String.format("[%s, %s, %s]", "" + v[0], "" + v[1], "" + v[2]);
-		Assert.assertEquals(r.formatArgumentValue(v), expected);
+		String expected = String.format("[%s,%s,%s]", "" + v[0], "" + v[1], "" + v[2]);
+		Assert.assertEquals(expected, r.formatArgumentValue(v));
 	}
 
 	@Test
 	public void testFormatArgumentValueIntArray() {
 		int[] v = { 1, 2, 3 };
-		String expected = String.format("[%s, %s, %s]", "" + v[0], "" + v[1], "" + v[2]);
-		Assert.assertEquals(r.formatArgumentValue(v), expected);
+		String expected = String.format("[%s,%s,%s]", "" + v[0], "" + v[1], "" + v[2]);
+		Assert.assertEquals(expected, r.formatArgumentValue(v));
 	}
 
 	@Test
 	public void testFormatArgumentValueLongArray() {
 		long[] v = { 1, 2, 3 };
-		String expected = String.format("[%s, %s, %s]", "" + v[0], "" + v[1], "" + v[2]);
-		Assert.assertEquals(r.formatArgumentValue(v), expected);
+		String expected = String.format("[%s,%s,%s]", "" + v[0], "" + v[1], "" + v[2]);
+		Assert.assertEquals(expected, r.formatArgumentValue(v));
 	}
 
 	@Test
 	public void testFormatArgumentValueFloatArray() {
 		float[] v = { 1.0f, 2.0f, 3.0f };
-		String expected = String.format("[%s, %s, %s]", "" + v[0], "" + v[1], "" + v[2]);
-		Assert.assertEquals(r.formatArgumentValue(v), expected);
+		String expected = String.format("[%s,%s,%s]", "" + v[0], "" + v[1], "" + v[2]);
+		Assert.assertEquals(expected, r.formatArgumentValue(v));
 	}
 
 	@Test
 	public void testFormatArgumentValueDoubleArray() {
 		double[] v = { 1.0, 2.0, 3.0 };
-		String expected = String.format("[%s, %s, %s]", "" + v[0], "" + v[1], "" + v[2]);
-		Assert.assertEquals(r.formatArgumentValue(v), expected);
+		String expected = String.format("[%s,%s,%s]", "" + v[0], "" + v[1], "" + v[2]);
+		Assert.assertEquals(expected, r.formatArgumentValue(v));
 	}
 
 	@Test
 	public void testFormatArgumentValueStringArray() {
 		String[] v = { "Hello", "world", "!" };
-		String expected = String.format("[%s, %s, %s]", v[0], v[1], v[2]);
-		Assert.assertEquals(r.formatArgumentValue(v), expected);
+		String expected = String.format("[%s,%s,%s]", v[0], v[1], v[2]);
+		Assert.assertEquals(expected, r.formatArgumentValue(v));
 	}
 
 	@Test
 	public void testFormatArgumentValueStringArrayWithNulls() {
 		String[] v = { "Hello", "world", "!", null };
-		String expected = String.format("[%s, %s, %s, null]", v[0], v[1], v[2]);
-		Assert.assertEquals(r.formatArgumentValue(v), expected);
+		String expected = String.format("[%s,%s,%s,null]", v[0], v[1], v[2]);
+		Assert.assertEquals(expected, r.formatArgumentValue(v));
 	}
 
 	@Test
 	public void testFormatArgumentValueCollection() {
 		Integer[] a = { 1, 2, 3 };
 		List<Integer> v = Arrays.asList(a);
-		String expected = String.format("[%s, %s, %s]", a[0], a[1], a[2]);
-		Assert.assertEquals(r.formatArgumentValue(v), expected);
+		String expected = String.format("[%s,%s,%s]", a[0], a[1], a[2]);
+		Assert.assertEquals(expected, r.formatArgumentValue(v));
 	}
 
 	@Test
@@ -122,22 +122,22 @@ public class RuntimeTest {
 		Integer[] a = {};
 		List<Integer> v = Arrays.asList(a);
 		String expected = "[]";
-		Assert.assertEquals(r.formatArgumentValue(v), expected);
+		Assert.assertEquals(expected, r.formatArgumentValue(v));
 	}
 
 	@Test
 	public void testFormatArgumentValueSingleElementCollection() {
 		List<Integer> v = Arrays.asList(1);
 		String expected = "[1]";
-		Assert.assertEquals(r.formatArgumentValue(v), expected);
+		Assert.assertEquals(expected, r.formatArgumentValue(v));
 	}
 
 	@Test
 	public void testFormatArgumentValueCollectionWithNulls() {
 		Integer[] a = { 1, 2, null };
 		List<Integer> v = Arrays.asList(a);
-		String expected = String.format("[%s, %s, %s]", a[0], a[1], a[2]);
-		Assert.assertEquals(r.formatArgumentValue(v), expected);
+		String expected = String.format("[%s,%s,%s]", a[0], a[1], a[2]);
+		Assert.assertEquals(expected, r.formatArgumentValue(v));
 	}
 
 	@Test
@@ -145,17 +145,17 @@ public class RuntimeTest {
 		List<Integer> v = new ArrayList<Integer>();
 		StringBuilder b = new StringBuilder();
 
-		for(int i = 0; i < Runtime.MaxElementsForPrinting; ++i) {
+		for(int i = 0; i < ObjectDumper.MaxIterableElementsForPrinting; ++i) {
 			v.add(i);
 			
 			if(b.length() > 0)
-				b.append(", ");
+				b.append(",");
 
 			b.append(i);
 		}
 
 		String expected = String.format("[%s]", b.toString());
-		Assert.assertEquals(r.formatArgumentValue(v), expected);
+		Assert.assertEquals(expected, r.formatArgumentValue(v));
 	}
 
 	@Test
@@ -163,19 +163,19 @@ public class RuntimeTest {
 		List<Integer> v = new ArrayList<Integer>();
 		StringBuilder b = new StringBuilder();
 
-		for(int i = 0; i < Runtime.MaxElementsForPrinting + 1; ++i) {
+		for(int i = 0; i < ObjectDumper.MaxIterableElementsForPrinting + 1; ++i) {
 			v.add(i);
 			
-			if(i < Runtime.MaxElementsForPrinting) {
+			if(i < ObjectDumper.MaxIterableElementsForPrinting) {
 				if(b.length() > 0)
-					b.append(", ");
+					b.append(",");
 
 				b.append(i);
 			}
 		}
 
-		String expected = String.format("[%s, ...]", b.toString());
-		Assert.assertEquals(r.formatArgumentValue(v), expected);
+		String expected = String.format("[%s,...]", b.toString());
+		Assert.assertEquals(expected, r.formatArgumentValue(v));
 	}
 
 	@Test
@@ -190,13 +190,13 @@ public class RuntimeTest {
 
 		for(Map.Entry<String, String> e: v.entrySet()) {
 			if(b.length() > 0) 
-				b.append(", ");
+				b.append(",");
 
-			b.append(e.getKey() + " => " + e.getValue());
+			b.append(e.getKey() + "=>" + e.getValue());
 		}
 
 		String expected = "[" + b.toString() + "]";
-		Assert.assertEquals(r.formatArgumentValue(v), expected);
+		Assert.assertEquals(expected, r.formatArgumentValue(v));
 	}
 
 	@Test
@@ -204,9 +204,18 @@ public class RuntimeTest {
 		Assert.assertEquals(r.formatArgumentValue(new HashMap<String, String>()), "[]");
 	}
 
+	public class CustomObject {
+		String name = "hello, world";
+		int ideal = 42;
+	}
+
 	@Test
 	public void testFormatArgumentValueCustomObject() {
-		Assert.assertEquals(r.formatArgumentValue(this), this.toString());
+		CustomObject co = new CustomObject();
+		Assert.assertTrue(r.formatArgumentValue(co).contains("name"));
+		Assert.assertTrue(r.formatArgumentValue(co).contains(co.name));
+		Assert.assertTrue(r.formatArgumentValue(co).contains("ideal"));
+		Assert.assertTrue(r.formatArgumentValue(co).contains("" + co.ideal));
 	}
 
 	@Override
@@ -243,7 +252,7 @@ public class RuntimeTest {
 	@Test
 	public void testFormatReturnValueArray() {
 		int[] v = { 1, 2, 3 };
-		String expected = String.format("[%s, %s, %s]", "" + v[0], "" + v[1], "" + v[2]);
+		String expected = String.format("[%s,%s,%s]", "" + v[0], "" + v[1], "" + v[2]);
 		String rv = r.formatReturnValue(false, v);
 		Assert.assertTrue(rv.contains(expected));
 	}
@@ -252,7 +261,7 @@ public class RuntimeTest {
 	public void testFormatReturnValueCollection() {
 		Integer[] a = { 1, 2, 3 };
 		List<Integer> v = Arrays.asList(a);
-		String expected = String.format("[%s, %s, %s]", a[0], a[1], a[2]);
+		String expected = String.format("[%s,%s,%s]", a[0], a[1], a[2]);
 		String rv = r.formatReturnValue(false, v);
 		Assert.assertTrue(rv.contains(expected));
 	}
@@ -269,9 +278,9 @@ public class RuntimeTest {
 
 		for(Map.Entry<String, String> e: v.entrySet()) {
 			if(b.length() > 0) 
-				b.append(", ");
+				b.append(",");
 
-			b.append(e.getKey() + " => " + e.getValue());
+			b.append(e.getKey() + "=>" + e.getValue());
 		}
 
 		String expected = "[" + b.toString() + "]";
