@@ -99,6 +99,7 @@ public class Main extends MainBase {
 		dict.put(3, "bob");
 		dict.put(4, null);
 		testMap(dict);
+		testCustomObject();
 
 		try {
 			new Main("A").findClass("test");
@@ -175,6 +176,42 @@ public class Main extends MainBase {
 	}
 	static void testMap(HashMap<Integer, String> theMap) {
 	}
+
+	private static class Profession {
+		private String name;
+
+		public Profession(String theName) {
+			name = theName;
+		}
+
+		public String getName() {
+			return name;
+		}
+	}
+
+	private static class Employee {
+		public String name = "John Doe";
+		public int age = 38;
+		public Profession profession = new Profession("Advocate");
+		public enum Role {
+			SPECIALIST, MANAGER, BOSS
+		};
+		public Role role = Role.MANAGER;
+	}
+
+	static void testCustomObject() {
+		Employee e = getEmployee();
+		processPayroll(e);
+	}
+
+	static Employee getEmployee() {
+		return new Employee();
+	}
+
+	static void processPayroll(Employee theEmployee) {
+		// do something
+	}
+	
 	Class<?> findClass(String theClassName) throws ClassNotFoundException {
 		System.out.println("zzz search for class " + theClassName);
 		return null;
