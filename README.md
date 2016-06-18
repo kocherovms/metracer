@@ -10,12 +10,26 @@ Use **metracer** when:
 # Getting Started
 
 1. Download metracer JAR file from the latest release: https://github.com/kocherovms/metracer/releases/latest
-2. List JVM available for attachment:
+2. List Java programs (JVMs) available for tracing:
 ``` console
 $ java -jar metracer.jar -l
+PID	   NAME
+6688   com.develorium.metracertest.Main
+3726   org.pwsafe.passwordsafeswt.PasswordSafeJFace
+$
 ```
-3. Instrument interesting methods with metracer
+3. Start tracing methods in a desired Java program (JVM) using PID from the listing above, e.g.:
+``` console
+$ java -jar metracer.jar -v 6688 com.develorium.metracertest.Main doSomething
+2016.06.18 11:31:14.721 [metracer.00000009] +++ [0] com.develorium.metracertest.Main.doSomething()
+2016.06.18 11:31:14.726 [metracer.00000009] --- [0] com.develorium.metracertest.Main.doSomething => void
+```
+4. When you are done with inspection press 'q' - this will remove all instrumentation from a target JVM
 
+There is a builtin help page in metracer:
+``` console
+$ java -jar metracer.jar -h
+```
 
 # Technology
 
