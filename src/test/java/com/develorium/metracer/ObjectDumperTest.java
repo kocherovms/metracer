@@ -99,20 +99,9 @@ public class ObjectDumperTest {
 		public Mode mode = Mode.a;
 	}
 
-	public static class CircularReference {
-		public String value;
-		public CircularReference reference;
-
-		CircularReference(String theValue, CircularReference theReference) {
-			value = theValue;
-			reference = theReference;
-		}
-	}
-
 	@Test
 	public void testGetAllDeclaredFields() {
 		Integer myZ = new Integer(999);
-		System.out.println("<kms@>" + myZ.toString() + "</kms@>");
 
 		List<Field> fields = ObjectDumper.getAllDeclaredFields(new TestObject());
 		String[] samples = {
@@ -269,6 +258,16 @@ public class ObjectDumperTest {
 		}
 	}
 
+	public static class CircularReference {
+		public String value;
+		public CircularReference reference;
+
+		CircularReference(String theValue, CircularReference theReference) {
+			value = theValue;
+			reference = theReference;
+		}
+	}
+
 	@Test
 	public void testCircularReference() {
 		CircularReference a = new CircularReference("hello", null);
@@ -276,7 +275,12 @@ public class ObjectDumperTest {
 		a.reference = b;
 		String result = new ObjectDumper().dumpObject(a);
 		System.out.println("Result of circular reference dump = " + result);
-		Assert.assertTrue(result.contains("too long value"));
+		Assert.assertFalse(result.contains("too long value"));
+		Assert.assertTrue(result.contains("reference"));
+		Assert.assertTrue(result.contains("value"));
+		Assert.assertTrue(result.contains("hello"));
+		Assert.assertTrue(result.contains("world"));
+		Assert.assertTrue(result.contains("REPETION"));
 	}
 
 	@Test
@@ -285,6 +289,22 @@ public class ObjectDumperTest {
 		List<Integer> v = Arrays.asList(a);
 		String expected = String.format("[%s,%s,%s]", a[0], a[1], a[2]);
 		Assert.assertEquals(expected, new ObjectDumper().dumpObject(v));
+	}
+
+	private static class SelfReference {
+		private static SelfReference selfReference = new SelfReference();
+		private static String value = "lorem ipsum";
+	}
+
+	@Test
+	public void testClassWithStaticFieldReferencingItself() {
+		SelfReference sr = new SelfReference();
+		String result = new ObjectDumper().dumpObject(sr);
+		System.out.println("Result of self reference dump = " + result);
+		Assert.assertFalse(result.contains("too long value"));
+		Assert.assertTrue(result.contains("selfReference"));
+		Assert.assertTrue(result.contains("lorem ipsum"));
+		Assert.assertTrue(result.contains("REPETION"));
 	}
 
 	private static Field findField(List<Field> theFields, String theName) {

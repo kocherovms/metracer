@@ -30,6 +30,7 @@ public class ObjectDumper {
 	public static int MaxIterableElementsForPrinting = 10;
 	public static int MaxDumpLength = 4096;
 	private StringBuilder rv = new StringBuilder();
+	private Set<Object> visitedObjects = new HashSet<Object>();
 
 	private class TooLongValueException extends RuntimeException {
 		public TooLongValueException() {
@@ -54,7 +55,7 @@ public class ObjectDumper {
 
 	private void dumpObject_impl(Object theObject) {
 		if(rv.length() >= MaxDumpLength)
-			return; 
+			return;
 
 		if(theObject == null) {
 			append("null");
@@ -62,6 +63,16 @@ public class ObjectDumper {
 		}
 
 		Class<?> c = theObject.getClass();
+		
+		if(!isImmediatePrintable(c)) {
+			if(visitedObjects.contains(theObject)) {
+				append("<!REPETION!>");
+				return;
+			}
+			else
+				visitedObjects.add(theObject);
+		}
+
 		String typeName = c.getName();
 
 		if(c.isArray()) {
