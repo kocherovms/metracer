@@ -11,7 +11,9 @@ Use **metracer** when:
 
 1. Download metracer JAR file from the latest release: https://github.com/kocherovms/metracer/releases/latest
 2. List JVM available for attachment:
-`java -jar metracer.jar -l`
+``` console
+`$ java -jar metracer.jar -l`
+```
 3. Instrument interesting methods with metracer
 
 
