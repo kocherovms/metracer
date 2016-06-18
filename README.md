@@ -1,5 +1,4 @@
-![metracer logo](http://develorium.com/wp-content/uploads/2016/06/metracer_logo.png) | # metracer [![Build Status](https://travis-ci.org/kocherovms/metracer.svg?branch=master)](https://travis-ci.org/kocherovms/metracer)
------------- | -------------
+# metracer [![Build Status](https://travis-ci.org/kocherovms/metracer.svg?branch=master)](https://travis-ci.org/kocherovms/metracer)
 
 <table style="width:100%">
   <tr>
