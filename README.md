@@ -1,4 +1,4 @@
-# [metracer] [![Build Status](https://travis-ci.org/kocherovms/metracer.svg?branch=master)](https://travis-ci.org/kocherovms/metracer)
+# metracer [![Build Status](https://travis-ci.org/kocherovms/metracer.svg?branch=master)](https://travis-ci.org/kocherovms/metracer)
 ![metracer logo](http://develorium.com/wp-content/uploads/2015/11/metracer.png)
 
 * [General Information](#general-information)
@@ -99,7 +99,6 @@ Use **metracer** when:
 - Java [StackMapFrames]-friendly: **metracer** copes well with stack map frames introduced in Java 1.7 and above;
 - class loaders isolation-friendly: **metracer** copes well with modern JaveEE app servers which impose strict isolation rules.
 
-[metracer]: http://develorium.com/metracer
 [strace]: <http://linux.die.net/man/1/strace>
 [StackMapFrames]: http://stackoverflow.com/questions/25109942/is-there-a-better-explanation-of-stack-map-frames
 [ASM]: <http://asm.ow2.org/>
