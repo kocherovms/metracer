@@ -16,18 +16,16 @@ $ java -jar metracer.jar -l
 PID	   NAME
 6688   com.develorium.metracertest.Main
 3726   org.pwsafe.passwordsafeswt.PasswordSafeJFace
-$
 ```
 3) Start tracing methods in a desired Java program (JVM) using PID from the listing above, e.g.:  
 ``` console
 $ java -jar metracer.jar -v 6688 com.develorium.metracertest.Main doSomething
 2016.06.18 11:31:14.721 [metracer.00000009] +++ [0] com.develorium.metracertest.Main.doSomething()
 2016.06.18 11:31:14.726 [metracer.00000009] --- [0] com.develorium.metracertest.Main.doSomething => void
-#
 ```
-4) When you are done with inspection press 'q' - this will remove all instrumentation from a target JVM  
+4) When you are done with trasing press **q** - this will remove all instrumentation from a target JVM and stop tracing  
 
-There is a builtin help page in metracer:
+Of course, there is a builtin help page in metracer:
 ``` console
 $ java -jar metracer.jar -h
 ```
