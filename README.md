@@ -1,7 +1,7 @@
 <table style="width:100%">
   <tr>
     <td><img src="pix/logo.png"/></td>
-    <td><h1>metracer</h1><img src="https://travis-ci.org/kocherovms/metracer.svg?branch=master"></td>
+    <td><h1>metracer</h1><a href="https://travis-ci.org/kocherovms/metracer"><img src="https://travis-ci.org/kocherovms/metracer.svg?branch=master" alt="Build Status" data-canonical-src="https://travis-ci.org/kocherovms/metracer.svg?branch=master" style="max-width:100%;"></a>
   </tr>
 </table>
 
