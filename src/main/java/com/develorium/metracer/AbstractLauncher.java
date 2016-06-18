@@ -69,6 +69,13 @@ public abstract class AbstractLauncher {
 				customEnvVariables.put(Constants.METRACER_LAUNCH_STRING, launchString);
 				customEnvVariables.put(Constants.METRACER_LAUNCHER_PID, selfPid);
 				prepareExecutionEnvironment(customEnvVariables);
+
+				java.lang.Runtime.getRuntime().addShutdownHook(new Thread() {
+					public void run() {
+						cleanupExecutionEnvironment();
+					}
+				});
+
 				List<String> args = prepareArguments(theArguments, customEnvVariables);
 				ProcessBuilder pb = new ProcessBuilder(args);
 				pb.inheritIO();
@@ -83,7 +90,6 @@ public abstract class AbstractLauncher {
 					}
 				}
 			} finally {
-				cleanupExecutionEnvironment();
 				postProcessCommand();
 			}
 		} catch(Config.BadConfig e) {
