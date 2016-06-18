@@ -44,13 +44,14 @@ $ java -jar metracer.jar 6688 'com.develorium.metracertest.Foo|Bar'
 ```
 
 4) When you are done with tracing press **q** - this will stop tracing and remove all instrumentation from a target JVM  
+---
 
-There are other functions available in metracer (e.g. vertical instrumentation). Brief description is availble in a builtin help:
+There are other functions available in metracer (e.g. vertical instrumentation). Brief description of **metracer** functionality is available in a builtin help:
 ``` console
 $ java -jar metracer.jar -h
 ```
 
-For detailed information on how to use **metracer** please visit http://develorium.com/metracer. 
+For more detailed information on how to use **metracer** please visit http://develorium.com/metracer. 
 
 
 # Technology
