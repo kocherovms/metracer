@@ -8,15 +8,15 @@
 
 # Getting Started
 
-#### 1) Download **metracer** JAR file from the latest release: https://github.com/kocherovms/metracer/releases/latest  
-#### 2) List Java programs available for tracing:
+1) **Download** **metracer** JAR file from the latest release: https://github.com/kocherovms/metracer/releases/latest  
+2) **List** Java programs available for tracing:
 ``` console
 $ java -jar metracer.jar -l
 PID	   NAME
 6688   com.develorium.metracertest.Main
 3726   org.pwsafe.passwordsafeswt.PasswordSafeJFace
 ```
-#### 3) Start tracing methods in a desired Java program using PID from the listing table, e.g.:
+3) **Start tracing** methods in a desired Java program using PID from the listing table, e.g.:
 - to trace all methods from class `com.develorium.metracertest.Main` in Java program with PID 6688:
 ``` console
 $ java -jar metracer.jar 6688 com.develorium.metracertest.Main
@@ -43,7 +43,7 @@ $ java -jar metracer.jar 6688 'com.develorium.metracertest.Foo|Bar'
 ...
 ```
 
-#### 4) When you are done with tracing press **q** - this will stop tracing and remove all instrumentation from a target JVM  
+4) When you are done with tracing press **q** - this will stop tracing and remove all instrumentation from a target JVM  
 
 Of course, there is a builtin help page in metracer:
 ``` console
