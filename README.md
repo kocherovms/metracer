@@ -33,7 +33,7 @@ $ java -jar metracer.jar 6688 com.develorium.metracertest.Main doSomething
 ...
 ```
 
-- to trace all methods from classes `com.develorium.metracertest.Foo` and `'com.develorium.metracertest.Bar` in Java program with PID 6688:
+- to trace all methods from classes `com.develorium.metracertest.Foo` and `com.develorium.metracertest.Bar` in Java program with PID 6688:
 ``` console
 $ java -jar metracer.jar 6688 'com.develorium.metracertest.Foo|Bar'
 2016.06.19 12:00:17.312 [metracer.00000009] +++ [0] com.develorium.metracertest.Foo.perform()
@@ -45,10 +45,13 @@ $ java -jar metracer.jar 6688 'com.develorium.metracertest.Foo|Bar'
 
 4) When you are done with tracing press **q** - this will stop tracing and remove all instrumentation from a target JVM  
 
-Of course, there is a builtin help page in metracer:
+There are other functions available in metracer (e.g. vertical instrumentation). Brief description is availble in a builtin help:
 ``` console
 $ java -jar metracer.jar -h
 ```
+
+For detailed information on how to use **metracer** please visit http://develorium.com/metracer. 
+
 
 # Technology
 
@@ -64,10 +67,6 @@ $ java -jar metracer.jar -h
 # License
 
 Apace License, Version 2.0.
-
-# More Information
-
-Detailed information on **metracer** is available here: http://develorium.com/metracer
 
 [strace]: <http://linux.die.net/man/1/strace>
 [StackMapFrames]: http://stackoverflow.com/questions/25109942/is-there-a-better-explanation-of-stack-map-frames
