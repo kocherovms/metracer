@@ -107,6 +107,9 @@ public class Main extends MainBase {
 		} catch(Exception e) {
 			e.printStackTrace();
 		}
+		
+		Foo.perform();
+		Bar.perform();
 	}
 	static void testA() {
 		System.out.println("testA");
