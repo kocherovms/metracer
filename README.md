@@ -1,30 +1,19 @@
-# metracer [![Build Status](https://travis-ci.org/kocherovms/metracer.svg?branch=master)](https://travis-ci.org/kocherovms/metracer) http://develorium.com/metracer
+# metracer [![Build Status](https://travis-ci.org/kocherovms/metracer.svg?branch=master)](https://travis-ci.org/kocherovms/metracer)
 ![metracer logo](http://develorium.com/wp-content/uploads/2015/11/metracer.png)
 
-# Table of Contents
-
 * [General Information](#general-information)
+* [Getting Started](#getting-started)
 * [Usage Examples](#usage-examples)
 * [Technology](#technology)
 * [Requirements](#requirements)
+* [More Information](#more-information)
 * [License](#license)
 
 # General Information
 
-**metracer** is a tool to spy for invocation of an arbitrary methods in Java program. In some sense it's similar to a famous [strace] program. Just pass a regexp denoting interesting classes/methods and **metracer** would make these methods to report entry / exit, values of input arguments, return values and exceptions. 
+**metracer** is a tool to trace invocation of arbitrary methods in Java programs. It's an analog of [strace] program from *nix systems. 
 
-Use **metracer** when:
- - you want to quickly get acquainted with how a particular part of a Java program works - **metracer** will provide you with a call tree of a methods;
- - you want to spy for SQL statements issued by Hibernate in your JavaEE application - **metracer** will supply you with arguments of called methods;
- - you want to troubleshoot errors in Java program but debugger is not available - **metracer** will supply you with return values or exceptions thrown in a program.
-
-**metracer** is:
-- easy to use: simple and straightforward CLI;
-- lightweight: distro size is less that 300K;
-- super fast: does instrumentation work in seconds;
-- zero-deployment: no 3-rd party libraries are required - only single .sh script on Linux is needed (single .jar for all other OSes);
-- Java [StackMapFrames]-friendly: **metracer** copes well with stack map frames introduced in Java 1.7 and above;
-- class loaders isolation-friendly: **metracer** copes well with modern JaveEE app servers which impose strict isolation rules.
+# Getting Started
 
 # Usage Examples
 
@@ -86,6 +75,25 @@ $ sh metracer.sh 345 -f /tmp/st.txt
 
 - Java 1.6 or higher;
 - JDK is installed (tools.jar is needed).
+
+# More Information
+
+http://develorium.com/metracer
+
+Just pass a regexp denoting interesting classes/methods and **metracer** would make these methods to report entry / exit, values of input arguments, return values and exceptions. 
+
+Use **metracer** when:
+ - you want to quickly get acquainted with how a particular part of a Java program works - **metracer** will provide you with a call tree of a methods;
+ - you want to spy for SQL statements issued by Hibernate in your JavaEE application - **metracer** will supply you with arguments of called methods;
+ - you want to troubleshoot errors in Java program but debugger is not available - **metracer** will supply you with return values or exceptions thrown in a program.
+
+**metracer** is:
+- easy to use: simple and straightforward CLI;
+- lightweight: distro size is less that 300K;
+- super fast: does instrumentation work in seconds;
+- zero-deployment: no 3-rd party libraries are required - only single .sh script on Linux is needed (single .jar for all other OSes);
+- Java [StackMapFrames]-friendly: **metracer** copes well with stack map frames introduced in Java 1.7 and above;
+- class loaders isolation-friendly: **metracer** copes well with modern JaveEE app servers which impose strict isolation rules.
 
 # License
 
