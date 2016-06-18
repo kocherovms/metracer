@@ -1,16 +1,9 @@
-# metracer [![Build Status](https://travis-ci.org/kocherovms/metracer.svg?branch=master)](https://travis-ci.org/kocherovms/metracer)
-![metracer logo](http://develorium.com/wp-content/uploads/2016/06/metracer_logo.png)
+# ![metracer logo](http://develorium.com/wp-content/uploads/2016/06/metracer_logo.png) metracer [![Build Status](https://travis-ci.org/kocherovms/metracer.svg?branch=master)](https://travis-ci.org/kocherovms/metracer)
 
-<p>
-<img src="http://develorium.com/wp-content/uploads/2016/06/metracer_logo.png" alt="metracer logo" style="float:left;width:42px;height:42px;"/>
 **metracer** is a tool to trace invocation of arbitrary methods in Java programs. In some sense it's an analog of [strace] program. **metracer** is useful for:
 - you want to quickly get acquainted with how a particular part of a Java program works - **metracer** will provide you with a call tree of a methods;
 - you want to spy for SQL statements issued by Hibernate in your JavaEE application - **metracer** will supply you with arguments of called methods;
 - you want to troubleshoot errors in Java program but debugger is not available - **metracer** will supply you with return values or exceptions thrown in a program.
-</p>
-
-<p><img src="http://develorium.com/wp-content/uploads/2016/06/metracer_logo.png" alt="W3Schools.com" width="100" height="140" style="float:right;margin: 0 0 10px 10px;"/>
-Lorem ipsum dolor sit amet, consectetur adipiscing elit. Phasellus imperdiet, nulla et dictum interdum, nisi lorem egestas odio, vitae scelerisque enim ligula venenatis dolor. Maecenas nisl est, ultrices nec congue eget, auctor vitae massa. Fusce luctus vestibulum augue ut aliquet. Mauris ante ligula, facilisis sed ornare eu, lobortis in odio. Praesent convallis urna a lacus interdum ut hendrerit risus congue. Nunc sagittis dictum nisi, sed ullamcorper ipsum dignissim ac. In at libero sed nunc venenatis imperdiet sed ornare turpis. Donec vitae dui eget tellus gravida venenatis. Integer fringilla congue eros non fermentum. Sed dapibus pulvinar nibh tempor porta. Cras ac leo purus. Mauris quis diam velit.</p>
 
 # Getting Started
 
