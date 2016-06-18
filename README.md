@@ -3,7 +3,7 @@
 
 <table style="width:100%">
   <tr>
-    <td>![metracer logo](http://develorium.com/wp-content/uploads/2016/06/metracer_logo.png)</td>
+    <td><img src="http://develorium.com/wp-content/uploads/2016/06/metracer_logo.png"/></td>
     <td>50</td>
   </tr>
   <tr>
