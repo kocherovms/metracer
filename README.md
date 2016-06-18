@@ -1,5 +1,5 @@
 # metracer [![Build Status](https://travis-ci.org/kocherovms/metracer.svg?branch=master)](https://travis-ci.org/kocherovms/metracer)
-![metracer logo](http://develorium.com/wp-content/uploads/2015/11/metracer.png)
+![metracer logo](http://develorium.com/wp-content/uploads/2016/06/metracer_logo.png)
 
 * [General Information](#general-information)
 * [Getting Started](#getting-started)
