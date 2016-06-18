@@ -4,11 +4,7 @@
 <table style="width:100%">
   <tr>
     <td><img src="http://develorium.com/wp-content/uploads/2016/06/metracer_logo.png"/></td>
-    <td>50</td>
-  </tr>
-  <tr>
-    <td>Eve</td>
-    <td>94</td>
+    <td><p style="h1">metracer</p><img src="https://travis-ci.org/kocherovms/metracer.svg?branch=master"></td>
   </tr>
 </table>
 
