@@ -1,6 +1,6 @@
 <table style="width:100%">
   <tr>
-    <td><img src="http://develorium.com/wp-content/uploads/2016/06/metracer_logo.png"/></td>
+    <td><img src="pix/logo.png"/></td>
     <td><h1>metracer</h1><img src="https://travis-ci.org/kocherovms/metracer.svg?branch=master"></td>
   </tr>
 </table>
