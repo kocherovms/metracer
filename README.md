@@ -11,7 +11,7 @@
 
 # General Information
 
-**metracer** is a tool to trace invocation of arbitrary methods in Java programs. 
+**metracer** is a tool to trace invocation of arbitrary methods in Java programs.  
 In some sense it's an analog of [strace] program from *nix systems. 
 
 # Getting Started
