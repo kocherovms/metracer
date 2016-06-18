@@ -47,7 +47,7 @@ $ java -jar metracer.jar 6688 'com.develorium.metracertest.Foo|Bar'
 ...
 ```
 
-4) When you are done with tracing press **q** - this will stop tracing and remove all instrumentation from a target JVM  
+4) When you are done with tracing press **q** - this will stop methods tracing in a Java program and quit  
 
 ---
 
