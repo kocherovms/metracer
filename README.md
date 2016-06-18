@@ -1,8 +1,11 @@
 # metracer [![Build Status](https://travis-ci.org/kocherovms/metracer.svg?branch=master)](https://travis-ci.org/kocherovms/metracer)
 ![metracer logo](http://develorium.com/wp-content/uploads/2016/06/metracer_logo.png)
 
+<p>
+<img src="http://develorium.com/wp-content/uploads/2016/06/metracer_logo.png" alt="metracer log" style="float:left"/>
 **metracer** is a tool to trace invocation of arbitrary methods in Java programs.  
 In some sense it's an analog of [strace] program from *nix systems. 
+</p>
 
 * [Getting Started](#getting-started)
 * [Usage Examples](#usage-examples)
