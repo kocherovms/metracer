@@ -3,13 +3,11 @@
 
 <table style="width:100%">
   <tr>
-    <td>Jill</td>
-    <td>Smith</td> 
+    <td>![metracer logo](http://develorium.com/wp-content/uploads/2016/06/metracer_logo.png)</td>
     <td>50</td>
   </tr>
   <tr>
     <td>Eve</td>
-    <td>Jackson</td> 
     <td>94</td>
   </tr>
 </table>
