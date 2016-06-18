@@ -1,9 +1,9 @@
 # metracer [![Build Status](https://travis-ci.org/kocherovms/metracer.svg?branch=master)](https://travis-ci.org/kocherovms/metracer)
 
-**metracer** is a tool to trace invocation of arbitrary methods in Java programs. In some sense it's an analog of [strace] program. **metracer** is useful for:
- - you want to quickly get acquainted with how a particular part of a Java program works - **metracer** will provide you with a call tree of a methods;
-![metracer logo](http://develorium.com/wp-content/uploads/2016/06/metracer_logo.png)  - you want to spy for SQL statements issued by Hibernate in your JavaEE application - **metracer** will supply you with arguments of called methods;
- - you want to troubleshoot errors in Java program but debugger is not available - **metracer** will supply you with return values or exceptions thrown in a program.
+**metracer** is a tool to trace invocation of arbitrary methods in Java programs. In some sense it's an analog of [strace] program. **metracer** is useful for:![metracer logo](http://develorium.com/wp-content/uploads/2016/06/metracer_logo.png)  
+- you want to quickly get acquainted with how a particular part of a Java program works - **metracer** will provide you with a call tree of a methods;
+- you want to spy for SQL statements issued by Hibernate in your JavaEE application - **metracer** will supply you with arguments of called methods;
+- you want to troubleshoot errors in Java program but debugger is not available - **metracer** will supply you with return values or exceptions thrown in a program.
 
 # Getting Started
 
