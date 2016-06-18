@@ -1,8 +1,7 @@
 # metracer [![Build Status](https://travis-ci.org/kocherovms/metracer.svg?branch=master)](https://travis-ci.org/kocherovms/metracer)
 ![metracer logo](http://develorium.com/wp-content/uploads/2016/06/metracer_logo.png)
 
-**metracer** is a tool to trace invocation of arbitrary methods in Java programs. In some sense it's an analog of [strace] program from *nix systems.  
-Use **metracer** when:
+**metracer** is a tool to trace invocation of arbitrary methods in Java programs. In some sense it's an analog of [strace] program. **metracer** is useful for:
  - you want to quickly get acquainted with how a particular part of a Java program works - **metracer** will provide you with a call tree of a methods;
  - you want to spy for SQL statements issued by Hibernate in your JavaEE application - **metracer** will supply you with arguments of called methods;
  - you want to troubleshoot errors in Java program but debugger is not available - **metracer** will supply you with return values or exceptions thrown in a program.
@@ -17,13 +16,13 @@ PID	   NAME
 6688   com.develorium.metracertest.Main
 3726   org.pwsafe.passwordsafeswt.PasswordSafeJFace
 ```
-3) Start tracing methods in a desired Java program using PID from the listing table, e.g.:
+3) Start tracing methods in a desired Java program using PID from the listing table. E.g. to trace method `doSomething` of a class `com.develorium.metracertest.Main` in Java program with PID 6688:
 ``` console
 $ java -jar metracer.jar -v 6688 com.develorium.metracertest.Main doSomething
 2016.06.18 11:31:14.721 [metracer.00000009] +++ [0] com.develorium.metracertest.Main.doSomething()
 2016.06.18 11:31:14.726 [metracer.00000009] --- [0] com.develorium.metracertest.Main.doSomething => void
 ```
-4) When you are done with trasing press **q** - this will remove all instrumentation from a target JVM and stop tracing  
+4) When you are done with tracing press **q** - this will stop tracing and remove all instrumentation from a target JVM  
 
 Of course, there is a builtin help page in metracer:
 ``` console
