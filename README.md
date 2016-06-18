@@ -1,7 +1,7 @@
 # metracer [![Build Status](https://travis-ci.org/kocherovms/metracer.svg?branch=master)](https://travis-ci.org/kocherovms/metracer)
 ![metracer logo](http://develorium.com/wp-content/uploads/2016/06/metracer_logo.png)
 
-**metracer** is a tool to trace invocation of arbitrary methods in Java programs. In some sense it's an analog of [strace] program from *nix systems. 
+**metracer** is a tool to trace invocation of arbitrary methods in Java programs. In some sense it's an analog of [strace] program from *nix systems.  
 Use **metracer** when:
  - you want to quickly get acquainted with how a particular part of a Java program works - **metracer** will provide you with a call tree of a methods;
  - you want to spy for SQL statements issued by Hibernate in your JavaEE application - **metracer** will supply you with arguments of called methods;
@@ -9,10 +9,13 @@ Use **metracer** when:
 
 # Getting Started
 
-1) Download metracer from the latest release: https://github.com/kocherovms/metracer/releases/latest
+1) Download metracer JAR file from the latest release: https://github.com/kocherovms/metracer/releases/latest
+
 2) List JVM available for attachment:
 `java -jar metracer.jar -l`
+
 3) Instrument interesting methods with metracer
+
 
 # Technology
 
