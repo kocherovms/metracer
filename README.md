@@ -8,7 +8,7 @@
 
 # Getting Started
 
-1) Download metracer JAR file from the latest release: https://github.com/kocherovms/metracer/releases/latest  
+1) Download **metracer** JAR file from the latest release: https://github.com/kocherovms/metracer/releases/latest  
 2) List Java programs available for tracing:
 ``` console
 $ java -jar metracer.jar -l
@@ -16,12 +16,34 @@ PID	   NAME
 6688   com.develorium.metracertest.Main
 3726   org.pwsafe.passwordsafeswt.PasswordSafeJFace
 ```
-3) Start tracing methods in a desired Java program using PID from the listing table. E.g. to trace method `doSomething` of a class `com.develorium.metracertest.Main` in Java program with PID 6688:
+3) Start tracing methods in a desired Java program using PID from the listing table.  
+- to trace all methods from class `com.develorium.metracertest.Main` in Java program with PID 6688:
 ``` console
-$ java -jar metracer.jar -v 6688 com.develorium.metracertest.Main doSomething
+$ java -jar metracer.jar 6688 com.develorium.metracertest.Main
+2016.06.18 11:31:33.749 [metracer.00000009] +++ [0] com.develorium.metracertest.Main.testBundle()
+2016.06.18 11:31:33.749 [metracer.00000009]  +++ [1] com.develorium.metracertest.Main.testA()
+2016.06.18 11:31:33.749 [metracer.00000009]  --- [1] com.develorium.metracertest.Main.testA => void
+2016.06.18 11:31:33.768 [metracer.00000009]  +++ [1] com.develorium.metracertest.Main.testB(theBool1 = false, theBool2 = true)
+2016.06.18 11:31:33.768 [metracer.00000009]   +++ [2] com.develorium.metracertest.Main.testB(theBool1 = true, theBool2 = true)
+...
+```
+- to trace only method `doSomething` from class `com.develorium.metracertest.Main` in Java program with PID 6688:
+``` console
+$ java -jar metracer.jar 6688 com.develorium.metracertest.Main doSomething
 2016.06.18 11:31:14.721 [metracer.00000009] +++ [0] com.develorium.metracertest.Main.doSomething()
 2016.06.18 11:31:14.726 [metracer.00000009] --- [0] com.develorium.metracertest.Main.doSomething => void
+...
 ```
+
+- to trace all methods from classes `com.develorium.metracertest.Foo` and `'com.develorium.metracertest.Bar` in Java program with PID 6688:
+``` console
+$ java -jar metracer.jar 6688 'com.develorium.metracertest.Foo|Bar'
+2016.06.19 12:00:17.312 [metracer.00000009] +++ [0] com.develorium.metracertest.Foo.perform()
+2016.06.19 12:00:17.314 [metracer.00000009] --- [0] com.develorium.metracertest.Foo.perform => void
+2016.06.19 12:00:17.315 [metracer.00000009] +++ [0] com.develorium.metracertest.Bar.perform()
+2016.06.19 12:00:17.315 [metracer.00000009] --- [0] com.develorium.metracertest.Bar.perform => void...
+```
+
 4) When you are done with tracing press **q** - this will stop tracing and remove all instrumentation from a target JVM  
 
 Of course, there is a builtin help page in metracer:
