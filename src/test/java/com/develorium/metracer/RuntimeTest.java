@@ -212,10 +212,12 @@ public class RuntimeTest {
 	@Test
 	public void testFormatArgumentValueCustomObject() {
 		CustomObject co = new CustomObject();
-		Assert.assertTrue(r.formatArgumentValue(co).contains("name"));
-		Assert.assertTrue(r.formatArgumentValue(co).contains(co.name));
-		Assert.assertTrue(r.formatArgumentValue(co).contains("ideal"));
-		Assert.assertTrue(r.formatArgumentValue(co).contains("" + co.ideal));
+		String output = r.formatArgumentValue(co);
+		System.out.println("Custom object dump output: " + output);
+		Assert.assertTrue(output.contains("name"));
+		Assert.assertTrue(output.contains(co.name));
+		Assert.assertTrue(output.contains("ideal"));
+		Assert.assertTrue(output.contains("" + co.ideal));
 	}
 
 	@Override

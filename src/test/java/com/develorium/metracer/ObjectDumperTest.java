@@ -286,7 +286,7 @@ public class ObjectDumperTest {
 		Assert.assertTrue(result.contains("value"));
 		Assert.assertTrue(result.contains("hello"));
 		Assert.assertTrue(result.contains("world"));
-		Assert.assertTrue(result.contains("REPETION"));
+		Assert.assertTrue(result.contains("REPEAT"));
 	}
 
 	@Test
@@ -310,7 +310,7 @@ public class ObjectDumperTest {
 		Assert.assertFalse(result.contains("too long value"));
 		Assert.assertTrue(result.contains("selfReference"));
 		Assert.assertTrue(result.contains("lorem ipsum"));
-		Assert.assertTrue(result.contains("REPETION"));
+		Assert.assertTrue(result.contains("REPEAT"));
 	}
 
 	private static Field findField(List<Field> theFields, String theName) {

@@ -66,7 +66,7 @@ public class ObjectDumper {
 		
 		if(!isImmediatePrintable(c)) {
 			if(visitedObjects.contains(theObject)) {
-				append("<!REPETION!>");
+				append("<!REPEAT!>");
 				return;
 			}
 			else
