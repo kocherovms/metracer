@@ -22,7 +22,8 @@ import java.util.Date;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-import junit.framework.Assert;
+import org.junit.Assert;
+import org.junit.BeforeClass;
 import org.junit.Test;
 
 public class ObjectDumperTest {
@@ -97,6 +98,11 @@ public class ObjectDumperTest {
 		}
 
 		public Mode mode = Mode.a;
+	}
+
+	@BeforeClass
+	public static void setup() {
+		ObjectDumper.MaxDumpLength = 4096;
 	}
 
 	@Test

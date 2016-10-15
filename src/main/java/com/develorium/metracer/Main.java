@@ -86,6 +86,7 @@ public class Main {
 	private void executeInstrument() {
 		loadAgent(true);
 		agent.setIsVerbose(config.isVerbose);
+		agent.setMethodArgumentDumpLimit(config.methodArgumentDumpLimit);
 		String effectiveClassMatchingPattern = config.classMatchingPattern;
 		String effectiveMethodMatchingPattern = config.methodMatchingPattern;
 

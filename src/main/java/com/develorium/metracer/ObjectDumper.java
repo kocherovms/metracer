@@ -28,7 +28,7 @@ import java.util.Set;
 
 public class ObjectDumper {
 	public static int MaxIterableElementsForPrinting = 10;
-	public static int MaxDumpLength = 4096;
+	public static int MaxDumpLength = 32;
 	private StringBuilder rv = new StringBuilder();
 	private Set<Object> visitedObjects = new HashSet<Object>();
 

@@ -21,7 +21,7 @@ import java.util.*;
 import java.io.*;
 import java.util.regex.*;
 import org.junit.*;
-import junit.framework.Assert;
+import org.junit.Assert;
 
 public class MainIT extends BaseClass {
 	private static class InstrumentAndQuitWithRemovalScenario extends Scenario {
@@ -292,7 +292,7 @@ public class MainIT extends BaseClass {
 
 		@Override	
 		public String[] getLaunchArguments() {
-			return new String[] { pid, TestProgramMainClassName, "testReturnsMap" };
+			return new String[] { pid, TestProgramMainClassName, "testReturnsMap", "-m", "1024" };
 		}
 
 		@Override	

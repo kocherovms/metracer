@@ -21,7 +21,7 @@ import java.util.*;
 import java.io.*;
 import java.util.regex.*;
 import org.junit.*;
-import junit.framework.Assert;
+import org.junit.Assert;
 
 public class BaseClass {
 	protected static final String TestProgramMainClassName = "com.develorium.metracertest.Main";

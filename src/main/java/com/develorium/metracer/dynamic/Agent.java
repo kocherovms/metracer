@@ -120,6 +120,11 @@ public class Agent extends NotificationBroadcasterSupport implements AgentMXBean
 	}
 
 	@Override
+	public void setMethodArgumentDumpLimit(int theLimit) {
+		ObjectDumper.MaxDumpLength = theLimit;
+	}
+
+	@Override
 	synchronized public byte[] removePatterns() {
 		runtime.say("Removing patterns");
 

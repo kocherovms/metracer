@@ -16,9 +16,10 @@
 
 package com.develorium.metracer;
 
-import java.util.*;
-import junit.framework.Assert;
+import java.util.Map;
+import java.util.HashMap;
 import org.junit.Test;
+import org.junit.Assert;
 
 public class ConfigTest {
 	@Test(expected = Config.BadConfig.class)
@@ -313,6 +314,27 @@ public class ConfigTest {
 	@Test(expected = Config.BadConfig.class)
 	public void testBadPidDeinstrumentCommand() {
 		Config config = new Config(new String[]{ "-r", "habr" });
+	}
+
+	@Test
+	public void testMethodArgumentDumpLimit() {
+		Config config = new Config(new String[]{ "-m", "128", "15" });
+		Assert.assertEquals(128, config.methodArgumentDumpLimit);
+	}
+
+	@Test(expected = Config.BadConfig.class)
+	public void testEmptyMethodArgumentDumpLimit() {
+		Config config = new Config(new String[]{ "15", "-m" });
+	}
+
+	@Test(expected = Config.BadConfig.class)
+	public void testNonIntegerMethodArgumentDumpLimit() {
+		Config config = new Config(new String[]{ "-m", "zzz", "15" });
+	}
+
+	@Test(expected = Config.BadConfig.class)
+	public void testZeroMethodArgumentDumpLimit() {
+		Config config = new Config(new String[]{ "-m", "0", "15" });
 	}
 }
 

@@ -44,6 +44,7 @@ public interface AgentMXBean {
 	}
 
 	public void setIsVerbose(boolean theIsVerbose);
+	public void setMethodArgumentDumpLimit(int theLimit);
 	// returns serialized Counters
 	public byte[] setPatterns(String theClassMatchingPattern, String theMethodMatchingPattern, StackTraceMode theStackTraceMode);
 	// returns serialized Counters

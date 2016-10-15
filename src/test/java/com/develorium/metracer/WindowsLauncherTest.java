@@ -17,7 +17,7 @@
 package com.develorium.metracer;
 
 import java.io.*;
-import junit.framework.Assert;
+import org.junit.Assert;
 import org.junit.Test;
 import org.junit.*;
 

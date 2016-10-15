@@ -49,6 +49,7 @@ public class Config {
 	public String classMatchingPattern = null;
 	public String methodMatchingPattern = null;
 	public String patternsFileName = null;
+	public int methodArgumentDumpLimit = 32;
 	private LinkedList<String> argumentList = null;
 
 	public Config(String[] theArguments) throws BadConfig {
@@ -162,6 +163,26 @@ public class Config {
 					throw new BadConfig("-f requires an accompanying file name (with patterns)");
 
 				patternsFileName = it.next();
+				it.remove();
+			}
+
+			if(option.equals("-m")) {
+				it.remove();
+
+				if(!it.hasNext()) 
+					throw new BadConfig("-m requires an accompanying integer limit (of a maximum method argument dump)");
+
+				String value = it.next();
+
+				try {
+					methodArgumentDumpLimit = Integer.parseInt(value);
+
+					if(methodArgumentDumpLimit <= 0)
+						throw new NumberFormatException();
+				} catch(NumberFormatException e) {
+					throw new BadConfig(String.format("Limit of a method argument dump must be a integer >=0 but \"%s\" was given", value));
+				}
+
 				it.remove();
 			}
 		}
