@@ -180,23 +180,29 @@ public class RuntimeTest {
 
 	@Test
 	public void testFormatArgumentValueMap() {
-		Map<String, String> v = new HashMap<String, String>();
-		v.put("Hello", "world");
-		v.put("Lorem", "ipsum");
-		v.put("no", "pasaran");
-		v.put("x", null);
-		v.put(null, "y");
-		StringBuilder b = new StringBuilder();
+		int oldMaxDumpLength = ObjectDumper.MaxDumpLength;
+		try {
+			ObjectDumper.MaxDumpLength = 4096;
+			Map<String, String> v = new HashMap<String, String>();
+			v.put("Hello", "world");
+			v.put("Lorem", "ipsum");
+			v.put("no", "pasaran");
+			v.put("x", null);
+			v.put(null, "y");
+			StringBuilder b = new StringBuilder();
 
-		for(Map.Entry<String, String> e: v.entrySet()) {
-			if(b.length() > 0) 
-				b.append(",");
+			for(Map.Entry<String, String> e: v.entrySet()) {
+				if(b.length() > 0) 
+					b.append(",");
 
-			b.append(e.getKey() + "=>" + e.getValue());
+				b.append(e.getKey() + "=>" + e.getValue());
+			}
+
+			String expected = "[" + b.toString() + "]";
+			Assert.assertEquals(expected, r.formatArgumentValue(v));
+		} finally {
+			ObjectDumper.MaxDumpLength = oldMaxDumpLength;
 		}
-
-		String expected = "[" + b.toString() + "]";
-		Assert.assertEquals(expected, r.formatArgumentValue(v));
 	}
 
 	@Test
@@ -211,13 +217,18 @@ public class RuntimeTest {
 
 	@Test
 	public void testFormatArgumentValueCustomObject() {
-		CustomObject co = new CustomObject();
-		String output = r.formatArgumentValue(co);
-		System.out.println("Custom object dump output: " + output);
-		Assert.assertTrue(output.contains("name"));
-		Assert.assertTrue(output.contains(co.name));
-		Assert.assertTrue(output.contains("ideal"));
-		Assert.assertTrue(output.contains("" + co.ideal));
+		int oldMaxDumpLength = ObjectDumper.MaxDumpLength;
+		try {
+			ObjectDumper.MaxDumpLength = 4096;
+			CustomObject co = new CustomObject();
+			String output = r.formatArgumentValue(co);
+			Assert.assertTrue(output.contains("name"));
+			Assert.assertTrue(output.contains(co.name));
+			Assert.assertTrue(output.contains("ideal"));
+			Assert.assertTrue(output.contains("" + co.ideal));
+		} finally {
+			ObjectDumper.MaxDumpLength = oldMaxDumpLength;
+		}
 	}
 
 	@Override
@@ -270,23 +281,29 @@ public class RuntimeTest {
 
 	@Test
 	public void testFormatReturnValueMap() {
-		Map<String, String> v = new HashMap<String, String>();
-		v.put("Hello", "world");
-		v.put("Lorem", "ipsum");
-		v.put("no", "pasaran");
-		v.put("x", null);
-		v.put(null, "y");
-		StringBuilder b = new StringBuilder();
+		int oldMaxDumpLength = ObjectDumper.MaxDumpLength;
+		try {
+			ObjectDumper.MaxDumpLength = 4096;
+			Map<String, String> v = new HashMap<String, String>();
+			v.put("Hello", "world");
+			v.put("Lorem", "ipsum");
+			v.put("no", "pasaran");
+			v.put("x", null);
+			v.put(null, "y");
+			StringBuilder b = new StringBuilder();
 
-		for(Map.Entry<String, String> e: v.entrySet()) {
-			if(b.length() > 0) 
-				b.append(",");
+			for(Map.Entry<String, String> e: v.entrySet()) {
+				if(b.length() > 0) 
+					b.append(",");
 
-			b.append(e.getKey() + "=>" + e.getValue());
+				b.append(e.getKey() + "=>" + e.getValue());
+			}
+
+			String expected = "[" + b.toString() + "]";
+			String rv = r.formatReturnValue(false, v);
+			Assert.assertTrue(rv.contains(expected));
+		} finally {
+			ObjectDumper.MaxDumpLength = oldMaxDumpLength;
 		}
-
-		String expected = "[" + b.toString() + "]";
-		String rv = r.formatReturnValue(false, v);
-		Assert.assertTrue(rv.contains(expected));
 	}
 }

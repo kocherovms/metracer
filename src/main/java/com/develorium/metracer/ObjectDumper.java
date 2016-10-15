@@ -24,6 +24,7 @@ import java.util.HashSet;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
+import java.util.Scanner;
 import java.util.Set;
 
 public class ObjectDumper {
@@ -94,7 +95,7 @@ public class ObjectDumper {
 		}
 
 		List<Field> fields = getAllDeclaredFields(theObject);
-		append(String.format("(%s){", typeName));
+		append(String.format("(%s){", compactTypeName(typeName)));
 		
 		for(Field f : fields) {
 			append(f.getName() + "=");
@@ -322,5 +323,28 @@ public class ObjectDumper {
 		}
 
 		return false;
+	}
+
+	static String compactTypeName(String theTypeName) {
+		System.out.println("kms@ typename = " + theTypeName);
+		StringBuilder t = new StringBuilder();
+		Scanner scanner = new Scanner(theTypeName).useDelimiter("\\.");
+		try {
+			String token = null;
+
+			while(scanner.hasNext()) {
+				if(token != null)
+					t.append(token.length() > 0 ? token.charAt(0) : "").append(".");
+
+				token = scanner.next();
+			}
+
+			if(token != null)
+				t.append(token);
+
+			return t.toString();
+		} finally {
+			scanner.close();
+		}
 	}
 }

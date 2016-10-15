@@ -100,9 +100,23 @@ public class ObjectDumperTest {
 		public Mode mode = Mode.a;
 	}
 
-	@BeforeClass
-	public static void setup() {
-		ObjectDumper.MaxDumpLength = 4096;
+	@Test
+	public void testCompactTypeName() {
+		String[] samples = {
+			"java.lang.String", "j.l.String",
+			"org.junit.Assert", "o.j.Assert",
+			"com.develorium.metracer.Main", "c.d.m.Main",
+			"Unqualified", "Unqualified",
+			"strange.class", "s.class",
+			"bad.package..class", "b.p..class",
+			"", ""
+		};
+
+		for(int i = 0; i < samples.length;) {
+			String compacting = samples[i++];
+			String expectedCompacted = samples[i++];
+			Assert.assertEquals(expectedCompacted, ObjectDumper.compactTypeName(compacting));
+		}
 	}
 
 	@Test
@@ -152,115 +166,127 @@ public class ObjectDumperTest {
 
 	@Test
 	public void testDumpObjectField() {
-		TestObject testObject = new TestObject();
-		List<Field> fields = ObjectDumper.getAllDeclaredFields(new TestObject());
-		String[] samples = {
-			"testByte", "" + testObject.testByte,
-			"testShort", "" + testObject.testShort,
-			"testChar", "" + testObject.testChar,
-			"testInt", "" + testObject.testInt,
-			"testLong", "" + testObject.testLong,
-			"testFloat", "" + testObject.testFloat,
-			"testDouble", "" + testObject.testDouble,
-			"testBoolean", "" + testObject.testBoolean,
-			"testBigByte", "" + testObject.testBigByte, 
-			"testBigShort", "" + testObject.testBigShort, 
-			"testBigChar", "" + testObject.testBigChar, 
-			"testBigInt", "" + testObject.testBigInt, 
-			"testBigLong", "" + testObject.testBigLong, 
-			"testBigFloat", "" + testObject.testBigFloat, 
-			"testBigDouble", "" + testObject.testBigDouble, 
-			"testBigBoolean", "" + testObject.testBigBoolean, 
-			"testString", "" + testObject.testString, 
-			"testBaseString", "" + testObject.testBaseString, 
-			"testObject", "" + "model=" + ((Terminator)testObject.testObject).model,
-			"testNullObject", "null",
-			"testTerminator", "" + "model=" + testObject.testTerminator.model,
-			"ak47", "" + "name=" + testObject.ak47.name,
-			"ak47", "" + "caliber=" + testObject.ak47.caliber,
-			"ak47", "" + "muzzleVelocity=" + testObject.ak47.muzzleVelocity,
-			"hollowObject", "{}",
-			"testInts", "1",
-			"testInts", "2",
-			"testInts", "3",
-			"testIntegers", "1",
-			"testIntegers", "2",
-			"testIntegers", "3",
-			"terminators", "T600",
-			"terminators", "T700",
-			"terminators", "T1000",
-			"gunsMap", "AK47",
-			"gunsMap", "7.62",
-			"gunsMap", "715",
-			"gunsMap", "M16",
-			"gunsMap", "5.56",
-			"gunsMap", "790",
-			"privateString", "private property",
-			"myDate", testObject.myDate.toString(),
-			"mode", testObject.mode.toString(),
-		};
+		int oldMaxDumpLength = ObjectDumper.MaxDumpLength;
+		try {
+			ObjectDumper.MaxDumpLength = 4096;
+			TestObject testObject = new TestObject();
+			List<Field> fields = ObjectDumper.getAllDeclaredFields(new TestObject());
+			String[] samples = {
+				"testByte", "" + testObject.testByte,
+				"testShort", "" + testObject.testShort,
+				"testChar", "" + testObject.testChar,
+				"testInt", "" + testObject.testInt,
+				"testLong", "" + testObject.testLong,
+				"testFloat", "" + testObject.testFloat,
+				"testDouble", "" + testObject.testDouble,
+				"testBoolean", "" + testObject.testBoolean,
+				"testBigByte", "" + testObject.testBigByte, 
+				"testBigShort", "" + testObject.testBigShort, 
+				"testBigChar", "" + testObject.testBigChar, 
+				"testBigInt", "" + testObject.testBigInt, 
+				"testBigLong", "" + testObject.testBigLong, 
+				"testBigFloat", "" + testObject.testBigFloat, 
+				"testBigDouble", "" + testObject.testBigDouble, 
+				"testBigBoolean", "" + testObject.testBigBoolean, 
+				"testString", "" + testObject.testString, 
+				"testBaseString", "" + testObject.testBaseString, 
+				"testObject", "" + "model=" + ((Terminator)testObject.testObject).model,
+				"testNullObject", "null",
+				"testTerminator", "" + "model=" + testObject.testTerminator.model,
+				"ak47", "" + "name=" + testObject.ak47.name,
+				"ak47", "" + "caliber=" + testObject.ak47.caliber,
+				"ak47", "" + "muzzleVelocity=" + testObject.ak47.muzzleVelocity,
+				"hollowObject", "{}",
+				"testInts", "1",
+				"testInts", "2",
+				"testInts", "3",
+				"testIntegers", "1",
+				"testIntegers", "2",
+				"testIntegers", "3",
+				"terminators", "T600",
+				"terminators", "T700",
+				"terminators", "T1000",
+				"gunsMap", "AK47",
+				"gunsMap", "7.62",
+				"gunsMap", "715",
+				"gunsMap", "M16",
+				"gunsMap", "5.56",
+				"gunsMap", "790",
+				"privateString", "private property",
+				"myDate", testObject.myDate.toString(),
+				"mode", testObject.mode.toString(),
+			};
 
-		for(int i = 0; i < samples.length;) {
-			String fieldName = samples[i++];
-			String expectedDumpContent = samples[i++];
-			Field field = findField(fields, fieldName);
-			Assert.assertTrue(field != null);
-			String dumpResult = new ObjectDumper().dumpObjectField(testObject, field).get();
-			System.out.format("Object field dump: %s = %s\n", fieldName, dumpResult);
-			Assert.assertTrue(dumpResult.contains(expectedDumpContent));
+			for(int i = 0; i < samples.length;) {
+				String fieldName = samples[i++];
+				String expectedDumpContent = samples[i++];
+				Field field = findField(fields, fieldName);
+				Assert.assertTrue(field != null);
+				String dumpResult = new ObjectDumper().dumpObjectField(testObject, field).get();
+				System.out.format("Object field dump: %s = %s\n", fieldName, dumpResult);
+				Assert.assertTrue(dumpResult.contains(expectedDumpContent));
+			}
+		} finally {
+			ObjectDumper.MaxDumpLength = oldMaxDumpLength;
 		}
 	}
 
 	@Test
 	public void testDumpObject() {
-		TestObject testObject = new TestObject();
-		String dumpResult = new ObjectDumper().dumpObject(testObject);
-		System.out.println("Object dump result = " + dumpResult);
-		String[] samples = {
-			"testByte=" + testObject.testByte,
-			"testShort=" + testObject.testShort,
-			"testChar=" + testObject.testChar,
-			"testInt=" + testObject.testInt,
-			"testLong=" + testObject.testLong,
-			"testFloat=" + testObject.testFloat,
-			"testDouble=" + testObject.testDouble,
-			"testBoolean=" + testObject.testBoolean,
-			"testBigByte=" + testObject.testBigByte, 
-			"testBigShort=" + testObject.testBigShort, 
-			"testBigChar=" + testObject.testBigChar, 
-			"testBigInt=" + testObject.testBigInt, 
-			"testBigLong=" + testObject.testBigLong, 
-			"testBigFloat=" + testObject.testBigFloat, 
-			"testBigDouble=" + testObject.testBigDouble, 
-			"testBigBoolean=" + testObject.testBigBoolean, 
-			"testString=" + testObject.testString, 
-			"testBaseString=" + testObject.testBaseString, 
-			"testNullObject=null",
-			"testObject=",
-			new ObjectDumper().dumpObject(testObject.testObject),
-			"ak47=",
-			new ObjectDumper().dumpObject(testObject.ak47),
-			"testTerminator=",
-			new ObjectDumper().dumpObject(testObject.testTerminator),
-			"hollowObject=",
-			new ObjectDumper().dumpObject(testObject.hollowObject),
-			"testInts=",
-			new ObjectDumper().dumpObject(testObject.testInts),
-			"testIntegers=",
-			new ObjectDumper().dumpObject(testObject.testIntegers),
-			"terminators=",
-			new ObjectDumper().dumpObject(testObject.terminators),
-			"gunsMap=",
-			new ObjectDumper().dumpObject(testObject.gunsMap),
-			"myDate=",
-			new ObjectDumper().dumpObject(testObject.myDate),
-			"mode=",
-			new ObjectDumper().dumpObject(testObject.mode),
-		};
+		int oldMaxDumpLength = ObjectDumper.MaxDumpLength;
+		try {
+			ObjectDumper.MaxDumpLength = 4096;
+			TestObject testObject = new TestObject();
+			String dumpResult = new ObjectDumper().dumpObject(testObject);
+			System.out.println("Object dump result = " + dumpResult);
+			String[] samples = {
+				"testByte=" + testObject.testByte,
+				"testShort=" + testObject.testShort,
+				"testChar=" + testObject.testChar,
+				"testInt=" + testObject.testInt,
+				"testLong=" + testObject.testLong,
+				"testFloat=" + testObject.testFloat,
+				"testDouble=" + testObject.testDouble,
+				"testBoolean=" + testObject.testBoolean,
+				"testBigByte=" + testObject.testBigByte, 
+				"testBigShort=" + testObject.testBigShort, 
+				"testBigChar=" + testObject.testBigChar, 
+				"testBigInt=" + testObject.testBigInt, 
+				"testBigLong=" + testObject.testBigLong, 
+				"testBigFloat=" + testObject.testBigFloat, 
+				"testBigDouble=" + testObject.testBigDouble, 
+				"testBigBoolean=" + testObject.testBigBoolean, 
+				"testString=" + testObject.testString, 
+				"testBaseString=" + testObject.testBaseString, 
+				"testNullObject=null",
+				"testObject=",
+				new ObjectDumper().dumpObject(testObject.testObject),
+				"ak47=",
+				new ObjectDumper().dumpObject(testObject.ak47),
+				"testTerminator=",
+				new ObjectDumper().dumpObject(testObject.testTerminator),
+				"hollowObject=",
+				new ObjectDumper().dumpObject(testObject.hollowObject),
+				"testInts=",
+				new ObjectDumper().dumpObject(testObject.testInts),
+				"testIntegers=",
+				new ObjectDumper().dumpObject(testObject.testIntegers),
+				"terminators=",
+				new ObjectDumper().dumpObject(testObject.terminators),
+				"gunsMap=",
+				new ObjectDumper().dumpObject(testObject.gunsMap),
+				"myDate=",
+				new ObjectDumper().dumpObject(testObject.myDate),
+				"mode=",
+				new ObjectDumper().dumpObject(testObject.mode),
+			};
 		
-		for(String sample : samples) {
-			System.out.println("Checking for sample " + sample);
-			Assert.assertTrue(dumpResult.contains(sample));
+			for(String sample : samples) {
+				System.out.println("Checking for sample " + sample);
+				Assert.assertTrue(dumpResult.contains(sample));
+			}
+		} finally {
+			ObjectDumper.MaxDumpLength = oldMaxDumpLength;
 		}
 	}
 
@@ -276,17 +302,23 @@ public class ObjectDumperTest {
 
 	@Test
 	public void testCircularReference() {
-		CircularReference a = new CircularReference("hello", null);
-		CircularReference b = new CircularReference("world", a);
-		a.reference = b;
-		String result = new ObjectDumper().dumpObject(a);
-		System.out.println("Result of circular reference dump = " + result);
-		Assert.assertFalse(result.contains("too long value"));
-		Assert.assertTrue(result.contains("reference"));
-		Assert.assertTrue(result.contains("value"));
-		Assert.assertTrue(result.contains("hello"));
-		Assert.assertTrue(result.contains("world"));
-		Assert.assertTrue(result.contains("REPEAT"));
+		int oldMaxDumpLength = ObjectDumper.MaxDumpLength;
+		try {
+			ObjectDumper.MaxDumpLength = 4096;
+			CircularReference a = new CircularReference("hello", null);
+			CircularReference b = new CircularReference("world", a);
+			a.reference = b;
+			String result = new ObjectDumper().dumpObject(a);
+			System.out.println("Result of circular reference dump = " + result);
+			Assert.assertFalse(result.contains("too long value"));
+			Assert.assertTrue(result.contains("reference"));
+			Assert.assertTrue(result.contains("value"));
+			Assert.assertTrue(result.contains("hello"));
+			Assert.assertTrue(result.contains("world"));
+			Assert.assertTrue(result.contains("REPEAT"));
+		} finally {
+			ObjectDumper.MaxDumpLength = oldMaxDumpLength;
+		}
 	}
 
 	@Test
@@ -304,13 +336,19 @@ public class ObjectDumperTest {
 
 	@Test
 	public void testClassWithStaticFieldReferencingItself() {
-		SelfReference sr = new SelfReference();
-		String result = new ObjectDumper().dumpObject(sr);
-		System.out.println("Result of self reference dump = " + result);
-		Assert.assertFalse(result.contains("too long value"));
-		Assert.assertTrue(result.contains("selfReference"));
-		Assert.assertTrue(result.contains("lorem ipsum"));
-		Assert.assertTrue(result.contains("REPEAT"));
+		int oldMaxDumpLength = ObjectDumper.MaxDumpLength;
+		try {
+			ObjectDumper.MaxDumpLength = 4096;
+			SelfReference sr = new SelfReference();
+			String result = new ObjectDumper().dumpObject(sr);
+			System.out.println("Result of self reference dump = " + result);
+			Assert.assertFalse(result.contains("too long value"));
+			Assert.assertTrue(result.contains("selfReference"));
+			Assert.assertTrue(result.contains("lorem ipsum"));
+			Assert.assertTrue(result.contains("REPEAT"));
+		} finally {
+			ObjectDumper.MaxDumpLength = oldMaxDumpLength;
+		}
 	}
 
 	private static Field findField(List<Field> theFields, String theName) {
