@@ -34,8 +34,15 @@ public class ObjectDumper {
 	private Set<Object> visitedObjects = new HashSet<Object>();
 
 	private class TooLongValueException extends RuntimeException {
-		public TooLongValueException() {
+		private int length = 0;
+
+		public TooLongValueException(int theLength) {
 			super("too long value");
+			length = theLength;
+		}
+
+		public int getLength() {
+			return length;
 		}
 	}
 
@@ -48,7 +55,8 @@ public class ObjectDumper {
 			dumpObject_impl(theObject);
 			return rv.toString();
 		} catch(TooLongValueException e) {
-			return rv.toString() + "... (too long value)";
+			int length = e.getLength();
+			return rv.toString() + String.format("... (too long value%s)", length > 0 ? " of " + length + " syms" : "");
 		} catch(Throwable e) {
 			return rv.toString() + "... incomplete due to exception: " + e.getMessage();
 		}
@@ -90,7 +98,7 @@ public class ObjectDumper {
 		}
 
 		if(isImmediatePrintable(c)) {
-			append(theObject.toString());
+			append(theObject.toString(), theObject instanceof String ? ((String)theObject).length() : 0);
 			return;
 		}
 
@@ -294,8 +302,12 @@ public class ObjectDumper {
 	}
 
 	private void append(String thePiece) {
+		append(thePiece, 0);
+	}
+
+	private void append(String thePiece, int thePieceLength) {
 		if(rv.length() >= MaxDumpLength) 
-			throw new TooLongValueException();
+			throw new TooLongValueException(0);
 
 		int delta = MaxDumpLength - rv.length();
 		assert(delta > 0);
@@ -306,7 +318,7 @@ public class ObjectDumper {
 		}
 
 		rv.append(thePiece.substring(0, delta));
-		throw new TooLongValueException();
+		throw new TooLongValueException(thePieceLength);
 	}
 
 	static String[] ImmediatePrintableTypePrefixes = { "java.", "sun.", "com.sun." };
@@ -326,7 +338,6 @@ public class ObjectDumper {
 	}
 
 	static String compactTypeName(String theTypeName) {
-		System.out.println("kms@ typename = " + theTypeName);
 		StringBuilder t = new StringBuilder();
 		Scanner scanner = new Scanner(theTypeName).useDelimiter("\\.");
 		try {

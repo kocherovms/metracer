@@ -351,6 +351,20 @@ public class ObjectDumperTest {
 		}
 	}
 
+	@Test
+	public void testTooLongValueForString() {
+		int oldMaxDumpLength = ObjectDumper.MaxDumpLength;
+		StringBuilder tooLongString = new StringBuilder();
+
+		for(int i = 0; i < 1024; i++)
+			tooLongString.append("hello, world!");
+
+		String result = new ObjectDumper().dumpObject(tooLongString.toString());
+		System.out.println("Result of too long string dump = " + result);
+		Assert.assertTrue(result.contains("too long value"));
+		Assert.assertTrue(result.contains("" + tooLongString.toString().length()));
+	}
+
 	private static Field findField(List<Field> theFields, String theName) {
 		return findField(theFields, theName, null);
 	}
