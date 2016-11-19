@@ -46,6 +46,21 @@ public abstract class AbstractLauncher {
 
 		try {
 			config = new Config(theArguments);
+
+			if(config.pid == 0) {
+				try {
+					config.pid = Helper.autoDiscoverOnlyJvm();
+					System.out.format("Autodiscovered JVM PID %d\n", config.pid);
+				} catch(Helper.JvmAutoDiscoverFailure e) {
+					System.err.println(e.getMessage());
+			
+					if(!e.isAmbigious) 
+						throw e;
+
+					config.command = Config.COMMAND.LIST;
+				}
+			}
+
 			String[] javaLocation = resolveJavaLocation();
 			javaExePath = javaLocation[0];
 			javaExeFolderPath = javaLocation[1];

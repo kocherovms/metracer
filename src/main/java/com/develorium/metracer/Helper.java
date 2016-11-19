@@ -23,6 +23,15 @@ import com.sun.tools.attach.*;
 import java.lang.management.*;
 
 public class Helper {
+	public static class JvmAutoDiscoverFailure extends Exception {
+		public boolean isAmbigious = false;
+
+		public JvmAutoDiscoverFailure(String theMessage, boolean theIsAmbigious) {
+			super(theMessage);
+			isAmbigious = theIsAmbigious;
+		}
+	}
+
 	public static void printUsage(PrintStream theOutput, String theLaunchString) {
 		try {
 			theOutput.println(loadAndProcessTextResource("usage.txt", theLaunchString));
@@ -42,6 +51,21 @@ public class Helper {
 		}
 
 		return false;
+	}
+
+	public static int autoDiscoverOnlyJvm() throws JvmAutoDiscoverFailure {
+		List<VirtualMachineDescriptor> availableJvms = VirtualMachine.list();
+
+		if(availableJvms.isEmpty())
+			throw new JvmAutoDiscoverFailure("No JVM found for connection", false);
+		else if(availableJvms.size() > 1)
+			throw new JvmAutoDiscoverFailure("More than one JVM for connection detected, please, specify desired one manually", true);
+
+		try {
+			return Integer.parseInt(availableJvms.get(0).id());
+		} catch(NumberFormatException e) {
+			throw new JvmAutoDiscoverFailure("Failed to determine PID of JVM for connection, please, specify desired one manually", true);
+		}
 	}
 	
 	public static boolean waitForQuit(InputStream theStdin, PrintStream theStdout) {
@@ -116,7 +140,8 @@ public class Helper {
 		}
 	}
 
-	private static void printJvmList(PrintStream theOutput) {
+	private static List<VirtualMachineDescriptor> listAvailableJvms() {
+		List<VirtualMachineDescriptor> result = new ArrayList<VirtualMachineDescriptor>();
 		Set<String> blacklistedPids = new HashSet<String>();
 		blacklistedPids.add(getSelfPid());
 		String launcherPid = System.getenv().get(Constants.METRACER_LAUNCHER_PID);
@@ -125,24 +150,34 @@ public class Helper {
 			blacklistedPids.add(launcherPid);
 
 		List<VirtualMachineDescriptor> jvmList = VirtualMachine.list();
-		List<String> jvms = new ArrayList<String>();
 
 		for(VirtualMachineDescriptor jvm: jvmList) {
 			if(blacklistedPids.contains(jvm.id()))
 				continue;
 
-			jvms.add(String.format("%s\t%s", jvm.id(), jvm.displayName()));
+			result.add(jvm);
 		}
 
-		if(jvms.isEmpty()) {
+		return result;
+	}
+
+	private static void printJvmList(PrintStream theOutput) {
+		List<VirtualMachineDescriptor> availableJvms = listAvailableJvms();
+		List<String> lines = new ArrayList<String>();
+
+		for(VirtualMachineDescriptor jvm : availableJvms) {
+			lines.add(String.format("%s\t%s", jvm.id(), jvm.displayName()));
+		}
+
+		if(lines.isEmpty()) {
 			theOutput.println("<No JVM for connection found>");
 			return;
 		}
 
 		theOutput.println("PID\tNAME");
 
-		for(String jvm : jvms)
-			theOutput.println(jvm);
+		for(String line : lines)
+			theOutput.println(line);
 	}
 
 	private static String loadAndProcessTextResource(String theResourceId, String theLaunchString) {

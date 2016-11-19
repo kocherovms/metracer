@@ -189,11 +189,22 @@ public class Config {
 	}
 
 	private void parsePositionalArguments() throws BadConfig {
-		if(argumentList.isEmpty())
-			throw new BadConfig("mandatory 'PID' parameter is not specified");
-	
-		pid = parsePid(argumentList.removeFirst());
-	
+		pid = 0; // by default there is an autodiscover mode
+
+		if(!argumentList.isEmpty()) {
+			try {
+				String arg = argumentList.get(0);
+				pid = parsePid(arg);
+				argumentList.removeFirst();
+			} catch(BadConfig e) {
+				if(command == COMMAND.DEINSTRUMENT || // for deinstrument if a positional argument is specified then it must be a valid PID
+					(argumentList.size() < 1 || argumentList.size() > 2)) // for instrument we consider this and next arguments as a possible class & method matching patterns
+					throw e;
+
+				// looks like we were launched with PID autodiscover, bypass this exception
+			}
+		}
+ 	
 		if(command == COMMAND.DEINSTRUMENT) {
 			// patterns are not needed for removal
 			return;

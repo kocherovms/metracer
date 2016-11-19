@@ -236,7 +236,7 @@ public class ConfigTest {
 		Assert.assertTrue(config.patternsFileName.equals("/tmp/123.txt"));
 	}
 
-	@Test(expected = Config.BadConfig.class)
+	@Test
 	public void testSoleWithStackTraceIsWrong() {
 		Config config = new Config(new String[]{ "-s" });
 	}
@@ -249,11 +249,18 @@ public class ConfigTest {
 	@Test(expected = Config.BadConfig.class)
 	public void testInstrumentCommandWithStackTraceBigRequiresFileName() {
 		Config config = new Config(new String[]{ "123", "Class", "Method", "-S" });
+		Assert.assertEquals(123, config.pid);
+	}
+
+	@Test
+	public void testInstrumentCommandWithStackTraceBigConsumesFileName() {
+		Config config = new Config(new String[]{ "-S", "123", "Class", "Method" });
+		Assert.assertEquals(0, config.pid); // autodiscover mode
 	}
 
 	@Test(expected = Config.BadConfig.class)
-	public void testInstrumentCommandWithStackTraceBigConsumesPid() {
-		Config config = new Config(new String[]{ "-S", "123", "Class", "Method" });
+	public void testInstrumentCommandWithStackTraceBigConsumesFileName2() {
+		Config config = new Config(new String[]{ "-S", "123", "badpid", "Class", "Method" });
 	}
 
 	@Test(expected = Config.BadConfig.class)
@@ -261,14 +268,32 @@ public class ConfigTest {
 		Config config = new Config(new String[]{ "123", "Class", "Method", "Extra" });
 	}
 
-	@Test(expected = Config.BadConfig.class)
-	public void testBadPidInstrumentCommand() {
-		Config config = new Config(new String[]{ "habr", "Class" });
+	@Test
+	public void testAutodiscoverPidInstrumentCommand() {
+		Config config = new Config(new String[]{ "habrClass" });
+		Assert.assertEquals(0, config.pid); // autodiscover mode
+	}
+
+	@Test
+	public void testAutodiscoverPidInstrumentCommand2() {
+		Config config = new Config(new String[]{ "habrClass", "fooMethod" });
+		Assert.assertEquals(0, config.pid); // autodiscover mode
 	}
 
 	@Test(expected = Config.BadConfig.class)
+	public void testBadPidInstrumentCommand() {
+		Config config = new Config(new String[]{ "bogus", "habrClass", "fooMethod" });
+	}
+
+	@Test
 	public void testInstrumentWithFileNameConsumesPid() {
 		Config config = new Config(new String[]{ "-f", "123", "Class", "Method" });
+		Assert.assertEquals(0, config.pid); // autodiscover mode
+	}
+
+	@Test(expected = Config.BadConfig.class)
+	public void testInstrumentWithFileNameConsumesPid2() {
+		Config config = new Config(new String[]{ "-f", "123", "badpid", "Class", "Method" });
 	}
 
 	@Test(expected = Config.BadConfig.class)
@@ -280,7 +305,7 @@ public class ConfigTest {
 	public void testMinimalInstrumentCommand() {
 		Config config = new Config(new String[]{ "123" });
 		Assert.assertTrue(config.command == Config.COMMAND.INSTRUMENT);
-		Assert.assertTrue(config.pid == 123);
+		Assert.assertEquals(123, config.pid);
 		Assert.assertTrue(config.classMatchingPattern == null);
 		Assert.assertTrue(config.methodMatchingPattern == null);
 		Assert.assertFalse(config.isWithStackTrace);
@@ -297,8 +322,14 @@ public class ConfigTest {
 	public void testVerboseDesintrumentCommand() {
 		Config config = new Config(new String[]{ "-r", "123", "-v" });
 		Assert.assertTrue(config.command == Config.COMMAND.DEINSTRUMENT);
-		Assert.assertTrue(config.pid == 123);
+		Assert.assertEquals(123, config.pid);
 		Assert.assertTrue(config.isVerbose);
+	}
+
+	@Test
+	public void testAutodiscoverPidDeinstrumentCommand() {
+		Config config = new Config(new String[]{ "-r" });
+		Assert.assertEquals(0, config.pid);
 	}
 
 	@Test(expected = Config.BadConfig.class)

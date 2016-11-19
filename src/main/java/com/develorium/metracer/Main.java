@@ -56,6 +56,21 @@ public class Main {
 		try {
 			config = new Config(theArguments);
 
+			if(config.pid == 0) {
+				try {
+					config.pid = Helper.autoDiscoverOnlyJvm();
+					say("" + config.pid);
+				} catch(Helper.JvmAutoDiscoverFailure e) {
+					env.getStderr().println(e.getMessage());
+			
+					if(!e.isAmbigious) 
+						throw e;
+
+					Helper.executeAuxCommands(Config.COMMAND.LIST, env.getStdout());
+					return;
+				}
+			}
+
 			if(Helper.executeAuxCommands(config.command, env.getStdout()))
 				return;
 
