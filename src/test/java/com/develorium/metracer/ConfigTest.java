@@ -22,9 +22,18 @@ import org.junit.Test;
 import org.junit.Assert;
 
 public class ConfigTest {
-	@Test(expected = Config.BadConfig.class)
-	public void testNullIsNotTolerated() {
+	@Test
+	public void testNullArgumentsAreTolerated() {
 		Config config = new Config(null);
+		Assert.assertEquals(0, config.pid);
+		Assert.assertEquals(config.command, Config.COMMAND.INSTRUMENT);
+	}
+
+	@Test
+	public void testNoArgumentsAreTolerated() {
+		Config config = new Config(new String[] {});
+		Assert.assertEquals(0, config.pid);
+		Assert.assertEquals(config.command, Config.COMMAND.INSTRUMENT);
 	}
 
 	@Test

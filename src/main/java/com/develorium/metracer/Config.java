@@ -54,11 +54,9 @@ public class Config {
 
 	public Config(String[] theArguments) throws BadConfig {
 		theArguments = Config.readArgumentsFromEnvironmentVariablesIfTheyAreEmpty(theArguments, System.getenv());
-
-		if(theArguments == null || theArguments.length == 0)
-			throw new BadConfig("arguments are not specified");
-
-		argumentList = new LinkedList<String>(Arrays.asList(theArguments));
+		argumentList = theArguments != null 
+			? new LinkedList<String>(Arrays.asList(theArguments))
+			: new LinkedList<String>();
 		isVerbose = argumentList.remove("-v");
 		command = findCommand();
 

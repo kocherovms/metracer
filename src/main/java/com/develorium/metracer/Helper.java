@@ -54,7 +54,7 @@ public class Helper {
 	}
 
 	public static int autoDiscoverOnlyJvm() throws JvmAutoDiscoverFailure {
-		List<VirtualMachineDescriptor> availableJvms = VirtualMachine.list();
+		List<VirtualMachineDescriptor> availableJvms = listAvailableJvms();
 
 		if(availableJvms.isEmpty())
 			throw new JvmAutoDiscoverFailure("No JVM found for connection", false);

@@ -46,21 +46,6 @@ public abstract class AbstractLauncher {
 
 		try {
 			config = new Config(theArguments);
-
-			if(config.pid == 0) {
-				try {
-					config.pid = Helper.autoDiscoverOnlyJvm();
-					System.out.format("Autodiscovered JVM PID %d\n", config.pid);
-				} catch(Helper.JvmAutoDiscoverFailure e) {
-					System.err.println(e.getMessage());
-			
-					if(!e.isAmbigious) 
-						throw e;
-
-					config.command = Config.COMMAND.LIST;
-				}
-			}
-
 			String[] javaLocation = resolveJavaLocation();
 			javaExePath = javaLocation[0];
 			javaExeFolderPath = javaLocation[1];
@@ -75,14 +60,17 @@ public abstract class AbstractLauncher {
 					throw new RuntimeException("Failed to resolve tools.jar from a JDK. Please, make sure that JDK is installed and JAVA_HOME environment variable is properly set");
 			}
 
-			if(config.command.isImpersonationNeeded) {
+			if(config.pid == 0 && (config.command == Config.COMMAND.INSTRUMENT || config.command == Config.COMMAND.DEINSTRUMENT))
+				config.pid = autoDiscoverJvmPid(javaExePath, toolsJarPath);
+
+			if(config.command.isImpersonationNeeded)
 				userNameOfTargetJvm = resolveUserNameOfTargetJvm(config.pid);
-			}
 
 			try {
 				Map<String, String> customEnvVariables = new HashMap<String, String>();
 				customEnvVariables.put(Constants.METRACER_LAUNCH_STRING, launchString);
 				customEnvVariables.put(Constants.METRACER_LAUNCHER_PID, selfPid);
+				customEnvVariables.put(Constants.METRACER_AUTODISCOVER_PID, "" + config.pid);
 				prepareExecutionEnvironment(customEnvVariables);
 
 				java.lang.Runtime.getRuntime().addShutdownHook(new Thread() {
@@ -164,5 +152,53 @@ public abstract class AbstractLauncher {
 			return file.getAbsolutePath();
 
 		return null;
+	}
+
+	int autoDiscoverJvmPid(String theJavaExePath, String theToolsJarPath) throws IOException {
+		List<String> args = prepareArgumentsForJvmPidAutodiscovery();
+		Map<String, String> envVariables = new HashMap<String, String>();
+		envVariables.put(Constants.METRACER_LAUNCHER_PID, selfPid);
+		ProcessBuilder pb = new ProcessBuilder(args);
+		pb.environment().putAll(envVariables);
+		Process p = pb.start();
+
+		while(true) {
+			try {
+				p.waitFor();
+				InputStream stdout = p.getInputStream();
+				ByteArrayOutputStream temp = new ByteArrayOutputStream();
+				byte[] buffer = new byte[1024];
+				int length;
+
+				while((length = stdout.read(buffer)) != -1)
+					temp.write(buffer, 0, length);
+
+				String output = temp.toString("UTF-8");
+				
+				if(p.exitValue() == 0) {
+					Scanner scanner = new Scanner(output);
+					try {
+						return scanner.nextInt();
+					} finally {
+						scanner.close();
+					}
+				}
+
+				System.out.println(output);
+				System.exit(1);
+			} catch(InterruptedException e) {
+			}
+		}
+	}
+
+	List<String> prepareArgumentsForJvmPidAutodiscovery() {
+		List<String> args = new ArrayList<String>();
+		args.add(javaExePath);
+		args.add(String.format("-Xbootclasspath/a:%s", toolsJarPath));
+		args.add("-cp");
+		assert(selfJar != null);
+		args.add(selfJar.getAbsolutePath());
+		args.add(Main.class.getName());
+		return args;
 	}
 }

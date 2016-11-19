@@ -19,6 +19,6 @@ package com.develorium.metracer;
 interface Constants {
 	public static final String METRACER_LAUNCH_STRING = "METRACER_LAUNCH_STRING";
 	public static final String METRACER_LAUNCHER_PID = "METRACER_LAUNCHER_PID";
+	public static final String METRACER_AUTODISCOVER_PID = "METRACER_AUTODISCOVER_PID";
 	public static final String METRACER_IS_CBREAK_DISABLED = "METRACER_IS_CBREAK_DISABLED";
-
 }

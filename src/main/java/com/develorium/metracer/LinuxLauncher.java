@@ -76,13 +76,12 @@ public class LinuxLauncher extends AbstractLauncher {
 		List<String> args = new ArrayList<String>();
 
 		if(config.command.isImpersonationNeeded && !selfUserName.equals(userNameOfTargetJvm)) {
-			args.add( "sudo");
+			args.add("sudo");
 			args.add("-u");
 			args.add("#" + userNameOfTargetJvm);
 
 			for(Map.Entry<String, String> kv : theEnvVariables.entrySet())
 				args.add(String.format("%s=%s", kv.getKey(), kv.getValue()));
-
 		}
 
 		args.add(javaExePath);

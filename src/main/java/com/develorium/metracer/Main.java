@@ -55,18 +55,18 @@ public class Main {
 	private void execute(String[] theArguments) throws Throwable {
 		try {
 			config = new Config(theArguments);
-
-			if(config.pid == 0) {
-				try {
-					config.pid = Helper.autoDiscoverOnlyJvm();
-					say("" + config.pid);
-				} catch(Helper.JvmAutoDiscoverFailure e) {
-					env.getStderr().println(e.getMessage());
 			
-					if(!e.isAmbigious) 
-						throw e;
+			if(config.pid == 0 && (config.command == Config.COMMAND.INSTRUMENT || config.command == Config.COMMAND.DEINSTRUMENT)) {
+				String pidFromEnv = System.getenv().get(Constants.METRACER_AUTODISCOVER_PID);
 
-					Helper.executeAuxCommands(Config.COMMAND.LIST, env.getStdout());
+				//System.out.println("kms@ ||| " + pidFromEnv);
+
+				if(pidFromEnv != null && !pidFromEnv.isEmpty()) {
+					config.pid = Integer.parseInt(pidFromEnv);
+					say("Using auto discovered PID " + config.pid);
+				}
+				else {
+					handleJvmAutodiscovery();
 					return;
 				}
 			}
@@ -84,6 +84,20 @@ public class Main {
 			env.getStderr().println(e.getMessage());
 			e.printStackTrace(env.getStderr());
 			throw e;
+		}
+	}
+
+	private void handleJvmAutodiscovery() {
+		try {
+			int pid = Helper.autoDiscoverOnlyJvm();
+			env.getStdout().println("" + pid);
+		} catch(Helper.JvmAutoDiscoverFailure e) {
+			env.getStdout().println(e.getMessage());
+			
+			if(e.isAmbigious) 
+				Helper.executeAuxCommands(Config.COMMAND.LIST, env.getStdout());
+
+			System.exit(1);
 		}
 	}
 
