@@ -59,11 +59,10 @@ public class Main {
 			if(config.pid == 0 && (config.command == Config.COMMAND.INSTRUMENT || config.command == Config.COMMAND.DEINSTRUMENT)) {
 				String pidFromEnv = System.getenv().get(Constants.METRACER_AUTODISCOVER_PID);
 
-				//System.out.println("kms@ ||| " + pidFromEnv);
-
 				if(pidFromEnv != null && !pidFromEnv.isEmpty()) {
 					config.pid = Integer.parseInt(pidFromEnv);
-					say("Using auto discovered PID " + config.pid);
+					String jvmName = System.getenv().get(Constants.METRACER_AUTODISCOVER_NAME);
+					say(String.format("Using auto discovered PID %d%s", config.pid, !jvmName.isEmpty() ? " (" + jvmName + ")" : ""));
 				}
 				else {
 					handleJvmAutodiscovery();
@@ -89,8 +88,8 @@ public class Main {
 
 	private void handleJvmAutodiscovery() {
 		try {
-			int pid = Helper.autoDiscoverOnlyJvm();
-			env.getStdout().println("" + pid);
+			VirtualMachineDescriptor jvm = Helper.autoDiscoverOnlyJvm();
+			env.getStdout().format("%s\t%s\n", jvm.id(), jvm.displayName());
 		} catch(Helper.JvmAutoDiscoverFailure e) {
 			env.getStdout().println(e.getMessage());
 			

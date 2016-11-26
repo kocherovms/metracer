@@ -53,7 +53,7 @@ public class Helper {
 		return false;
 	}
 
-	public static int autoDiscoverOnlyJvm() throws JvmAutoDiscoverFailure {
+	public static VirtualMachineDescriptor autoDiscoverOnlyJvm() throws JvmAutoDiscoverFailure {
 		List<VirtualMachineDescriptor> availableJvms = listAvailableJvms();
 
 		if(availableJvms.isEmpty())
@@ -62,7 +62,7 @@ public class Helper {
 			throw new JvmAutoDiscoverFailure("More than one JVM for connection detected, please, specify desired one manually", true);
 
 		try {
-			return Integer.parseInt(availableJvms.get(0).id());
+			return availableJvms.get(0);
 		} catch(NumberFormatException e) {
 			throw new JvmAutoDiscoverFailure("Failed to determine PID of JVM for connection, please, specify desired one manually", true);
 		}

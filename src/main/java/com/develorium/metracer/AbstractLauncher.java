@@ -60,8 +60,13 @@ public abstract class AbstractLauncher {
 					throw new RuntimeException("Failed to resolve tools.jar from a JDK. Please, make sure that JDK is installed and JAVA_HOME environment variable is properly set");
 			}
 
-			if(config.pid == 0 && (config.command == Config.COMMAND.INSTRUMENT || config.command == Config.COMMAND.DEINSTRUMENT))
-				config.pid = autoDiscoverJvmPid(javaExePath, toolsJarPath);
+			String[] autoDiscoverJvmInfo = null;
+
+			if(config.pid == 0 && (config.command == Config.COMMAND.INSTRUMENT || config.command == Config.COMMAND.DEINSTRUMENT)) {
+				autoDiscoverJvmInfo = autoDiscoverJvm(javaExePath, toolsJarPath);
+				config.pid = Integer.parseInt(autoDiscoverJvmInfo[0]);
+				
+			}
 
 			if(config.command.isImpersonationNeeded)
 				userNameOfTargetJvm = resolveUserNameOfTargetJvm(config.pid);
@@ -70,7 +75,12 @@ public abstract class AbstractLauncher {
 				Map<String, String> customEnvVariables = new HashMap<String, String>();
 				customEnvVariables.put(Constants.METRACER_LAUNCH_STRING, launchString);
 				customEnvVariables.put(Constants.METRACER_LAUNCHER_PID, selfPid);
-				customEnvVariables.put(Constants.METRACER_AUTODISCOVER_PID, "" + config.pid);
+
+				if(autoDiscoverJvmInfo != null) {
+					customEnvVariables.put(Constants.METRACER_AUTODISCOVER_PID, autoDiscoverJvmInfo[0]);
+					customEnvVariables.put(Constants.METRACER_AUTODISCOVER_NAME, autoDiscoverJvmInfo[1]);
+				}
+
 				prepareExecutionEnvironment(customEnvVariables);
 
 				java.lang.Runtime.getRuntime().addShutdownHook(new Thread() {
@@ -154,7 +164,8 @@ public abstract class AbstractLauncher {
 		return null;
 	}
 
-	int autoDiscoverJvmPid(String theJavaExePath, String theToolsJarPath) throws IOException {
+	// returns: first elem - JVM pid, second elem - JVM name
+	String[] autoDiscoverJvm(String theJavaExePath, String theToolsJarPath) throws IOException {
 		List<String> args = prepareArgumentsForJvmPidAutodiscovery();
 		Map<String, String> envVariables = new HashMap<String, String>();
 		envVariables.put(Constants.METRACER_LAUNCHER_PID, selfPid);
@@ -178,7 +189,9 @@ public abstract class AbstractLauncher {
 				if(p.exitValue() == 0) {
 					Scanner scanner = new Scanner(output);
 					try {
-						return scanner.nextInt();
+						String pid = scanner.next();
+						String name = scanner.next();
+						return new String[] { pid, name };
 					} finally {
 						scanner.close();
 					}
