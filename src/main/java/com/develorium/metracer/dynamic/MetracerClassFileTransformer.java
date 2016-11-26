@@ -39,7 +39,7 @@ public class MetracerClassFileTransformer implements ClassFileTransformer {
 
 		try {
 			if(patterns == null)
-				return theClassfileBuffer;
+				return null; // no transform was performed
 
 			InstrumentClassResult icr = instrumentClass(theClassfileBuffer, theLoader != null ? theLoader : getClass().getClassLoader(), patterns);
 
@@ -50,7 +50,7 @@ public class MetracerClassFileTransformer implements ClassFileTransformer {
 				return icr.bytecode;
 			}
 
-			return theClassfileBuffer;
+			return null; // no transform was performed
 		} catch(Throwable t) {
 			StringWriter sw = new StringWriter();
 			t.printStackTrace(new PrintWriter(sw));
