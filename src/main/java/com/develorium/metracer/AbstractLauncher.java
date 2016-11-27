@@ -63,7 +63,7 @@ public abstract class AbstractLauncher {
 			String[] autoDiscoverJvmInfo = null;
 
 			if(config.pid == 0 && (config.command == Config.COMMAND.INSTRUMENT || config.command == Config.COMMAND.DEINSTRUMENT)) {
-				autoDiscoverJvmInfo = autoDiscoverJvm(javaExePath, toolsJarPath);
+				autoDiscoverJvmInfo = autoDiscoverJvm(config, javaExePath, toolsJarPath);
 				config.pid = Integer.parseInt(autoDiscoverJvmInfo[0]);
 				
 			}
@@ -90,6 +90,7 @@ public abstract class AbstractLauncher {
 				});
 
 				List<String> args = prepareArguments(theArguments, customEnvVariables);
+				dumpLaunchString(config, args, customEnvVariables);
 				ProcessBuilder pb = new ProcessBuilder(args);
 				pb.inheritIO();
 				pb.environment().putAll(customEnvVariables);
@@ -165,10 +166,11 @@ public abstract class AbstractLauncher {
 	}
 
 	// returns: first elem - JVM pid, second elem - JVM name
-	String[] autoDiscoverJvm(String theJavaExePath, String theToolsJarPath) throws IOException {
-		List<String> args = prepareArgumentsForJvmPidAutodiscovery();
+	private String[] autoDiscoverJvm(Config theConfig, String theJavaExePath, String theToolsJarPath) throws IOException {
+		List<String> args = prepareArgumentsForJvmAutodiscovery();
 		Map<String, String> envVariables = new HashMap<String, String>();
 		envVariables.put(Constants.METRACER_LAUNCHER_PID, selfPid);
+		dumpLaunchString(theConfig, args, envVariables);
 		ProcessBuilder pb = new ProcessBuilder(args);
 		pb.environment().putAll(envVariables);
 		Process p = pb.start();
@@ -204,7 +206,7 @@ public abstract class AbstractLauncher {
 		}
 	}
 
-	List<String> prepareArgumentsForJvmPidAutodiscovery() {
+	private List<String> prepareArgumentsForJvmAutodiscovery() {
 		List<String> args = new ArrayList<String>();
 		args.add(javaExePath);
 		args.add(String.format("-Xbootclasspath/a:%s", toolsJarPath));
@@ -213,5 +215,23 @@ public abstract class AbstractLauncher {
 		args.add(selfJar.getAbsolutePath());
 		args.add(Main.class.getName());
 		return args;
+	}
+
+	private static void dumpLaunchString(Config theConfig, List<String> theArguments, Map<String, String> theEnvVariables) {
+		if(!theConfig.isVerbose)
+			return;
+
+		StringBuilder linearizedArguments = new StringBuilder();
+
+		for(String arg: theArguments)
+			linearizedArguments.append(arg + " ");
+
+		System.err.format("Launch string: %s\n", linearizedArguments.toString());
+
+		if(!theEnvVariables.isEmpty())
+			System.err.println("Environment variables:");
+
+		for(Map.Entry<String, String> e: theEnvVariables.entrySet())
+			System.err.format("%s=%s\n", e.getKey(), e.getValue());
 	}
 }

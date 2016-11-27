@@ -65,7 +65,7 @@ public class Main {
 					say(String.format("Using auto discovered PID %d%s", config.pid, !jvmName.isEmpty() ? " (" + jvmName + ")" : ""));
 				}
 				else {
-					handleJvmAutodiscovery();
+					executeJvmAutodiscovery();
 					return;
 				}
 			}
@@ -86,7 +86,7 @@ public class Main {
 		}
 	}
 
-	private void handleJvmAutodiscovery() {
+	private void executeJvmAutodiscovery() {
 		try {
 			VirtualMachineDescriptor jvm = Helper.autoDiscoverOnlyJvm();
 			env.getStdout().format("%s\t%s\n", jvm.id(), jvm.displayName());
@@ -112,6 +112,7 @@ public class Main {
 	}
 
 	private void executeInstrument() {
+		warnIfJavaIsInstrumentationUnstable();
 		loadAgent(true);
 		agent.setIsVerbose(config.isVerbose);
 		agent.setMethodArgumentDumpLimit(config.methodArgumentDumpLimit);
@@ -180,6 +181,19 @@ public class Main {
 
 		agent.setIsVerbose(config.isVerbose);
 		deinstrument();
+	}
+
+	private void warnIfJavaIsInstrumentationUnstable() {
+		String version = System.getProperty("java.runtime.version");
+		String vendor = System.getProperty("java.vm.vendor");
+		say(String.format("Working under Java %s by %s", version, vendor));
+
+		try {
+			Helper.checkIsJavaInstrumentationStable(version, vendor);
+		} catch(RuntimeException e) {
+			String extraSpace = config.isVerbose ? "\n" : "";
+			env.getStdout().format("%s%s\n%s", extraSpace, e.getMessage(), extraSpace);
+		}
 	}
 
 	private boolean loadAgent(boolean theIsAgentRequired) {

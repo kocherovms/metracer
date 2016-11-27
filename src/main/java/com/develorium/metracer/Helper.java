@@ -128,6 +128,32 @@ public class Helper {
 			throw new RuntimeException(String.format("Failed to load text resource %s: %s", theResourceId, t.getMessage()), t);
 		}
 	}
+	
+	public static void checkIsJavaInstrumentationStable(String theVersion, String theVendor) {
+		if(theVendor == null || !theVendor.toLowerCase().contains("oracle"))
+			return;
+
+		String[] versionElements = theVersion.split("\\.|_|-b");
+
+		if(versionElements.length < 4)
+			return;
+
+		String major = versionElements[1];
+
+		if(!major.equals("8"))
+			return;
+			
+		try {
+			int update = Integer.parseInt(versionElements[3]);
+			final int OkUpdateNumber = 45;
+
+			if(update < OkUpdateNumber)
+				throw new RuntimeException(String.format("WARNING: Java %s is subject to sporadic crashes / hangups after instrumentation (JDK-8076110, JDK-8136588). Please, consider upgrading Java to 1.%s.0_%d or newer", 
+														 theVersion, major, OkUpdateNumber));
+		} catch(NumberFormatException e) {
+			// can't recognize update version of 1.8 - assume it's ok
+		}
+	}
 
 	private static void printHelp(PrintStream theOutput) {
 		try {
