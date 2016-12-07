@@ -111,6 +111,26 @@ public class LinuxLauncher extends AbstractLauncher {
 		System.out.format("\nWARNING: JVM list may be not full (missing root privileges). Use `sudo %s` to get a full list\n", launchString);
 	}
 
+	@Override
+	protected boolean isFileAvailableForReading(String theFileName, String theUserId) {
+		List<String> args = Arrays.asList("sudo", "-n", "-u", "#" + theUserId, "head", "-c1b", theFileName);
+		ProcessBuilder pb = new ProcessBuilder(args);
+
+		try {
+			Process p = pb.start();
+
+			while(true) {
+				try {
+					int rv = p.waitFor();
+					return rv == 0;
+				} catch(InterruptedException e) {
+				}
+			}
+		} catch(IOException e) {
+			return false;
+		}
+	}
+
 	static String processStatusContent(BufferedReader theReader) throws IOException {
 		String line = null;
 

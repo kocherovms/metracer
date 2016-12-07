@@ -116,6 +116,9 @@ public abstract class AbstractLauncher {
 			System.exit(2);
 		}
 
+		if(rv != 0 && config.command.isImpersonationNeeded)
+			warnIfMetracerJarIsNotAvailableUnderImpersonation();
+
 		System.exit(rv);
 	}
 
@@ -127,6 +130,9 @@ public abstract class AbstractLauncher {
 	}
 	protected abstract List<String> prepareArguments(String[] theOriginalArguments, Map<String, String> theEnvVariables);
 	protected void postProcessCommand() {
+	}
+	protected boolean isFileAvailableForReading(String theFileName, String theUserId) {
+		return true;
 	}
 
 	protected String[] resolveJavaLocation() {
@@ -233,5 +239,12 @@ public abstract class AbstractLauncher {
 
 		for(Map.Entry<String, String> e: theEnvVariables.entrySet())
 			System.err.format("%s=%s\n", e.getKey(), e.getValue());
+	}
+
+	private void warnIfMetracerJarIsNotAvailableUnderImpersonation() {
+		boolean isAvailable = isFileAvailableForReading(selfJar.getAbsolutePath(), userNameOfTargetJvm);
+
+		if(!isAvailable)
+			System.err.format("Please, check if \"%s\" is available for reading by user with ID %s\n", selfJar.getAbsolutePath(), userNameOfTargetJvm);
 	}
 }
