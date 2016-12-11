@@ -245,6 +245,6 @@ public abstract class AbstractLauncher {
 		boolean isAvailable = isFileAvailableForReading(selfJar.getAbsolutePath(), userNameOfTargetJvm);
 
 		if(!isAvailable)
-			System.err.format("Please, check if \"%s\" is available for reading by user with ID %s\n", selfJar.getAbsolutePath(), userNameOfTargetJvm);
+			System.err.format("PLEASE, CHECK IF \"%s\" IS AVAILABLE FOR READING BY USER WITH ID %s\n", selfJar.getAbsolutePath(), userNameOfTargetJvm);
 	}
 }
